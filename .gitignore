@@ -1,0 +1,51 @@
+# Gradle 및 빌드 산출물
+.gradle/
+build/
+
+
+# Java 컴파일 결과 및 애플리케이션 로그
+*.class
+bin/
+out/
+*.log
+logs/
+
+# 로컬 환경 설정과 민감 정보
+.env
+.env.*
+!.env.example
+*.local.properties
+application-local.properties
+application-secret.properties
+application-local.yml
+application-secret.yml
+
+# Eclipse·Spring Tool Suite 설정
+.apt_generated/
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# IntelliJ IDEA 설정
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# NetBeans 설정
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code 설정
+.vscode/
+
+# 운영체제에서 생성되는 파일
+.DS_Store
+Thumbs.db
+Desktop.ini
