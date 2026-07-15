@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo "[pre-commit] Spotless 포맷팅을 실행합니다."
+
+./gradlew spotlessApply
+
+if [ $? -ne 0 ]; then
+    echo "[pre-commit] Spotless 실행에 실패했습니다."
+    exit 1
+fi
+
+# Spotless가 수정한 추적 중인 파일을 staging에 다시 반영한다.
+git add -u
+
+echo "[pre-commit] Spotless 포맷팅이 완료됐습니다."
