@@ -21,7 +21,7 @@
 - 도메인별 최상위 패키지 아래에 `controller`, `service`, `repository`, `dto`, `entity`를 두는 구조다.
 - Git Hook은 커밋 시 `spotlessApply`를 실행하고, CI는 `spotlessCheck`와 전체 테스트를 수행한다.
 - 공통 브랜치는 `main`, `develop`, `feature/*`, `fix/*`이며 PR은 `develop`을 대상으로 한다.
-- 현재 Java 클래스는 폴더 구조만 잡힌 스켈레톤이다. Controller 매핑, 서비스 트랜잭션, JPA 매핑, API 응답 구현은 아직 확정된 기존 스타일이 없다.
+- 대부분의 Java 클래스는 폴더 구조만 잡힌 스켈레톤이다. Part3의 `StudyGroup`, `GroupMember`와 대응 Repository는 JPA 영속성 기반이 구현되었고, Controller 매핑, 서비스 트랜잭션과 API 응답 구현은 아직 확정된 기존 스타일이 없다.
 
 따라서 아래 API 및 계층 규칙은 기존 구현을 설명하는 것이 아니라, 현재 구조와 의존성을 바탕으로 Part3에서 일관되게 적용할 기준이다.
 
