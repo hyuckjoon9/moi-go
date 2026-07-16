@@ -28,7 +28,7 @@ application-secret.yml
 .settings/
 .springBeans
 .sts4-cache/
-
+.metadata/
 # IntelliJ IDEA 설정
 .idea/
 *.iws
