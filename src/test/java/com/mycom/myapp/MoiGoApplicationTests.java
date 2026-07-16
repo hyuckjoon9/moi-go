@@ -1,5 +1,11 @@
 package com.mycom.myapp;
 
-public class MoiGoApplicationTests {
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
+@SpringBootTest
+class MoiGoApplicationTests {
+
+    @Test
+    void contextLoads() {}
 }

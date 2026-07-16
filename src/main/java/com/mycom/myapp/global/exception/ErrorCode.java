@@ -1,5 +1,3 @@
 package com.mycom.myapp.global.exception;
 
-public enum ErrorCode {
-
-}
+public enum ErrorCode {}

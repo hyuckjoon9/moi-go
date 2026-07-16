@@ -1,5 +1,3 @@
 package com.mycom.myapp.auth.entity;
 
-public class RefreshToken {
-
-}
+public class RefreshToken {}

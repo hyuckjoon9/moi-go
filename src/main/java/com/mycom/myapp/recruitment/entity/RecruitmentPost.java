@@ -1,5 +1,3 @@
 package com.mycom.myapp.recruitment.entity;
 
-public class RecruitmentPost {
-
-}
+public class RecruitmentPost {}

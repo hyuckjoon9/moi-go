@@ -1,5 +1,3 @@
 package com.mycom.myapp.member.dto.response;
 
-public class MemberResponse {
-
-}
+public class MemberResponse {}

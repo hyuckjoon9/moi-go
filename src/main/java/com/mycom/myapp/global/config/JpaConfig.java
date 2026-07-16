@@ -1,5 +1,3 @@
 package com.mycom.myapp.global.config;
 
-public class JpaConfig {
-
-}
+public class JpaConfig {}

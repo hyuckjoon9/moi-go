@@ -1,5 +1,3 @@
 package com.mycom.myapp.attendance.entity;
 
-public class AttendanceResponse {
-
-}
+public class AttendanceResponse {}

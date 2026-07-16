@@ -1,5 +1,3 @@
 package com.mycom.myapp.activity.entity;
 
-public class ActivityRecord {
-
-}
+public class ActivityRecord {}

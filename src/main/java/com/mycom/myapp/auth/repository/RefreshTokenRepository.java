@@ -1,5 +1,3 @@
 package com.mycom.myapp.auth.repository;
 
-public interface RefreshTokenRepository {
-
-}
+public interface RefreshTokenRepository {}

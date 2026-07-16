@@ -1,5 +1,3 @@
 package com.mycom.myapp.study.entity;
 
-public enum GroupRole {
-
-}
+public enum GroupRole {}

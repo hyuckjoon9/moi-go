@@ -1,5 +1,3 @@
 package com.mycom.myapp.attendance.service;
 
-public class AttendanceService {
-
-}
+public class AttendanceService {}

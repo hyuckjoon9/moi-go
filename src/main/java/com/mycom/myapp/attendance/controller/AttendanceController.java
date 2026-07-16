@@ -1,5 +1,3 @@
 package com.mycom.myapp.attendance.controller;
 
-public class AttendanceController {
-
-}
+public class AttendanceController {}

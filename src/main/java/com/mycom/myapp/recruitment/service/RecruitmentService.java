@@ -1,5 +1,3 @@
 package com.mycom.myapp.recruitment.service;
 
-public class RecruitmentService {
-
-}
+public class RecruitmentService {}

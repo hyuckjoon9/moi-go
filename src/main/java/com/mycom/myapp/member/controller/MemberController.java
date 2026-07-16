@@ -1,5 +1,3 @@
 package com.mycom.myapp.member.controller;
 
-public class MemberController {
-
-}
+public class MemberController {}

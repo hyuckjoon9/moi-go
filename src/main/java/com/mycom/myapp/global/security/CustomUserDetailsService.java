@@ -1,5 +1,3 @@
 package com.mycom.myapp.global.security;
 
-public class CustomUserDetailsService {
-
-}
+public class CustomUserDetailsService {}

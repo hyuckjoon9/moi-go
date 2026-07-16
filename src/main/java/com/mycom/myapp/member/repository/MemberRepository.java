@@ -1,5 +1,3 @@
 package com.mycom.myapp.member.repository;
 
-public interface MemberRepository {
-
-}
+public interface MemberRepository {}

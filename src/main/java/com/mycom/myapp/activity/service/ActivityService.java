@@ -1,5 +1,3 @@
 package com.mycom.myapp.activity.service;
 
-public class ActivityService {
-
-}
+public class ActivityService {}

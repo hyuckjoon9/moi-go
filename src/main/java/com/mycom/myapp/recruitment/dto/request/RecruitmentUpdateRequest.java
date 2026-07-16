@@ -1,5 +1,3 @@
 package com.mycom.myapp.recruitment.dto.request;
 
-public class RecruitmentUpdateRequest {
-
-}
+public class RecruitmentUpdateRequest {}
