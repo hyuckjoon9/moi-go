@@ -148,6 +148,7 @@ git commit -m "feat: 그룹과 그룹원 엔티티 구현"
 ### Task 2: 그룹과 그룹원 Repository
 
 **Files:**
+- Modify: `build.gradle`
 - Modify: `src/main/java/com/mycom/myapp/study/repository/StudyGroupRepository.java`
 - Modify: `src/main/java/com/mycom/myapp/study/repository/GroupMemberRepository.java`
 - Create: `src/test/java/com/mycom/myapp/study/repository/StudyGroupRepositoryTest.java`
@@ -159,6 +160,8 @@ git commit -m "feat: 그룹과 그룹원 엔티티 구현"
 - Produces: `Optional<GroupMember> findByStudyGroupIdAndUserId(Long groupId, Long userId)`, `List<GroupMember> findAllByStudyGroupId(Long groupId)`, `List<GroupMember> findAllByUserIdAndStatus(Long userId, GroupMemberStatus status)`
 
 - [ ] **Step 1: 그룹 Repository 실패 테스트 작성**
+
+Spring Boot 4.1에서 `@DataJpaTest`를 제공하도록 `build.gradle`의 테스트 의존성에 `org.springframework.boot:spring-boot-starter-data-jpa-test`를 추가한다.
 
 ```java
 @DataJpaTest
@@ -328,4 +331,3 @@ Expected: `BUILD SUCCESSFUL`
 git add docs/part3-group
 git commit -m "docs: 그룹 영속성 매핑 기준 반영"
 ```
-
