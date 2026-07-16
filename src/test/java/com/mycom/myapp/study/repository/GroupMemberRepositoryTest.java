@@ -25,8 +25,10 @@ class GroupMemberRepositoryTest {
     @Test
     void findsMembersWithinGroupBoundary() {
         StudyGroup group = studyGroupRepository.saveAndFlush(StudyGroup.create(10L, "알고리즘 스터디"));
+        StudyGroup otherGroup = studyGroupRepository.saveAndFlush(StudyGroup.create(11L, "다른 스터디"));
         GroupMember member =
                 groupMemberRepository.saveAndFlush(GroupMember.join(group, 20L, GroupRole.MEMBER));
+        groupMemberRepository.saveAndFlush(GroupMember.join(otherGroup, 20L, GroupRole.MEMBER));
 
         assertThat(groupMemberRepository.findByStudyGroupIdAndUserId(group.getId(), 20L))
                 .contains(member);
@@ -65,9 +67,27 @@ class GroupMemberRepositoryTest {
                         "select status from group_members where id = ?",
                         String.class,
                         member.getId());
+        String roleColumnType =
+                jdbcTemplate.queryForObject(
+                        """
+                        select data_type
+                        from information_schema.columns
+                        where table_name = 'GROUP_MEMBERS' and column_name = 'ROLE'
+                        """,
+                        String.class);
+        String statusColumnType =
+                jdbcTemplate.queryForObject(
+                        """
+                        select data_type
+                        from information_schema.columns
+                        where table_name = 'GROUP_MEMBERS' and column_name = 'STATUS'
+                        """,
+                        String.class);
 
         assertThat(storedRole).isEqualTo("MANAGER");
         assertThat(storedStatus).isEqualTo("ACTIVE");
+        assertThat(roleColumnType).isEqualTo("CHARACTER VARYING");
+        assertThat(statusColumnType).isEqualTo("CHARACTER VARYING");
     }
 
     @Test

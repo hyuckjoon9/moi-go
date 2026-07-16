@@ -158,7 +158,7 @@ erDiagram
 | 테이블 | Entity | 관련 값 객체·Enum |
 | --- | --- | --- |
 | `study_groups` | `study/entity/StudyGroup.java` | `GroupStatus` |
-| `group_members` | `study/entity/GroupMember.java` | `GroupRole`, 그룹원 상태 값 |
+| `group_members` | `study/entity/GroupMember.java` | `GroupRole`, `GroupMemberStatus` |
 | `study_schedules` | `schedule/entity/StudySchedule.java` | 일정 생성·수정 DTO |
 
 `StudyGroup`과 `GroupMember`의 JPA 매핑은 구현되었다. Part3 외부 경계를 유지하기 위해

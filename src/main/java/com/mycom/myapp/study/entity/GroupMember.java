@@ -38,11 +38,11 @@ public class GroupMember {
     private Long userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20)")
     private GroupRole role;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20)")
     private GroupMemberStatus status;
 
     @Column(name = "joined_at", nullable = false, updatable = false)
