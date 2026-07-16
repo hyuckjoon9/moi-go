@@ -3,12 +3,14 @@
 > 마지막 갱신: 2026-07-16
 >
 > 이 문서는 Part3 작업의 세션 핸드오프 문서다. 다음 세션을 시작하면 먼저 현재 Git 상태를 확인하고, 이 문서의 기록과 실제 저장소가 다르면 실제 저장소를 기준으로 이 문서를 갱신한다.
+> 개인 로컬 기록인 `.local/part3/updates.md`가 있으면 이 문서보다 해당 파일의 최신 작업 기록을 우선한다. `updates.md`는 `.git/info/exclude`로 제외하며 커밋하지 않는다.
 
 ## 다음 세션 시작 절차
 
 1. 루트 [`AGENTS.md`](../../AGENTS.md)를 읽는다.
 2. [`development-guide.md`](development-guide.md), [`erd.md`](erd.md), [`api.md`](api.md)를 읽는다.
-3. 다음 명령으로 브랜치와 변경 사항을 확인한다.
+3. `.local/part3/updates.md`가 있으면 최신 작업 기록과 바로 다음 작업을 확인한다.
+4. 다음 명령으로 브랜치와 변경 사항을 확인한다.
 
 ```powershell
 git branch --show-current
@@ -16,8 +18,8 @@ git status --short
 git log -3 --oneline
 ```
 
-4. `src/main/resources/application.properties`의 기존 사용자 변경을 수정하거나 Part3 문서 커밋에 포함하지 않는다.
-5. 아래의 "바로 다음 작업"부터 이어서 진행한다.
+5. `src/main/resources/application.properties`의 기존 사용자 변경을 수정하거나 Part3 문서 커밋에 포함하지 않는다.
+6. 로컬 업데이트가 있으면 그 기록부터, 없으면 아래의 "바로 다음 작업"부터 이어서 진행한다.
 
 ## 프로젝트와 담당 범위
 
