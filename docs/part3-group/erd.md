@@ -161,4 +161,11 @@ erDiagram
 | `group_members` | `study/entity/GroupMember.java` | `GroupRole`, 그룹원 상태 값 |
 | `study_schedules` | `schedule/entity/StudySchedule.java` | 일정 생성·수정 DTO |
 
-현재 Entity는 빈 스켈레톤이다. 실제 JPA 매핑을 구현할 때 이 문서와 SQL의 컬럼 길이, NULL 허용 여부, 유니크·CHECK·FK 제약을 함께 반영한다.
+`StudyGroup`과 `GroupMember`의 JPA 매핑은 구현되었다. Part3 외부 경계를 유지하기 위해
+`StudyGroup.postId`와 `GroupMember.userId`는 외부 도메인 Entity 연관관계가 아닌 식별자 값으로
+매핑하고, Part3가 소유하는 `GroupMember.studyGroup`만 지연 로딩 연관관계로 매핑한다. 외부
+FK는 운영 데이터베이스 스키마가 보장하며, 외부 식별자의 존재 여부는 이후 합의된 공개 서비스
+경계에서 검증한다.
+
+`StudySchedule`은 아직 빈 스켈레톤이다. 실제 JPA 매핑을 구현할 때 이 문서와 SQL의 컬럼 길이,
+NULL 허용 여부, 유니크·CHECK·FK 제약을 함께 반영한다.

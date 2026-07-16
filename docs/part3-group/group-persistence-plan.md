@@ -34,7 +34,7 @@
 - Produces: `GroupMember.join(StudyGroup studyGroup, Long userId, GroupRole role)`, `GroupMember.changeRole(GroupRole role)`, `GroupMember.withdraw()`
 - Produces: `GroupStatus.ACTIVE`, `GroupStatus.ENDED`, `GroupRole.LEADER`, `GroupRole.MANAGER`, `GroupRole.MEMBER`, `GroupMemberStatus.ACTIVE`, `GroupMemberStatus.WITHDRAWN`
 
-- [ ] **Step 1: 그룹 상태 테스트 작성**
+- [x] **Step 1: 그룹 상태 테스트 작성**
 
 ```java
 @Test
@@ -62,13 +62,13 @@ void createRejectsBlankName() {
 }
 ```
 
-- [ ] **Step 2: 그룹 상태 테스트 실패 확인**
+- [x] **Step 2: 그룹 상태 테스트 실패 확인**
 
 Run: `./gradlew.bat test --tests "com.mycom.myapp.study.entity.StudyGroupTest"`
 
 Expected: `StudyGroup.create`와 Enum 값이 없어 컴파일 실패
 
-- [ ] **Step 3: 그룹 엔티티와 Enum 최소 구현**
+- [x] **Step 3: 그룹 엔티티와 Enum 최소 구현**
 
 ```java
 public enum GroupStatus {
@@ -85,7 +85,7 @@ public enum GroupRole {
 
 `StudyGroup`에는 `@Entity`, `@Table(name = "study_groups", uniqueConstraints = ...)`, IDENTITY 식별자, `post_id`, 길이 100의 `name`, 문자열 `status`, `created_at` 매핑을 추가한다. `create()`는 null 모집글 식별자와 빈 이름을 거부하고 `@PrePersist`는 생성 시각이 비어 있을 때만 채운다.
 
-- [ ] **Step 4: 그룹원 상태 테스트 작성**
+- [x] **Step 4: 그룹원 상태 테스트 작성**
 
 ```java
 @Test
@@ -113,13 +113,13 @@ void roleAndMembershipStatusChangeThroughDomainMethods() {
 }
 ```
 
-- [ ] **Step 5: 그룹원 테스트 실패 확인**
+- [x] **Step 5: 그룹원 테스트 실패 확인**
 
 Run: `./gradlew.bat test --tests "com.mycom.myapp.study.entity.GroupMemberTest"`
 
 Expected: `GroupMember.join`과 `GroupMemberStatus`가 없어 컴파일 실패
 
-- [ ] **Step 6: 그룹원 엔티티와 상태 Enum 최소 구현**
+- [x] **Step 6: 그룹원 엔티티와 상태 Enum 최소 구현**
 
 ```java
 public enum GroupMemberStatus {
@@ -130,13 +130,13 @@ public enum GroupMemberStatus {
 
 `GroupMember`에는 `@Entity`, `(group_id, user_id)` 유니크 제약, `(user_id, status)` 인덱스, IDENTITY 식별자, 지연 로딩 `StudyGroup`, `user_id`, 문자열 역할·상태, `joined_at` 매핑을 추가한다. `join()`은 null 인수를 거부하고 기본 상태를 `ACTIVE`로 설정한다.
 
-- [ ] **Step 7: 도메인 테스트 통과 확인**
+- [x] **Step 7: 도메인 테스트 통과 확인**
 
 Run: `./gradlew.bat test --tests "com.mycom.myapp.study.entity.*Test"`
 
 Expected: 모든 그룹·그룹원 단위 테스트 PASS
 
-- [ ] **Step 8: 도메인 모델 커밋**
+- [x] **Step 8: 도메인 모델 커밋**
 
 ```powershell
 git add src/main/java/com/mycom/myapp/study/entity src/test/java/com/mycom/myapp/study/entity
@@ -159,7 +159,7 @@ git commit -m "feat: 그룹과 그룹원 엔티티 구현"
 - Produces: `Optional<StudyGroup> findByPostId(Long postId)`, `boolean existsByPostId(Long postId)`
 - Produces: `Optional<GroupMember> findByStudyGroupIdAndUserId(Long groupId, Long userId)`, `List<GroupMember> findAllByStudyGroupId(Long groupId)`, `List<GroupMember> findAllByUserIdAndStatus(Long userId, GroupMemberStatus status)`
 
-- [ ] **Step 1: 그룹 Repository 실패 테스트 작성**
+- [x] **Step 1: 그룹 Repository 실패 테스트 작성**
 
 Spring Boot 4.1에서 `@DataJpaTest`를 제공하도록 `build.gradle`의 테스트 의존성에 `org.springframework.boot:spring-boot-starter-data-jpa-test`를 추가한다.
 
@@ -188,13 +188,13 @@ class StudyGroupRepositoryTest {
 }
 ```
 
-- [ ] **Step 2: 그룹 Repository 테스트 실패 확인**
+- [x] **Step 2: 그룹 Repository 테스트 실패 확인**
 
 Run: `./gradlew.bat test --tests "com.mycom.myapp.study.repository.StudyGroupRepositoryTest"`
 
 Expected: `StudyGroupRepository`가 `JpaRepository`가 아니어서 컴파일 실패
 
-- [ ] **Step 3: 그룹 Repository 최소 구현**
+- [x] **Step 3: 그룹 Repository 최소 구현**
 
 ```java
 public interface StudyGroupRepository extends JpaRepository<StudyGroup, Long> {
@@ -204,7 +204,7 @@ public interface StudyGroupRepository extends JpaRepository<StudyGroup, Long> {
 }
 ```
 
-- [ ] **Step 4: 그룹원 Repository 실패 테스트 작성**
+- [x] **Step 4: 그룹원 Repository 실패 테스트 작성**
 
 ```java
 @DataJpaTest
@@ -256,13 +256,13 @@ class GroupMemberRepositoryTest {
 }
 ```
 
-- [ ] **Step 5: 그룹원 Repository 테스트 실패 확인**
+- [x] **Step 5: 그룹원 Repository 테스트 실패 확인**
 
 Run: `./gradlew.bat test --tests "com.mycom.myapp.study.repository.GroupMemberRepositoryTest"`
 
 Expected: `GroupMemberRepository`가 `JpaRepository`가 아니어서 컴파일 실패
 
-- [ ] **Step 6: 그룹원 Repository 최소 구현**
+- [x] **Step 6: 그룹원 Repository 최소 구현**
 
 ```java
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
@@ -274,13 +274,13 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 }
 ```
 
-- [ ] **Step 7: Repository 테스트 통과 확인**
+- [x] **Step 7: Repository 테스트 통과 확인**
 
 Run: `./gradlew.bat test --tests "com.mycom.myapp.study.repository.*Test"`
 
 Expected: 모든 그룹·그룹원 Repository 테스트 PASS
 
-- [ ] **Step 8: Repository 커밋**
+- [x] **Step 8: Repository 커밋**
 
 ```powershell
 git add src/main/java/com/mycom/myapp/study/repository src/test/java/com/mycom/myapp/study/repository
@@ -299,33 +299,33 @@ git commit -m "feat: 그룹과 그룹원 조회 Repository 구현"
 - Consumes: Task 1과 Task 2의 실제 Entity·Repository 구현
 - Produces: 구현과 일치하는 Part3 영속성 문서와 검증 기록
 
-- [ ] **Step 1: ERD의 Entity 대응 내용 갱신**
+- [x] **Step 1: ERD의 Entity 대응 내용 갱신**
 
 `StudyGroup.postId`와 `GroupMember.userId`는 외부 도메인 식별자 값으로, `GroupMember.studyGroup`은 Part3 내부 연관관계로 매핑한다는 내용을 `erd.md`에 기록한다.
 
-- [ ] **Step 2: 계획 체크박스와 실제 구현 대조**
+- [x] **Step 2: 계획 체크박스와 실제 구현 대조**
 
 완료한 단계의 체크박스를 `[x]`로 바꾸고, 메서드 시그니처가 실제 코드와 일치하는지 확인한다.
 
-- [ ] **Step 3: Part3 테스트 실행**
+- [x] **Step 3: Part3 테스트 실행**
 
 Run: `./gradlew.bat test --tests "com.mycom.myapp.study.*"`
 
 Expected: Part3 그룹 테스트 전체 PASS
 
-- [ ] **Step 4: 전체 테스트 실행**
+- [x] **Step 4: 전체 테스트 실행**
 
 Run: `./gradlew.bat test`
 
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 5: 포맷 검사 실행**
+- [x] **Step 5: 포맷 검사 실행**
 
 Run: `./gradlew.bat spotlessCheck`
 
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 6: 최종 문서 커밋**
+- [x] **Step 6: 최종 문서 커밋**
 
 ```powershell
 git add docs/part3-group
