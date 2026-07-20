@@ -225,6 +225,35 @@ class ScheduleServiceTest {
         verifyNoInteractions(scheduleRepository);
     }
 
+    @Test
+    void returnsFullScheduleDetailForActiveMember() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
+        StudySchedule schedule = schedule(group, 100L, NOW.minusDays(1));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule));
+
+        ScheduleResponse response = service.getSchedule(10L, 1L, 100L);
+
+        assertThat(response.scheduleId()).isEqualTo(100L);
+        assertThat(response.groupId()).isEqualTo(10L);
+        assertThat(response.title()).isEqualTo("조회 일정");
+    }
+
+    @Test
+    void reportsScheduleNotFoundWhenScheduleIsMissingOrBelongsToAnotherGroup() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
+        when(scheduleRepository.findByIdAndStudyGroupId(999L, 10L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getSchedule(10L, 1L, 999L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.SCHEDULE_NOT_FOUND));
+    }
+
     private static Stream<ScheduleCreateRequest> invalidTimeRequests() {
         return Stream.of(
                 request(NOW, null),

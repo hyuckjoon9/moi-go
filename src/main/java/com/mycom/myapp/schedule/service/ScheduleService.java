@@ -96,6 +96,17 @@ public class ScheduleService {
         return SchedulePageResponse.from(schedules);
     }
 
+    @Transactional(readOnly = true)
+    public ScheduleResponse getSchedule(Long groupId, Long memberId, Long scheduleId) {
+        getGroup(groupId);
+        getActiveMember(groupId, memberId);
+        StudySchedule schedule =
+                scheduleRepository
+                        .findByIdAndStudyGroupId(scheduleId, groupId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        return ScheduleResponse.from(schedule);
+    }
+
     private StudyGroup getGroup(Long groupId) {
         return groupRepository
                 .findById(groupId)
