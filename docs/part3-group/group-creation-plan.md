@@ -31,7 +31,7 @@
 - Produces: `new CreateStudyGroupCommand(Long postId, String groupName, Long leaderUserId, List<Long> approvedUserIds)`
 - Produces: `Long postId()`, `String groupName()`, `Long leaderUserId()`, `List<Long> approvedUserIds()`
 
-- [ ] **Step 1: 명령의 정상화와 방어적 복사 실패 테스트 작성**
+- [x] **Step 1: 명령의 정상화와 방어적 복사 실패 테스트 작성**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -68,13 +68,13 @@ class CreateStudyGroupCommandTest {
 }
 ```
 
-- [ ] **Step 2: 정상 입력 테스트 실패 확인**
+- [x] **Step 2: 정상 입력 테스트 실패 확인**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.CreateStudyGroupCommandTest"`
 
 Expected: `CreateStudyGroupCommand`가 없어 컴파일 실패
 
-- [ ] **Step 3: 명령의 필수값 검증 실패 테스트 추가**
+- [x] **Step 3: 명령의 필수값 검증 실패 테스트 추가**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -144,7 +144,7 @@ class CreateStudyGroupCommandTest {
 }
 ```
 
-- [ ] **Step 4: 명령 최소 구현**
+- [x] **Step 4: 명령 최소 구현**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -177,13 +177,13 @@ public record CreateStudyGroupCommand(
 }
 ```
 
-- [ ] **Step 5: 명령 테스트 통과 확인**
+- [x] **Step 5: 명령 테스트 통과 확인**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.CreateStudyGroupCommandTest"`
 
 Expected: 모든 `CreateStudyGroupCommandTest` 테스트 PASS
 
-- [ ] **Step 6: 명령 계약 커밋**
+- [x] **Step 6: 명령 계약 커밋**
 
 ```powershell
 git add src/main/java/com/mycom/myapp/study/service/CreateStudyGroupCommand.java src/test/java/com/mycom/myapp/study/service/CreateStudyGroupCommandTest.java
@@ -203,7 +203,7 @@ git commit -m "feat: 그룹 생성 명령 계약 추가"
 - Consumes: `StudyGroup.create(Long postId, String name)`, `GroupMember.join(StudyGroup studyGroup, Long userId, GroupRole role)`
 - Produces: package-private Writer Bean의 프록시 가능 `public Long create(CreateStudyGroupCommand command)`
 
-- [ ] **Step 1: 리더와 승인 회원 저장 실패 테스트 작성**
+- [x] **Step 1: 리더와 승인 회원 저장 실패 테스트 작성**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -278,13 +278,13 @@ class StudyGroupCreationWriterTest {
 }
 ```
 
-- [ ] **Step 2: Writer 테스트 실패 확인**
+- [x] **Step 2: Writer 테스트 실패 확인**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.StudyGroupCreationWriterTest"`
 
 Expected: `StudyGroupCreationWriter`가 없어 컴파일 실패
 
-- [ ] **Step 3: Writer 최소 구현**
+- [x] **Step 3: Writer 최소 구현**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -335,13 +335,13 @@ class StudyGroupCreationWriter {
 }
 ```
 
-- [ ] **Step 4: Writer 테스트 통과 확인**
+- [x] **Step 4: Writer 테스트 통과 확인**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.StudyGroupCreationWriterTest"`
 
 Expected: 리더 우선 저장, 중복 제거, 입력 순서 유지와 빈 회원 목록 테스트 PASS
 
-- [ ] **Step 5: Writer 커밋**
+- [x] **Step 5: Writer 커밋**
 
 ```powershell
 git add src/main/java/com/mycom/myapp/study/service/StudyGroupCreationWriter.java src/test/java/com/mycom/myapp/study/service/StudyGroupCreationWriterTest.java
@@ -361,7 +361,7 @@ git commit -m "feat: 초기 그룹원 저장 트랜잭션 추가"
 - Consumes: Task 2의 `StudyGroupCreationWriter.create(CreateStudyGroupCommand)`
 - Produces: `public Long StudyGroupCreationService.create(CreateStudyGroupCommand command)`
 
-- [ ] **Step 1: 기존 그룹과 신규 그룹 분기 실패 테스트 작성**
+- [x] **Step 1: 기존 그룹과 신규 그룹 분기 실패 테스트 작성**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -413,13 +413,13 @@ class StudyGroupCreationServiceTest {
 }
 ```
 
-- [ ] **Step 2: 서비스 테스트 실패 확인**
+- [x] **Step 2: 서비스 테스트 실패 확인**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.StudyGroupCreationServiceTest"`
 
 Expected: `StudyGroupCreationService`가 없어 컴파일 실패
 
-- [ ] **Step 3: 동시성 충돌 복구와 무결성 오류 전파 실패 테스트 추가**
+- [x] **Step 3: 동시성 충돌 복구와 무결성 오류 전파 실패 테스트 추가**
 
 아래 두 테스트를 `StudyGroupCreationServiceTest`에 추가한다.
 
@@ -456,7 +456,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.springframework.dao.DataIntegrityViolationException;
 ```
 
-- [ ] **Step 4: 공개 서비스 최소 구현**
+- [x] **Step 4: 공개 서비스 최소 구현**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -497,13 +497,13 @@ public class StudyGroupCreationService {
 }
 ```
 
-- [ ] **Step 5: 서비스 단위 테스트 통과 확인**
+- [x] **Step 5: 서비스 단위 테스트 통과 확인**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.StudyGroupCreationServiceTest"`
 
 Expected: 기존 조회, 신규 생성, 동시 충돌 복구와 무결성 오류 전파 테스트 PASS
 
-- [ ] **Step 6: 공개 서비스 커밋**
+- [x] **Step 6: 공개 서비스 커밋**
 
 ```powershell
 git add src/main/java/com/mycom/myapp/study/service/StudyGroupCreationService.java src/test/java/com/mycom/myapp/study/service/StudyGroupCreationServiceTest.java
@@ -521,7 +521,7 @@ git commit -m "feat: 멱등 그룹 생성 서비스 추가"
 - Consumes: Task 3의 `StudyGroupCreationService.create(CreateStudyGroupCommand)`
 - Verifies: 실제 Spring 트랜잭션, JPA 저장 결과, 유니크 제약 충돌 복구와 전체 롤백
 
-- [ ] **Step 1: 실제 저장과 순차 멱등성 통합 테스트 작성**
+- [x] **Step 1: 실제 저장과 순차 멱등성 통합 테스트 작성**
 
 ```java
 package com.mycom.myapp.study.service;
@@ -596,13 +596,13 @@ class StudyGroupCreationIntegrationTest {
 }
 ```
 
-- [ ] **Step 2: 기본 통합 테스트 실행**
+- [x] **Step 2: 기본 통합 테스트 실행**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.StudyGroupCreationIntegrationTest"`
 
 Expected: 실제 그룹·그룹원 저장과 순차 재요청 테스트 PASS
 
-- [ ] **Step 3: 그룹원 저장 실패 전체 롤백 테스트 추가**
+- [x] **Step 3: 그룹원 저장 실패 전체 롤백 테스트 추가**
 
 다음 필드, import와 테스트를 `StudyGroupCreationIntegrationTest`에 추가한다.
 
@@ -647,13 +647,13 @@ void rollsBackGroupWhenMemberPersistenceFails() {
 }
 ```
 
-- [ ] **Step 4: 롤백 테스트 통과 확인**
+- [x] **Step 4: 롤백 테스트 통과 확인**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.StudyGroupCreationIntegrationTest.rollsBackGroupWhenMemberPersistenceFails"`
 
 Expected: 예외가 전파되고 `study_groups`에 `postId=10`인 행이 남지 않아 PASS
 
-- [ ] **Step 5: 병렬 요청 동시성 테스트 추가**
+- [x] **Step 5: 병렬 요청 동시성 테스트 추가**
 
 다음 import와 테스트를 `StudyGroupCreationIntegrationTest`에 추가한다.
 
@@ -702,7 +702,7 @@ void concurrentRequestsReturnSameGroupWithoutDuplicates() throws Exception {
 }
 ```
 
-- [ ] **Step 6: 전체 통합 테스트 반복 실행**
+- [x] **Step 6: 전체 통합 테스트 반복 실행**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.service.StudyGroupCreationIntegrationTest" --rerun-tasks`
 
@@ -712,7 +712,7 @@ Run the same command three times.
 
 Expected: 동시성 테스트가 세 번 연속 PASS하며 간헐적 실패가 없음
 
-- [ ] **Step 7: 통합 테스트 커밋**
+- [x] **Step 7: 통합 테스트 커밋**
 
 ```powershell
 git add src/test/java/com/mycom/myapp/study/service/StudyGroupCreationIntegrationTest.java
@@ -732,7 +732,7 @@ git commit -m "test: 그룹 생성 트랜잭션과 동시성 검증"
 - Consumes: Task 1~4에서 검증한 실제 서비스 계약
 - Produces: Part2 호출자가 사용할 내부 계약, 완료된 계획 체크리스트와 다음 세션 기준
 
-- [ ] **Step 1: 내부 그룹 생성 계약을 API 문서에 기록**
+- [x] **Step 1: 내부 그룹 생성 계약을 API 문서에 기록**
 
 `docs/part3-group/api.md`를 다음 구조로 갱신한다.
 
@@ -766,7 +766,7 @@ git commit -m "test: 그룹 생성 트랜잭션과 동시성 검증"
 - Part3는 Part1·Part2 Repository를 직접 조회하지 않는다.
 ```
 
-- [ ] **Step 2: 컨텍스트 문서를 실제 작업 상태와 동기화**
+- [x] **Step 2: 컨텍스트 문서를 실제 작업 상태와 동기화**
 
 다음 명령으로 현재 브랜치와 커밋을 확인한다.
 
@@ -781,7 +781,7 @@ git status --short
 동시성·롤백 검증을 추가한다. 로드맵 3단계를 완료로 표시하고 바로 다음 작업을 로드맵
 4단계인 그룹 조회·그룹 홈 계약 확정으로 변경한다.
 
-- [ ] **Step 3: 계획 체크박스와 구현 대조**
+- [x] **Step 3: 계획 체크박스와 구현 대조**
 
 `docs/part3-group/group-creation-plan.md`에서 실제로 완료하고 검증한 단계만 `[x]`로 바꾼다.
 다음 시그니처가 운영 코드와 테스트에서 일치하는지 대조한다.
@@ -792,25 +792,25 @@ Long StudyGroupCreationWriter.create(CreateStudyGroupCommand)
 Long StudyGroupCreationService.create(CreateStudyGroupCommand)
 ```
 
-- [ ] **Step 4: Part3 그룹 테스트 실행**
+- [x] **Step 4: Part3 그룹 테스트 실행**
 
 Run: `.\gradlew.bat test --tests "com.mycom.myapp.study.*" --rerun-tasks`
 
 Expected: Entity, Repository, 명령, Writer, Service와 통합 테스트 전체 PASS
 
-- [ ] **Step 5: 전체 테스트 실행**
+- [x] **Step 5: 전체 테스트 실행**
 
 Run: `.\gradlew.bat test --rerun-tasks`
 
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 6: 포맷 검사 실행**
+- [x] **Step 6: 포맷 검사 실행**
 
 Run: `.\gradlew.bat spotlessCheck --rerun-tasks`
 
 Expected: `BUILD SUCCESSFUL`
 
-- [ ] **Step 7: 변경 범위 검사**
+- [x] **Step 7: 변경 범위 검사**
 
 ```powershell
 git status --short
@@ -820,7 +820,7 @@ git diff --stat origin/develop...HEAD
 
 Expected: Part3 `study` 운영·테스트 코드와 `docs/part3-group/**`만 변경되고 공백 오류가 없음
 
-- [ ] **Step 8: 문서 동기화 커밋**
+- [x] **Step 8: 문서 동기화 커밋**
 
 ```powershell
 git add docs/part3-group/api.md docs/part3-group/context.md docs/part3-group/group-creation-plan.md

@@ -1,6 +1,6 @@
 # Part3 다음 세션 컨텍스트
 
-> 마지막 갱신: 2026-07-19
+> 마지막 갱신: 2026-07-20
 >
 > 이 문서는 Part3 작업의 세션 핸드오프 문서다. 다음 세션을 시작하면 먼저 현재 Git 상태를 확인하고, 이 문서의 기록과 실제 저장소가 다르면 실제 저장소를 기준으로 이 문서를 갱신한다.
 > 개인 로컬 기록인 `.local/part3/updates.md`가 있으면 이 문서보다 해당 파일의 최신 작업 기록을 우선한다. `updates.md`는 `.git/info/exclude`로 제외하며 커밋하지 않는다.
@@ -36,19 +36,15 @@ git log -3 --oneline
 
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
-- 현재 브랜치: `feature/part3-group-persistence`
-- HEAD: `f483319 fix: CI 테스트 프로필 MySQL 드라이버 설정`
-- 원격 추적 브랜치: `origin/feature/part3-group-persistence`
-- `develop` 대상 PR을 생성했다. PR 번호와 URL은 다음 세션에서 GitHub에서 확인한다.
-- 그룹·그룹원 영속성 기반 구현과 문서 동기화가 완료되었다.
-- PR의 첫 CI 실행은 `test` 프로필의 H2 드라이버와 MySQL URL 불일치로 실패했다. 이를 수정한 커밋을 push했으며, 재실행 CI 결과는 다음 세션에서 확인한다.
-- 수정 후 기본 전체 테스트와 `spotlessCheck`가 통과했다.
+- 현재 브랜치: `feature/part3-group-creation`
+- HEAD: `0ed09c7 test: 그룹 생성 트랜잭션과 동시성 검증`
+- 현재 변경 사항: 없음 (`git status --short` 출력 없음)
+- 그룹 생성 유스케이스 구현 전 기준 상태다. 문서 갱신과 최종 검증은 이 세션에서 이어서 기록한다.
 
 현재 변경 파일:
 
 ```text
-`docs/part3-group/context.md` 세션 종료 기록 갱신만 작업 트리에 남아 있다.
-`.local/part3/updates.md`도 개인 로컬 핸드오프용으로 갱신되어 있으며 Git에서 추적하지 않는다.
+없음
 ```
 
 ## 완료된 작업
@@ -70,6 +66,10 @@ git log -3 --oneline
 - 마지막 검증에서 전체 테스트와 `spotlessCheck --rerun-tasks`가 통과했다.
 - `application-test.properties`에 MySQL JDBC 드라이버를 명시해 CI의 `test` 프로필이 H2 드라이버를 상속하지 않도록 수정했다.
 - CI 수정 커밋 `f483319`을 원격 PR 브랜치에 push했다.
+- `CreateStudyGroupCommand`가 그룹 생성 입력을 검증하고 이름을 정규화하며 승인 회원 목록을 방어적으로 복사한다.
+- `StudyGroupCreationWriter`가 그룹과 정규화된 초기 그룹원을 하나의 트랜잭션으로 저장한다.
+- `StudyGroupCreationService`가 `postId` 기준으로 멱등 생성하고 유니크 충돌 뒤 기존 그룹을 재조회한다.
+- 그룹 생성의 정상 저장, 순차 재요청, 전체 롤백과 병렬 요청을 통합 테스트로 검증했다.
 
 ## 확정된 데이터 규칙
 
@@ -171,7 +171,7 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 완료 조건: 그룹과 그룹원을 스키마 제약에 맞게 저장하고 조회할 수 있다.
 
-### 3단계: 그룹 생성과 그룹원 등록 유스케이스
+### 3단계: 그룹 생성과 그룹원 등록 유스케이스 (완료)
 
 권장 브랜치: `feature/part3-group-creation`
 
@@ -261,14 +261,11 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-현재는 **2단계 그룹·그룹원 영속성 PR의 CI 재실행 결과를 확인하는 작업**이 먼저다.
+다음 작업은 **4단계 그룹 조회와 그룹 홈 계약 확정**이다.
 
-1. GitHub에서 `feature/part3-group-persistence` → `develop` PR의 최신 CI 결과를 확인한다.
-2. CI가 실패하면 로그를 확인해 원인을 분리한다. 첫 실패 원인은 `f483319`으로 수정했으므로 같은 H2/MySQL 드라이버 불일치가 재현되는지 먼저 확인한다.
-3. CI가 통과하면 리뷰·병합 여부를 팀과 결정한다. 이 세션에서 병합 여부는 아직 정하지 않았다.
-4. 병합된 뒤 최신 `develop`에서 `feature/part3-group-creation` 브랜치를 만든다.
-5. Part2와 그룹 생성 입력·호출 방식·초기 그룹원 책임 경계를 확인한다.
-6. TDD로 그룹과 초기 그룹원을 중복 없이 생성하는 서비스 유스케이스를 구현한다.
+1. Part2·Part1과 그룹 홈 조회에 필요한 입력과 인증 사용자 식별자 전달 경계를 확정한다.
+2. `StudyGroupHomeResponse` 필드와 비회원·탈퇴 회원의 오류 계약을 `api.md`에 기록한다.
+3. `feature/part3-group-home` 브랜치에서 조회 서비스·Controller·테스트를 구현한다.
 
 ## 다음 세션용 시작 요청 예시
 
