@@ -1,6 +1,6 @@
 # Part3 다음 세션 컨텍스트
 
-> 마지막 갱신: 2026-07-16
+> 마지막 갱신: 2026-07-19
 >
 > 이 문서는 Part3 작업의 세션 핸드오프 문서다. 다음 세션을 시작하면 먼저 현재 Git 상태를 확인하고, 이 문서의 기록과 실제 저장소가 다르면 실제 저장소를 기준으로 이 문서를 갱신한다.
 > 개인 로컬 기록인 `.local/part3/updates.md`가 있으면 이 문서보다 해당 파일의 최신 작업 기록을 우선한다. `updates.md`는 `.git/info/exclude`로 제외하며 커밋하지 않는다.
@@ -37,15 +37,18 @@ git log -3 --oneline
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
 - 현재 브랜치: `feature/part3-group-persistence`
-- 구현 완료 HEAD: `6b06c55 docs: Part3 로컬 업데이트 확인 규칙 추가`
-- 현재 브랜치는 아직 원격에 push하지 않았다.
+- HEAD: `f483319 fix: CI 테스트 프로필 MySQL 드라이버 설정`
+- 원격 추적 브랜치: `origin/feature/part3-group-persistence`
+- `develop` 대상 PR을 생성했다. PR 번호와 URL은 다음 세션에서 GitHub에서 확인한다.
 - 그룹·그룹원 영속성 기반 구현과 문서 동기화가 완료되었다.
-- 최신 전체 테스트와 `spotlessCheck`가 통과했다.
+- PR의 첫 CI 실행은 `test` 프로필의 H2 드라이버와 MySQL URL 불일치로 실패했다. 이를 수정한 커밋을 push했으며, 재실행 CI 결과는 다음 세션에서 확인한다.
+- 수정 후 기본 전체 테스트와 `spotlessCheck`가 통과했다.
 
 현재 변경 파일:
 
 ```text
-세션 종료 문서 갱신 전 작업 트리 clean
+`docs/part3-group/context.md` 세션 종료 기록 갱신만 작업 트리에 남아 있다.
+`.local/part3/updates.md`도 개인 로컬 핸드오프용으로 갱신되어 있으며 Git에서 추적하지 않는다.
 ```
 
 ## 완료된 작업
@@ -65,6 +68,8 @@ git log -3 --oneline
 - Spring Boot 4.1의 `@DataJpaTest`를 위해 `spring-boot-starter-data-jpa-test`를 추가했다.
 - 독립 코드 리뷰 결과 Critical은 없었고, Important 1건과 Minor 항목을 모두 반영했다.
 - 마지막 검증에서 전체 테스트와 `spotlessCheck --rerun-tasks`가 통과했다.
+- `application-test.properties`에 MySQL JDBC 드라이버를 명시해 CI의 `test` 프로필이 H2 드라이버를 상속하지 않도록 수정했다.
+- CI 수정 커밋 `f483319`을 원격 PR 브랜치에 push했다.
 
 ## 확정된 데이터 규칙
 
@@ -256,12 +261,12 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-현재는 **2단계 그룹·그룹원 영속성 브랜치를 팀에 공유하는 작업**이 먼저다.
+현재는 **2단계 그룹·그룹원 영속성 PR의 CI 재실행 결과를 확인하는 작업**이 먼저다.
 
-1. `feature/part3-group-persistence`를 원격에 push한다.
-2. `develop` 대상 PR을 만들고 공통 `build.gradle` 테스트 의존성 변경 이유를 명시한다.
-3. 리뷰와 CI 통과 후 `develop`에 병합한다.
-4. 최신 `develop`에서 `feature/part3-group-creation` 브랜치를 만든다.
+1. GitHub에서 `feature/part3-group-persistence` → `develop` PR의 최신 CI 결과를 확인한다.
+2. CI가 실패하면 로그를 확인해 원인을 분리한다. 첫 실패 원인은 `f483319`으로 수정했으므로 같은 H2/MySQL 드라이버 불일치가 재현되는지 먼저 확인한다.
+3. CI가 통과하면 리뷰·병합 여부를 팀과 결정한다. 이 세션에서 병합 여부는 아직 정하지 않았다.
+4. 병합된 뒤 최신 `develop`에서 `feature/part3-group-creation` 브랜치를 만든다.
 5. Part2와 그룹 생성 입력·호출 방식·초기 그룹원 책임 경계를 확인한다.
 6. TDD로 그룹과 초기 그룹원을 중복 없이 생성하는 서비스 유스케이스를 구현한다.
 
