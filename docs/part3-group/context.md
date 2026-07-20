@@ -36,18 +36,18 @@ git log -3 --oneline
 
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
-- 현재 브랜치: `feature/part3-schedule-create`
-- HEAD: `967e785 Merge pull request #9 from hyuckjoon9/feature/part3-group-home`
-- 원격 `develop`: `967e785 Merge pull request #9 from hyuckjoon9/feature/part3-group-home`
-- 그룹 홈 PR #9는 원격 `develop`에 병합되었다.
-- 일정 생성 API·ERD·설계 문서 커밋 후 테스트 우선 구현 계획을 작성했으며 운영 코드는 아직
-  변경하지 않았다.
+- 현재 브랜치: `feature/part3-schedule-query`
+- HEAD: `f9c6395 test: 일정 조회 통합 흐름과 API 계약 검증`
+- 원격 `develop`: `19d8b22 Merge pull request #11 from hyuckjoon9/feature/part3-schedule-create`
+- 일정 생성 PR #11은 원격 `develop`에 병합되었다.
+- 일정 조회 API의 예정·지난 목록, 페이지네이션과 상세 조회 설계를 확정했다.
+- 승인된 설계를 테스트 우선으로 실행할 일정 조회 구현 계획을 작성했다.
+- 일정 조회 구현·통합 테스트와 전체 검증을 완료했다.
 
 현재 변경 파일:
 
 ```text
 docs/part3-group/context.md
-docs/part3-group/schedule-create-implementation-plan.md
 ```
 
 ## 완료된 작업
@@ -81,6 +81,19 @@ docs/part3-group/schedule-create-implementation-plan.md
 - 그룹 홈 PR #9가 `develop`에 병합된 것을 확인했다.
 - 최신 `develop`에서 `feature/part3-schedule-create` 브랜치를 만들었다.
 - 일정 생성의 입력, 응답, 권한, 상태, 시간과 오류 계약을 확정했다.
+- `StudySchedule` JPA 매핑과 그룹별 시간순 조회 Repository 기반을 구현했다.
+- 활성 그룹의 `LEADER`·`MANAGER`만 사용할 수 있는 일정 생성 Service와 Controller를 구현했다.
+- 일정 생성 요청 정규화, 시간 검증, 전체 응답 DTO와 계층별 테스트를 추가했다.
+- 일정 생성 관련 테스트, 전체 테스트와 `spotlessCheck`를 통과했다.
+- 일정 생성 PR #11이 `develop`에 병합된 것을 확인했다.
+- 최신 `develop`에서 `feature/part3-schedule-query` 브랜치를 만들었다.
+- 일정 조회를 예정·지난 목록으로 나누고 페이지네이션과 별도 상세 조회를 제공하기로 했다.
+- 그룹별 예정·지난 일정 페이지 Repository 조회와 그룹 제한 상세 조회를 구현했다.
+- 조회 범위·페이지 검증 DTO와 일정 요약·페이지 응답 DTO를 구현했다.
+- 활성 그룹원 권한을 검증하는 목록·상세 ScheduleService를 구현했고 종료 그룹 조회를 허용했다.
+- 일정 목록·상세 GET API와 `SCHEDULE_NOT_FOUND` 오류 계약을 추가했다.
+- 실제 JPA 환경에서 예정·지난 목록과 상세를 함께 검증하는 통합 테스트를 추가했다.
+- 일정 패키지 테스트, 전체 테스트와 `spotlessCheck`가 모두 통과했다.
 
 ## 확정된 그룹 홈 조회 계약
 
@@ -239,7 +252,7 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 완료 조건: 활성 그룹원이 그룹 홈을 조회하고, 비회원·탈퇴 회원은 정의된 오류를 받는다.
 
-### 5단계: 일정 영속성 및 생성 API (설계·계약 문서 작성 중)
+### 5단계: 일정 영속성 및 생성 API (완료)
 
 권장 브랜치: `feature/part3-schedule-create`
 
@@ -254,7 +267,7 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 완료 조건: 권한 있는 사용자만 유효한 일정을 생성할 수 있다.
 
-### 6단계: 일정 조회 API
+### 6단계: 일정 조회 API (완료)
 
 권장 브랜치: `feature/part3-schedule-query`
 
@@ -301,15 +314,11 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-다음 작업은 **5단계 일정 영속성 및 생성 API 구현 계획을 검토한 뒤 테스트 우선으로 실행하는 것**이다.
+다음 작업은 **6단계 일정 조회 API의 PR을 준비한 뒤 7단계 일정 수정·삭제 API 계약을 확정하는 것**이다.
 
-1. `schedule-create-implementation-plan.md`의 작업 순서와 인터페이스를 검토한다.
-2. 승인된 계획에 따라 Request DTO, Entity·Repository, Service·Response, Controller 순서로
-   실패 테스트를 먼저 작성하고 구현한다.
-3. `GROUP_ENDED`, `SCHEDULE_MANAGEMENT_FORBIDDEN`, `INVALID_SCHEDULE_TIME`만 합의된 공통
-   `ErrorCode` 변경으로 추가한다.
-4. 일정 생성 통합 테스트, 전체 테스트와 `spotlessCheck`를 실행한다.
-5. 구현 결과와 문서를 대조하고 `develop` 대상 PR을 준비한다.
+1. 현재 브랜치를 원격에 push하고 `develop` 대상 PR을 만든다.
+2. PR에 예정·지난 일정 정렬, 활성 그룹원 접근, `SCHEDULE_NOT_FOUND`와 검증 결과를 기록한다.
+3. 7단계 시작 전 Part4·활동 담당자와 일정 삭제의 연쇄 삭제 정책을 합의한다.
 
 ## 다음 세션용 시작 요청 예시
 

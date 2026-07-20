@@ -4,12 +4,15 @@
 
 그룹 생성은 외부 HTTP 엔드포인트가 아니라 Part2가 호출하는 내부 서비스 계약으로 먼저
 구현한다. 그룹 홈은 인증된 활성 그룹원이 그룹 정보와 활성 그룹원 목록을 함께 조회하는
-엔드포인트로 제공한다. 일정 생성은 활성 그룹의 `LEADER` 또는 `MANAGER`에게만 제공한다.
+엔드포인트로 제공한다. 일정 생성은 활성 그룹의 `LEADER` 또는 `MANAGER`에게만 제공하고,
+일정 조회는 활성 그룹원에게 제공한다.
 
 | 기능 | 메서드 | 경로 | 인증 |
 | --- | --- | --- | --- |
 | 그룹 홈 조회 | `GET` | `/api/groups/{groupId}` | 필수 |
 | 일정 생성 | `POST` | `/api/groups/{groupId}/schedules` | 필수 |
+| 일정 목록 조회 | `GET` | `/api/groups/{groupId}/schedules` | 필수 |
+| 일정 상세 조회 | `GET` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
 
 ## 내부 서비스 계약
 
@@ -252,3 +255,106 @@ Content-Type: application/json
 `GROUP_ENDED`, `SCHEDULE_MANAGEMENT_FORBIDDEN`, `INVALID_SCHEDULE_TIME`은 일정 생성 구현 시
 합의된 공통 변경으로 `global/exception/ErrorCode.java`에 추가한다. `ApiResponse`,
 `GlobalExceptionHandler`, `SecurityConfig`와 JWT 필터는 이번 기능 범위에서 수정하지 않는다.
+
+## 일정 조회
+
+### 일정 목록 요청
+
+```http
+GET /api/groups/{groupId}/schedules?scope=upcoming&page=0&size=20
+Authorization: Bearer {accessToken}
+```
+
+| 입력 | 위치 | 기본값 | 규칙 |
+| --- | --- | --- | --- |
+| `groupId` | Path | 없음 | 조회할 그룹 식별자 |
+| 인증 사용자 | Principal | 없음 | `AuthenticatedMember.id()`만 사용 |
+| `scope` | Query | `upcoming` | `upcoming` 또는 `past` |
+| `page` | Query | `0` | 0 이상 |
+| `size` | Query | `20` | 1 이상 100 이하 |
+
+- `scope=upcoming`은 조회 기준 시각과 같거나 이후인 일정을 `scheduledAt`, `scheduleId`
+  오름차순으로 반환한다.
+- `scope=past`는 조회 기준 시각보다 이전인 일정을 `scheduledAt`, `scheduleId`
+  내림차순으로 반환한다.
+- 예정·지난 목록을 통해 해당 그룹에서 생성된 모든 일정에 접근할 수 있다.
+
+### 일정 목록 성공 응답
+
+- HTTP 상태: `200 OK`
+- 응답 타입: `ApiResponse<SchedulePageResponse>`
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "scheduleId": 100,
+        "creatorId": 1,
+        "title": "3주차 스터디",
+        "scheduledAt": "2026-07-25T19:00:00",
+        "location": null,
+        "onlineLink": null,
+        "responseDeadline": "2026-07-24T18:00:00"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "hasNext": false
+  },
+  "message": null
+}
+```
+
+#### `ScheduleSummaryResponse`
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `scheduleId` | `Long` | 일정 식별자 |
+| `creatorId` | `Long` | 일정 등록자 식별자 |
+| `title` | `String` | 일정 제목 |
+| `scheduledAt` | `LocalDateTime` | 일정 시각 |
+| `location` | `String` | 오프라인 장소, 미정이면 `null` |
+| `onlineLink` | `String` | 온라인 접속 정보, 미정이면 `null` |
+| `responseDeadline` | `LocalDateTime` | 참석 응답 마감 시각, 없으면 `null` |
+
+#### `SchedulePageResponse`
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `items` | `List<ScheduleSummaryResponse>` | 현재 페이지의 일정 요약 목록 |
+| `page` | `int` | 현재 페이지 번호 |
+| `size` | `int` | 요청한 페이지 크기 |
+| `totalElements` | `long` | 전체 일정 수 |
+| `totalPages` | `int` | 전체 페이지 수 |
+| `hasNext` | `boolean` | 다음 페이지 존재 여부 |
+
+### 일정 상세 요청과 성공 응답
+
+```http
+GET /api/groups/{groupId}/schedules/{scheduleId}
+Authorization: Bearer {accessToken}
+```
+
+- HTTP 상태: `200 OK`
+- 응답 타입: `ApiResponse<ScheduleResponse>`
+- 과거·예정 일정 구분 없이 기존 `ScheduleResponse`의 전체 필드를 반환한다.
+- URL의 `groupId`에 속한 일정만 조회한다.
+
+### 조회 접근 규칙과 오류 응답
+
+- `ACTIVE` 상태의 그룹원은 역할과 관계없이 목록과 상세를 조회할 수 있다.
+- `ENDED` 그룹도 활성 그룹원에게 조회를 허용한다.
+- 검증 순서는 그룹 존재, 그룹원 기록, 탈퇴 상태, 상세 조회 시 일정 존재·그룹 소속이다.
+
+| 상황 | HTTP 상태 | 오류 코드 | 메시지 |
+| --- | --- | --- | --- |
+| 그룹이 존재하지 않음 | `404 Not Found` | `GROUP_NOT_FOUND` | `그룹을 찾을 수 없습니다.` |
+| 인증 사용자의 그룹원 기록이 없음 | `403 Forbidden` | `GROUP_ACCESS_DENIED` | `그룹에 접근할 권한이 없습니다.` |
+| 인증 사용자가 탈퇴 그룹원임 | `403 Forbidden` | `WITHDRAWN_GROUP_MEMBER` | `탈퇴한 그룹원은 그룹에 접근할 수 없습니다.` |
+| 일정이 없거나 다른 그룹 소속 | `404 Not Found` | `SCHEDULE_NOT_FOUND` | `일정을 찾을 수 없습니다.` |
+| 지원하지 않는 범위 또는 잘못된 페이지 요청 | `400 Bad Request` | `INVALID_REQUEST` | `잘못된 요청입니다.` |
+| 인증 실패 | `401 Unauthorized` | `UNAUTHORIZED` | `인증이 필요합니다.` |

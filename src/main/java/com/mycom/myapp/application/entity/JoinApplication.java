@@ -83,15 +83,8 @@ public class JoinApplication { @Id
         this.availableTime = availableTime;
         this.desiredRole = desiredRole;
         this.status = ApplicationStatus.PENDING;
+        this.appliedAt = LocalDateTime.now();
     }
-
-    @PrePersist
-    private void prePersist() {
-        if (appliedAt == null) {
-            appliedAt = LocalDateTime.now();
-        }
-    }
-
     public void approve() {
         this.status = ApplicationStatus.APPROVED;
     }
@@ -102,4 +95,5 @@ public class JoinApplication { @Id
 
     public void cancel() {
         this.status = ApplicationStatus.CANCELLED;
-    }}
+    }
+  }
