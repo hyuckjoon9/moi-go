@@ -1,10 +1,8 @@
 package com.mycom.myapp.application.entity;
 
 public enum ApplicationStatus {
-	
-	PENDING,
+    PENDING,
     APPROVED,
     REJECTED,
     CANCELLED
 }
-

@@ -1,10 +1,7 @@
 package com.mycom.myapp.application.entity;
 
-import java.time.LocalDateTime;
-
 import com.mycom.myapp.member.entity.Member;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,9 +13,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,8 +31,8 @@ import lombok.NoArgsConstructor;
                     name = "uk_join_applications_post_applicant",
                     columnNames = {"post_id", "applicant_id"})
         })
-
-public class JoinApplication { @Id
+public class JoinApplication {
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -85,6 +82,7 @@ public class JoinApplication { @Id
         this.status = ApplicationStatus.PENDING;
         this.appliedAt = LocalDateTime.now();
     }
+
     public void approve() {
         this.status = ApplicationStatus.APPROVED;
     }
@@ -96,4 +94,4 @@ public class JoinApplication { @Id
     public void cancel() {
         this.status = ApplicationStatus.CANCELLED;
     }
-  }
+}

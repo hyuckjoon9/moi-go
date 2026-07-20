@@ -25,8 +25,19 @@ class RecruitmentControllerTest {
     void createReturnsResponseFromAuthenticatedLeaderId() {
         RecruitmentCreateRequest request =
                 new RecruitmentCreateRequest(
-                        "제목", "개발", "설명", "목표", "방법", "ONLINE", null,
-                        "http://link", "매주 화요일", 5, null, "8주", "조건");
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건");
         RecruitmentResponse response = new RecruitmentResponse(1L, "제목", "개발", "RECRUITING");
         when(recruitmentService.create(1L, request)).thenReturn(response);
 

@@ -1,10 +1,8 @@
 package com.mycom.myapp.recruitment.entity;
 
-
-import com.mycom.myapp.member.entity.Member;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mycom.myapp.member.entity.Member;
 import org.junit.jupiter.api.Test;
 
 class RecruitmentPostTest {

@@ -62,10 +62,6 @@ class JoinApplicationRepositoryTest {
     }
 
     private JoinApplication application(RecruitmentPost post, Member applicant) {
-        return JoinApplication.builder()
-                .post(post)
-                .applicant(applicant)
-                .motivation("지원동기")
-                .build();
+        return JoinApplication.builder().post(post).applicant(applicant).motivation("지원동기").build();
     }
 }
