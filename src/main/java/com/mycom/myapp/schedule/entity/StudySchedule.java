@@ -129,6 +129,29 @@ public class StudySchedule {
         }
     }
 
+    public void update(
+            String title,
+            LocalDateTime scheduledAt,
+            String location,
+            String onlineLink,
+            String content,
+            String materials,
+            LocalDateTime modifiedAt) {
+        if (title == null || title.isBlank() || scheduledAt == null || modifiedAt == null) {
+            throw new IllegalArgumentException("일정 수정 필수값이 누락되었습니다.");
+        }
+        if (responseDeadline != null && responseDeadline.isAfter(scheduledAt)) {
+            throw new IllegalArgumentException("응답 마감 시간은 일정 시간보다 늦을 수 없습니다.");
+        }
+        this.title = title;
+        this.scheduledAt = scheduledAt;
+        this.location = location;
+        this.onlineLink = onlineLink;
+        this.content = content;
+        this.materials = materials;
+        this.updatedAt = modifiedAt;
+    }
+
     public Long getId() {
         return id;
     }
