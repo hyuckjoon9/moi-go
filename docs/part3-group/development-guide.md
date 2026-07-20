@@ -196,7 +196,7 @@ Git Hook이 커밋할 때 `spotlessApply`를 실행하더라도, 커밋 전 `spo
 - HTTP 상태 코드는 생성 `201`, 성공 조회·수정 `200`, 본문 없는 삭제 `204`처럼 동작에 맞게 명시한다.
 - 예외를 Controller에서 반복해서 `try/catch`하지 않고 공통 예외 처리기로 전달한다.
 
-`ApiResponse`와 `GlobalExceptionHandler`도 현재 빈 스켈레톤이므로 구체적인 제네릭 타입이나 응답 JSON 구조는 아직 확정된 규칙으로 간주하지 않는다. 공통 응답 형식이 구현되면 Part3도 이를 사용하고 `api.md`에 실제 형식을 기록한다.
+Part1에서 `ApiResponse`, `GlobalExceptionHandler`, `ErrorCode`와 `AuthenticatedMember` 기반 인증 전달 계약을 제공한다. Part3 API를 구현할 때는 공통 응답 형식과 `@AuthenticationPrincipal AuthenticatedMember`를 사용하고, 실제 응답 예시는 `api.md`에 기록한다.
 
 ## Part3 개발 원칙
 

@@ -72,6 +72,7 @@ src/
 │   │   │   │   └── GlobalExceptionHandler.java
 │   │   │   ├── response/ApiResponse.java
 │   │   │   └── security/
+│   │   │       ├── AuthenticatedMember.java
 │   │   │       ├── CustomUserDetailsService.java
 │   │   │       └── jwt/
 │   │   │           ├── JwtAuthenticationFilter.java
@@ -162,7 +163,7 @@ src/
 | `entity` | 생성·수정 시각처럼 여러 엔티티가 함께 사용하는 기반 엔티티를 제공한다. |
 | `exception` | 비즈니스 예외, 오류 코드, 전역 예외 처리를 일관되게 제공한다. |
 | `response` | 공통 API 응답 형식을 제공한다. |
-| `security` | 사용자 인증 정보 조회 및 JWT 기반 인증 처리를 담당한다. |
+| `security` | 사용자 인증 정보 조회, 인증 principal 제공 및 JWT 기반 인증 처리를 담당한다. |
 
 ## 도메인별 책임
 
