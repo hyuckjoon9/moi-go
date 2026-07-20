@@ -6,11 +6,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleScope;
+import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.entity.StudySchedule;
 import com.mycom.myapp.schedule.repository.StudyScheduleRepository;
@@ -22,12 +25,15 @@ import com.mycom.myapp.study.repository.StudyGroupRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class ScheduleServiceTest {
@@ -135,12 +141,103 @@ class ScheduleServiceTest {
         verify(scheduleRepository).save(any(StudySchedule.class));
     }
 
+    @ParameterizedTest
+    @EnumSource(GroupRole.class)
+    void activeMemberOfAnyRoleCanReadUpcomingSchedules(GroupRole role) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, role));
+        PageRequest pageable = PageRequest.of(0, 20);
+        StudySchedule schedule = schedule(group, 100L, NOW.plusDays(1));
+        when(scheduleRepository
+                        .findAllByStudyGroupIdAndScheduledAtGreaterThanEqualOrderByScheduledAtAscIdAsc(
+                                10L, NOW, pageable))
+                .thenReturn(new PageImpl<>(List.of(schedule), pageable, 1));
+
+        SchedulePageResponse response =
+                service.getSchedules(10L, 1L, ScheduleScope.UPCOMING, 0, 20);
+
+        assertThat(response.items()).extracting(item -> item.scheduleId()).containsExactly(100L);
+        verify(scheduleRepository)
+                .findAllByStudyGroupIdAndScheduledAtGreaterThanEqualOrderByScheduledAtAscIdAsc(
+                        10L, NOW, pageable);
+    }
+
+    @Test
+    void activeMemberCanReadPastSchedulesFromEndedGroup() {
+        StudyGroup group = activeGroup();
+        group.end();
+        allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
+        PageRequest pageable = PageRequest.of(1, 10);
+        when(scheduleRepository
+                        .findAllByStudyGroupIdAndScheduledAtLessThanOrderByScheduledAtDescIdDesc(
+                                10L, NOW, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        SchedulePageResponse response = service.getSchedules(10L, 1L, ScheduleScope.PAST, 1, 10);
+
+        assertThat(response.items()).isEmpty();
+        verify(scheduleRepository)
+                .findAllByStudyGroupIdAndScheduledAtLessThanOrderByScheduledAtDescIdDesc(
+                        10L, NOW, pageable);
+    }
+
+    @Test
+    void rejectsScheduleListForMissingGroupBeforeMembershipLookup() {
+        when(groupRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getSchedules(10L, 1L, ScheduleScope.UPCOMING, 0, 20))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.GROUP_NOT_FOUND));
+        verifyNoInteractions(memberRepository, scheduleRepository);
+    }
+
+    @Test
+    void rejectsScheduleListForMissingMembership() {
+        StudyGroup group = activeGroup();
+        when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+        when(memberRepository.findByStudyGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getSchedules(10L, 1L, ScheduleScope.UPCOMING, 0, 20))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.GROUP_ACCESS_DENIED));
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void rejectsScheduleListForWithdrawnMember() {
+        StudyGroup group = activeGroup();
+        GroupMember member = GroupMember.join(group, 1L, GroupRole.MEMBER);
+        member.withdraw();
+        allow(group, member);
+
+        assertThatThrownBy(() -> service.getSchedules(10L, 1L, ScheduleScope.PAST, 0, 20))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.WITHDRAWN_GROUP_MEMBER));
+        verifyNoInteractions(scheduleRepository);
+    }
+
     private static Stream<ScheduleCreateRequest> invalidTimeRequests() {
         return Stream.of(
                 request(NOW, null),
                 request(NOW.minusSeconds(1), null),
                 request(NOW.plusHours(2), NOW),
                 request(NOW.plusHours(2), NOW.plusHours(3)));
+    }
+
+    private StudySchedule schedule(StudyGroup group, Long scheduleId, LocalDateTime scheduledAt) {
+        StudySchedule schedule =
+                StudySchedule.create(group, 1L, "조회 일정", scheduledAt, null, null, null, null, null);
+        ReflectionTestUtils.setField(schedule, "id", scheduleId);
+        return schedule;
     }
 
     private void assertError(ErrorCode errorCode, ScheduleCreateRequest request) {
