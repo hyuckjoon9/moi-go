@@ -4,6 +4,7 @@ import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleScope;
+import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.entity.StudySchedule;
@@ -46,12 +47,7 @@ public class ScheduleService {
     public ScheduleResponse create(Long groupId, Long memberId, ScheduleCreateRequest request) {
         StudyGroup group = getGroup(groupId);
         GroupMember member = getActiveMember(groupId, memberId);
-        if (group.getStatus() == GroupStatus.ENDED) {
-            throw new BusinessException(ErrorCode.GROUP_ENDED);
-        }
-        if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
-            throw new BusinessException(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN);
-        }
+        validateScheduleManagement(group, member);
 
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime deadline = request.responseDeadline();
@@ -73,6 +69,39 @@ public class ScheduleService {
                         request.materials(),
                         deadline);
         return ScheduleResponse.from(scheduleRepository.save(schedule));
+    }
+
+    @Transactional
+    public ScheduleResponse update(
+            Long groupId, Long memberId, Long scheduleId, ScheduleUpdateRequest request) {
+        StudyGroup group = getGroup(groupId);
+        GroupMember member = getActiveMember(groupId, memberId);
+        validateScheduleManagement(group, member);
+
+        StudySchedule schedule =
+                scheduleRepository
+                        .findByIdAndStudyGroupId(scheduleId, groupId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!schedule.getScheduledAt().isAfter(now)) {
+            throw new BusinessException(ErrorCode.SCHEDULE_UPDATE_NOT_ALLOWED);
+        }
+        if (!request.scheduledAt().isAfter(now)
+                || (schedule.getResponseDeadline() != null
+                        && schedule.getResponseDeadline().isAfter(request.scheduledAt()))) {
+            throw new BusinessException(ErrorCode.INVALID_SCHEDULE_TIME);
+        }
+
+        schedule.update(
+                request.title(),
+                request.scheduledAt(),
+                request.location(),
+                request.onlineLink(),
+                request.content(),
+                request.materials(),
+                now);
+        return ScheduleResponse.from(schedule);
     }
 
     @Transactional(readOnly = true)
@@ -122,5 +151,14 @@ public class ScheduleService {
             throw new BusinessException(ErrorCode.WITHDRAWN_GROUP_MEMBER);
         }
         return member;
+    }
+
+    private void validateScheduleManagement(StudyGroup group, GroupMember member) {
+        if (group.getStatus() == GroupStatus.ENDED) {
+            throw new BusinessException(ErrorCode.GROUP_ENDED);
+        }
+        if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
+            throw new BusinessException(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN);
+        }
     }
 }

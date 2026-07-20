@@ -36,6 +36,7 @@ git log -3 --oneline
 
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
+<<<<<<< HEAD
 - 현재 브랜치: `feature/part3-schedule-query`
 - HEAD: `f9c6395 test: 일정 조회 통합 흐름과 API 계약 검증`
 - 원격 `develop`: `19d8b22 Merge pull request #11 from hyuckjoon9/feature/part3-schedule-create`
@@ -43,12 +44,25 @@ git log -3 --oneline
 - 일정 조회 API의 예정·지난 목록, 페이지네이션과 상세 조회 설계를 확정했다.
 - 승인된 설계를 테스트 우선으로 실행할 일정 조회 구현 계획을 작성했다.
 - 일정 조회 구현·통합 테스트와 전체 검증을 완료했다.
+=======
+- 현재 브랜치: `feature/part3-schedule-update`
+- HEAD: `fce9ac7 test: 일정 수정 통합 흐름 검증`
+- 일정 조회 PR #12가 `develop`에 병합되었다.
+- 6단계 일정 조회 API는 완료다.
+- 7단계를 일정 수정과 삭제로 분리했다.
+- 일정 수정은 PUT 전체 교체, 활성 `LEADER`·`MANAGER` 권한으로 구현한다.
+- 일정 삭제와 `responseDeadline` 수정은 파트 간 정책 합의까지 보류한다.
+>>>>>>> refs/remotes/origin/develop
 
+<<<<<<< HEAD
 현재 변경 파일:
 
 ```text
 docs/part3-group/context.md
 ```
+=======
+현재 변경 파일은 없다.
+>>>>>>> refs/remotes/origin/develop
 
 ## 완료된 작업
 
@@ -94,6 +108,13 @@ docs/part3-group/context.md
 - 일정 목록·상세 GET API와 `SCHEDULE_NOT_FOUND` 오류 계약을 추가했다.
 - 실제 JPA 환경에서 예정·지난 목록과 상세를 함께 검증하는 통합 테스트를 추가했다.
 - 일정 패키지 테스트, 전체 테스트와 `spotlessCheck`가 모두 통과했다.
+<<<<<<< HEAD
+=======
+- 일정 수정의 정규화 DTO, Entity 변경 메서드, 권한·상태·시간 검증 Service와 PUT API를 구현했다.
+- 기존 `responseDeadline`, 등록자, 생성 시각을 보존하는 JPA 통합 테스트를 추가했다.
+- 일정 수정에서 `GROUP_ENDED` 메시지를 일정 관리 공통 메시지로 갱신하고
+  `SCHEDULE_UPDATE_NOT_ALLOWED` 오류 코드를 합의된 공통 변경으로 추가했다.
+>>>>>>> refs/remotes/origin/develop
 
 ## 확정된 그룹 홈 조회 계약
 
@@ -158,8 +179,8 @@ docs/part3-group/context.md
 구현 전에 담당 파트와 합의하거나 API 명세에서 확정해야 한다.
 
 1. 일정 조회 API의 과거·예정 일정 범위와 상세 조회 권한을 확정한다.
-2. 일정 수정 API의 수정 가능 필드와 시간 경계값을 확정한다.
-3. 그룹과 일정의 실제 삭제를 허용할지, 상태 종료 또는 소프트 삭제로 대체할지 결정한다.
+2. 일정 삭제 정책을 Part4·활동 담당자와 합의한다.
+3. `responseDeadline` 수정 정책을 Part4와 합의한다.
 
 ## Part3 구현 로드맵
 
@@ -280,18 +301,21 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 완료 조건: 그룹원이 자신의 그룹 일정만 정의된 순서로 조회할 수 있다.
 
-### 7단계: 일정 수정·삭제 API
+### 7단계: 일정 수정 API (완료)
 
-권장 브랜치: `feature/part3-schedule-management`
+권장 브랜치: `feature/part3-schedule-update`
 
-목표: 합의된 권한과 삭제 정책에 따라 일정을 변경하고 제거한다.
+목표: 활성 관리자가 미래 일정을 전체 교체 방식으로 수정한다.
 
-- 수정 가능 필드와 권한을 구현한다.
-- 수정 후에도 응답 마감과 일정 시간 관계를 검증한다.
-- 삭제 전 출석·활동 데이터 영향 정책을 적용한다.
+- `title`, `scheduledAt`, `location`, `onlineLink`, `content`, `materials`를 전체 교체한다.
+- 기존 응답 마감과 일정 시간 관계를 검증한다.
 - 권한 없음, 존재하지 않는 일정, 다른 그룹 접근과 시간 검증 실패 테스트를 작성한다.
 
-완료 조건: 일정 변경·삭제가 파트 간 데이터 정책을 깨뜨리지 않는다.
+완료 조건: 활성 `LEADER`·`MANAGER`만 미래 일정을 수정하고 보존 필드는 변경되지 않는다.
+
+### 7-후속단계: 일정 삭제와 응답 마감 변경 정책
+
+목표: Part4·활동 담당자와의 합의 후 일정 삭제 및 `responseDeadline` 변경 범위를 별도 브랜치에서 결정한다.
 
 ### 8단계: 통합 검증과 문서 마무리
 
@@ -314,11 +338,21 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
+<<<<<<< HEAD
 다음 작업은 **6단계 일정 조회 API의 PR을 준비한 뒤 7단계 일정 수정·삭제 API 계약을 확정하는 것**이다.
+=======
+다음 작업은 **Task 7 전체 검증을 완료한 뒤 현재 브랜치를 push하고 `develop` 대상 PR을 준비하는 것**이다.
+>>>>>>> refs/remotes/origin/develop
 
+<<<<<<< HEAD
 1. 현재 브랜치를 원격에 push하고 `develop` 대상 PR을 만든다.
 2. PR에 예정·지난 일정 정렬, 활성 그룹원 접근, `SCHEDULE_NOT_FOUND`와 검증 결과를 기록한다.
 3. 7단계 시작 전 Part4·활동 담당자와 일정 삭제의 연쇄 삭제 정책을 합의한다.
+=======
+1. 일정 패키지·전체 테스트, `spotlessCheck`, `git diff --check` 결과를 확인한다.
+2. 현재 브랜치를 원격에 push하고 `develop` 대상 PR을 만든다.
+3. PR에 PUT 전체 교체, 보존 필드, 삭제·응답 마감 수정 보류와 검증 결과를 기록한다.
+>>>>>>> refs/remotes/origin/develop
 
 ## 다음 세션용 시작 요청 예시
 

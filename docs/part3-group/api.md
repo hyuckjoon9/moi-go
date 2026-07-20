@@ -13,6 +13,10 @@
 | 일정 생성 | `POST` | `/api/groups/{groupId}/schedules` | 필수 |
 | 일정 목록 조회 | `GET` | `/api/groups/{groupId}/schedules` | 필수 |
 | 일정 상세 조회 | `GET` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
+<<<<<<< HEAD
+=======
+| 일정 수정 | `PUT` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
+>>>>>>> refs/remotes/origin/develop
 
 ## 내부 서비스 계약
 
@@ -246,7 +250,7 @@ Content-Type: application/json
 | 그룹이 존재하지 않음 | `404 Not Found` | `GROUP_NOT_FOUND` | `그룹을 찾을 수 없습니다.` |
 | 인증 사용자의 그룹원 기록이 없음 | `403 Forbidden` | `GROUP_ACCESS_DENIED` | `그룹에 접근할 권한이 없습니다.` |
 | 인증 사용자가 탈퇴 그룹원임 | `403 Forbidden` | `WITHDRAWN_GROUP_MEMBER` | `탈퇴한 그룹원은 그룹에 접근할 수 없습니다.` |
-| 그룹이 종료됨 | `409 Conflict` | `GROUP_ENDED` | `종료된 그룹에서는 일정을 생성할 수 없습니다.` |
+| 그룹이 종료됨 | `409 Conflict` | `GROUP_ENDED` | `종료된 그룹에서는 일정을 관리할 수 없습니다.` |
 | 활성 그룹원의 역할이 `MEMBER`임 | `403 Forbidden` | `SCHEDULE_MANAGEMENT_FORBIDDEN` | `일정을 관리할 권한이 없습니다.` |
 | 일정 또는 마감 시간이 규칙을 위반함 | `400 Bad Request` | `INVALID_SCHEDULE_TIME` | `일정 또는 응답 마감 시간이 올바르지 않습니다.` |
 | 필수값 또는 길이 검증 실패 | `400 Bad Request` | `INVALID_REQUEST` | 공통 요청 검증 메시지를 따름 |
@@ -358,3 +362,41 @@ Authorization: Bearer {accessToken}
 | 일정이 없거나 다른 그룹 소속 | `404 Not Found` | `SCHEDULE_NOT_FOUND` | `일정을 찾을 수 없습니다.` |
 | 지원하지 않는 범위 또는 잘못된 페이지 요청 | `400 Bad Request` | `INVALID_REQUEST` | `잘못된 요청입니다.` |
 | 인증 실패 | `401 Unauthorized` | `UNAUTHORIZED` | `인증이 필요합니다.` |
+<<<<<<< HEAD
+=======
+
+## 일정 수정
+
+### 요청
+
+`PUT /api/groups/{groupId}/schedules/{scheduleId}`는 수정 가능한 일정 필드 전체를 교체한다.
+요청 필드는 `title`, `scheduledAt`, `location`, `onlineLink`, `content`, `materials`다.
+`title`과 `scheduledAt`은 필수이고 문자열 정규화·길이는 일정 생성과 같다.
+`responseDeadline`은 Part4와 변경 정책을 합의할 때까지 수정 대상에서 제외한다.
+
+### 권한과 시간 규칙
+
+- 활성 `LEADER`와 `MANAGER`만 수정할 수 있다.
+- `MEMBER`, 비회원과 탈퇴 그룹원은 수정할 수 없다.
+- `ENDED` 그룹과 이미 시작된 일정은 수정할 수 없다.
+- 새 `scheduledAt`은 현재보다 미래이고 기존 `responseDeadline`보다 같거나 늦어야 한다.
+- 등록자, 응답 마감과 생성 시각은 유지하고 수정 시각만 갱신한다.
+
+### 성공 응답
+
+- HTTP 상태: `200 OK`
+- 응답 타입: `ApiResponse<ScheduleResponse>`
+
+### 오류 응답
+
+| 상황 | HTTP 상태 | 오류 코드 | 메시지 |
+| --- | --- | --- | --- |
+| 그룹이 존재하지 않음 | `404 Not Found` | `GROUP_NOT_FOUND` | `그룹을 찾을 수 없습니다.` |
+| 그룹원 기록이 없음 | `403 Forbidden` | `GROUP_ACCESS_DENIED` | `그룹에 접근할 권한이 없습니다.` |
+| 탈퇴 그룹원 | `403 Forbidden` | `WITHDRAWN_GROUP_MEMBER` | `탈퇴한 그룹원은 그룹에 접근할 수 없습니다.` |
+| 종료 그룹 | `409 Conflict` | `GROUP_ENDED` | `종료된 그룹에서는 일정을 관리할 수 없습니다.` |
+| 관리 역할이 아님 | `403 Forbidden` | `SCHEDULE_MANAGEMENT_FORBIDDEN` | `일정을 관리할 권한이 없습니다.` |
+| 일정이 없거나 다른 그룹 소속 | `404 Not Found` | `SCHEDULE_NOT_FOUND` | `일정을 찾을 수 없습니다.` |
+| 기존 일정이 이미 시작됨 | `409 Conflict` | `SCHEDULE_UPDATE_NOT_ALLOWED` | `이미 시작된 일정은 수정할 수 없습니다.` |
+| 새 일정 시간 규칙 위반 | `400 Bad Request` | `INVALID_SCHEDULE_TIME` | `일정 또는 응답 마감 시간이 올바르지 않습니다.` |
+>>>>>>> refs/remotes/origin/develop
