@@ -16,6 +16,8 @@ import com.mycom.myapp.attendance.entity.AttendanceResponse;
 import com.mycom.myapp.attendance.entity.AttendanceStatus;
 import com.mycom.myapp.attendance.repository.AttendanceRecordRepository;
 import com.mycom.myapp.attendance.repository.AttendanceResponseRepository;
+import com.mycom.myapp.global.exception.BusinessException;
+import com.mycom.myapp.global.exception.ErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +37,8 @@ class AttendanceServiceTest {
 
     @Test
     void submitAnswerSavesNewAnswer() {
+        given(attendanceResponseRepository.findByScheduleIdAndUserId(10L, 20L))
+                .willReturn(Optional.empty());
         given(attendanceResponseRepository.save(any(AttendanceAnswer.class)))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -45,6 +49,30 @@ class AttendanceServiceTest {
         assertThat(result.getScheduleId()).isEqualTo(10L);
         assertThat(result.getUserId()).isEqualTo(20L);
         assertThat(result.getResponse()).isEqualTo(AttendanceResponse.ATTEND);
+    }
+
+    @Test
+    void submitAnswerRejectsDuplicateAnswer() {
+        AttendanceAnswer existing =
+                AttendanceAnswer.builder()
+                        .scheduleId(10L)
+                        .userId(20L)
+                        .response(AttendanceResponse.ATTEND)
+                        .build();
+        given(attendanceResponseRepository.findByScheduleIdAndUserId(10L, 20L))
+                .willReturn(Optional.of(existing));
+
+        assertThatThrownBy(
+                        () ->
+                                attendanceService.submitAnswer(
+                                        10L,
+                                        20L,
+                                        new AttendanceAnswerRequest(AttendanceResponse.ATTEND)))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.DUPLICATE_ATTENDANCE_ANSWER));
     }
 
     @Test
