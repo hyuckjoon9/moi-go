@@ -40,15 +40,14 @@ git log -3 --oneline
 - HEAD: `967e785 Merge pull request #9 from hyuckjoon9/feature/part3-group-home`
 - 원격 `develop`: `967e785 Merge pull request #9 from hyuckjoon9/feature/part3-group-home`
 - 그룹 홈 PR #9는 원격 `develop`에 병합되었다.
-- 일정 생성 구현 전 API·ERD·설계 문서를 작성 중이며 운영 코드는 아직 변경하지 않았다.
+- 일정 생성 API·ERD·설계 문서 커밋 후 테스트 우선 구현 계획을 작성했으며 운영 코드는 아직
+  변경하지 않았다.
 
 현재 변경 파일:
 
 ```text
-docs/part3-group/api.md
 docs/part3-group/context.md
-docs/part3-group/erd.md
-docs/part3-group/schedule-create-design.md
+docs/part3-group/schedule-create-implementation-plan.md
 ```
 
 ## 완료된 작업
@@ -138,6 +137,8 @@ docs/part3-group/schedule-create-design.md
 - 일정 생성 구현 시 `GROUP_ENDED`, `SCHEDULE_MANAGEMENT_FORBIDDEN`,
   `INVALID_SCHEDULE_TIME`을 합의된 공통 `ErrorCode` 변경으로 추가한다.
 - 구현 구조와 테스트 범위는 [`schedule-create-design.md`](schedule-create-design.md)를 따른다.
+- 테스트 우선 작업 순서와 정확한 인터페이스는
+  [`schedule-create-implementation-plan.md`](schedule-create-implementation-plan.md)를 따른다.
 
 ## 아직 결정하거나 확인해야 할 사항
 
@@ -300,14 +301,15 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-다음 작업은 **5단계 일정 영속성 및 생성 API 문서를 검토한 뒤 구현 계획을 작성하는 것**이다.
+다음 작업은 **5단계 일정 영속성 및 생성 API 구현 계획을 검토한 뒤 테스트 우선으로 실행하는 것**이다.
 
-1. `api.md`, `erd.md`, `schedule-create-design.md`의 계약이 서로 일치하는지 검토한다.
-2. 문서 검토 승인 후 테스트 우선 구현 계획을 작성한다.
-3. 승인된 계획에 따라 Entity, Repository, Request·Response DTO, Service와 Controller를 구현한다.
-4. `GROUP_ENDED`, `SCHEDULE_MANAGEMENT_FORBIDDEN`, `INVALID_SCHEDULE_TIME`만 합의된 공통
+1. `schedule-create-implementation-plan.md`의 작업 순서와 인터페이스를 검토한다.
+2. 승인된 계획에 따라 Request DTO, Entity·Repository, Service·Response, Controller 순서로
+   실패 테스트를 먼저 작성하고 구현한다.
+3. `GROUP_ENDED`, `SCHEDULE_MANAGEMENT_FORBIDDEN`, `INVALID_SCHEDULE_TIME`만 합의된 공통
    `ErrorCode` 변경으로 추가한다.
-5. 관련 테스트, 전체 테스트와 `spotlessCheck`를 실행한다.
+4. 일정 생성 통합 테스트, 전체 테스트와 `spotlessCheck`를 실행한다.
+5. 구현 결과와 문서를 대조하고 `develop` 대상 PR을 준비한다.
 
 ## 다음 세션용 시작 요청 예시
 
