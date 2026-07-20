@@ -9,6 +9,8 @@ import com.mycom.myapp.attendance.entity.AttendanceRecord;
 import com.mycom.myapp.attendance.entity.AttendanceStatus;
 import com.mycom.myapp.attendance.repository.AttendanceRecordRepository;
 import com.mycom.myapp.attendance.repository.AttendanceResponseRepository;
+import com.mycom.myapp.global.exception.BusinessException;
+import com.mycom.myapp.global.exception.ErrorCode;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +29,15 @@ public class AttendanceService {
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final AttendanceResponseRepository attendanceResponseRepository;
 
-    /** 멤버가 스케줄에 처음 참석 여부를 등록한다. */
+    /** 멤버가 스케줄에 처음 참석 여부를 등록한다. 이미 응답이 있으면 거부한다. */
     @Transactional
     public AttendanceAnswer submitAnswer(
             Long scheduleId, Long userId, AttendanceAnswerRequest request) {
+        if (attendanceResponseRepository
+                .findByScheduleIdAndUserId(scheduleId, userId)
+                .isPresent()) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ATTENDANCE_ANSWER);
+        }
         AttendanceAnswer answer =
                 AttendanceAnswer.builder()
                         .scheduleId(scheduleId)
@@ -55,10 +62,15 @@ public class AttendanceService {
         attendanceResponseRepository.delete(getAnswer(scheduleId, userId));
     }
 
-    /** 모집장이 스케줄의 특정 멤버 출석 상태를 처음 체크한다. */
+    /** 모집장이 스케줄의 특정 멤버 출석 상태를 처음 체크한다. 이미 체크된 기록이 있으면 거부한다. */
     @Transactional
     public AttendanceRecord checkAttendance(
             Long scheduleId, Long checkedBy, AttendanceCheckRequest request) {
+        if (attendanceRecordRepository
+                .findByScheduleIdAndUserId(scheduleId, request.getUserId())
+                .isPresent()) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ATTENDANCE_RECORD);
+        }
         AttendanceRecord record =
                 AttendanceRecord.builder()
                         .scheduleId(scheduleId)

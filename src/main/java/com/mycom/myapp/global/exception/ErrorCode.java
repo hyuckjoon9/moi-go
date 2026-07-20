@@ -15,6 +15,8 @@ public enum ErrorCode {
     GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."),
     GROUP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "그룹에 접근할 권한이 없습니다."),
     WITHDRAWN_GROUP_MEMBER(HttpStatus.FORBIDDEN, "탈퇴한 그룹원은 그룹에 접근할 수 없습니다."),
+    DUPLICATE_ATTENDANCE_ANSWER(HttpStatus.CONFLICT, "이미 참석 여부를 응답했습니다."),
+    DUPLICATE_ATTENDANCE_RECORD(HttpStatus.CONFLICT, "이미 출석 체크가 등록되어 있습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
 
     private final HttpStatus status;
