@@ -5,16 +5,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
-public record ScheduleCreateRequest(
+public record ScheduleUpdateRequest(
         @NotBlank @Size(max = 100) String title,
         @NotNull LocalDateTime scheduledAt,
         @Size(max = 255) String location,
         @Size(max = 500) String onlineLink,
         @Size(max = 5000) String content,
-        @Size(max = 5000) String materials,
-        LocalDateTime responseDeadline) {
+        @Size(max = 5000) String materials) {
 
-    public ScheduleCreateRequest {
+    public ScheduleUpdateRequest {
         title = normalize(title);
         location = normalize(location);
         onlineLink = normalize(onlineLink);

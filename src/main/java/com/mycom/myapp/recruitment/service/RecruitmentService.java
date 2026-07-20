@@ -10,6 +10,8 @@ import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,5 +49,22 @@ public class RecruitmentService {
                         .build();
 
         return RecruitmentResponse.from(recruitmentRepository.save(post));
+    }
+
+    public Page<RecruitmentResponse> getList(String category, Pageable pageable) {
+
+        Page<RecruitmentPost> posts =
+                (category == null || category.isBlank())
+                        ? recruitmentRepository.findAll(pageable)
+                        : recruitmentRepository.findByCategory(category, pageable);
+        return posts.map(RecruitmentResponse::from);
+    }
+
+    public RecruitmentResponse getDetail(Long id) {
+        RecruitmentPost post =
+                recruitmentRepository
+                        .findById(id)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND));
+        return RecruitmentResponse.from(post);
     }
 }
