@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 class GroupMemberRepositoryTest {
@@ -100,5 +101,35 @@ class GroupMemberRepositoryTest {
                                 groupMemberRepository.saveAndFlush(
                                         GroupMember.join(group, 20L, GroupRole.MANAGER)))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void findsOnlyActiveMembersInGroupHomeOrder() {
+        StudyGroup group = studyGroupRepository.saveAndFlush(StudyGroup.create(10L, "알고리즘 스터디"));
+        GroupMember leader =
+                groupMemberRepository.saveAndFlush(GroupMember.join(group, 1L, GroupRole.LEADER));
+        GroupMember manager =
+                groupMemberRepository.saveAndFlush(GroupMember.join(group, 2L, GroupRole.MANAGER));
+        GroupMember laterMember =
+                groupMemberRepository.saveAndFlush(GroupMember.join(group, 300L, GroupRole.MEMBER));
+        GroupMember earlierMember =
+                groupMemberRepository.saveAndFlush(GroupMember.join(group, 100L, GroupRole.MEMBER));
+        GroupMember withdrawn = GroupMember.join(group, 4L, GroupRole.MEMBER);
+        withdrawn.withdraw();
+        groupMemberRepository.saveAndFlush(withdrawn);
+
+        jdbcTemplate.update(
+                "update group_members set joined_at = timestamp '2026-07-01 10:00:00' where id in (?, ?)",
+                laterMember.getId(),
+                earlierMember.getId());
+        ReflectionTestUtils.setField(leader, "joinedAt", null);
+        groupMemberRepository.flush();
+
+        assertThat(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        group.getId(), GroupMemberStatus.ACTIVE))
+                .extracting(GroupMember::getUserId)
+                .containsExactly(1L, 2L, 100L, 300L);
     }
 }
