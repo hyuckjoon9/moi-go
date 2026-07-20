@@ -36,15 +36,21 @@ git log -3 --oneline
 
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
-- 현재 브랜치: `feature/part3-group-creation`
-- HEAD: `0ed09c7 test: 그룹 생성 트랜잭션과 동시성 검증`
-- 현재 변경 사항: 없음 (`git status --short` 출력 없음)
-- 그룹 생성 유스케이스 구현 전 기준 상태다. 문서 갱신과 최종 검증은 이 세션에서 이어서 기록한다.
+- 현재 브랜치: `feature/part3-group-home`
+- HEAD: `9d9c58e feat: 모집글 생성 기능 추가` (최신 `origin/develop` 기반, 아직 커밋 전)
+- 원격 `develop`: `9d9c58e feat: 모집글 생성 기능 추가`
+- 그룹 생성 PR은 원격 `develop`에 병합되었다.
+- 그룹 홈 구현과 검증이 끝났으며, 현재 변경은 아직 커밋하지 않았다.
 
 현재 변경 파일:
 
 ```text
-없음
+docs/part3-group/api.md
+docs/part3-group/context.md
+docs/part3-group/group-home-implementation-plan.md
+src/main/java/com/mycom/myapp/global/exception/ErrorCode.java
+src/main/java/com/mycom/myapp/study/**
+src/test/java/com/mycom/myapp/study/**
 ```
 
 ## 완료된 작업
@@ -70,6 +76,27 @@ git log -3 --oneline
 - `StudyGroupCreationWriter`가 그룹과 정규화된 초기 그룹원을 하나의 트랜잭션으로 저장한다.
 - `StudyGroupCreationService`가 `postId` 기준으로 멱등 생성하고 유니크 충돌 뒤 기존 그룹을 재조회한다.
 - 그룹 생성의 정상 저장, 순차 재요청, 전체 롤백과 병렬 요청을 통합 테스트로 검증했다.
+- 그룹 생성 PR이 원격 `develop`에 병합된 것을 확인했다.
+- 그룹 홈 조회의 입력, 응답 필드, 접근 규칙, 정렬과 오류 계약을 확정했다.
+- `GET /api/groups/{groupId}` Controller, 읽기 전용 `StudyGroupService`, 그룹 홈 응답 DTO와 활성 그룹원 정렬 조회를 구현했다.
+- 그룹 없음, 비회원, 탈퇴 그룹원 오류 코드를 합의된 공통 `ErrorCode` 변경으로 추가했다.
+- 그룹 홈의 Repository·Service·Controller 테스트와 전체 테스트, `spotlessCheck`를 실행했다.
+
+## 확정된 그룹 홈 조회 계약
+
+- 엔드포인트는 `GET /api/groups/{groupId}`다.
+- `@AuthenticationPrincipal AuthenticatedMember`에서 `id()`만 사용한다.
+- 그룹 정보와 활성 그룹원 목록을 `StudyGroupHomeResponse` 하나로 반환한다.
+- 상위 응답 필드는 `groupId`, `postId`, `name`, `status`, `createdAt`, `myRole`, `members`다.
+- 그룹원 응답 필드는 `userId`, `role`, `joinedAt`이며 Part1의 닉네임·프로필은 포함하지 않는다.
+- `members`에는 활성 그룹원만 포함하고 탈퇴 그룹원은 제외한다.
+- 그룹원은 역할 `LEADER`, `MANAGER`, `MEMBER` 순으로 정렬한다.
+- 같은 역할은 `joinedAt` 오름차순, 가입 시각도 같으면 `userId` 오름차순으로 정렬한다.
+- `ENDED` 그룹도 활성 그룹원에게 조회를 허용하고 응답에 `ENDED` 상태를 반환한다.
+- 그룹 없음은 `GROUP_NOT_FOUND`, 비회원은 `GROUP_ACCESS_DENIED`, 탈퇴 그룹원은
+  `WITHDRAWN_GROUP_MEMBER`로 구분한다.
+- 위 세 오류 코드는 구현 시 합의된 공통 변경으로 `global/exception/ErrorCode.java`에 추가한다.
+- 인증 실패는 Part1 공통 인증 계약을 따르며 Part3 전용 인증 오류를 추가하지 않는다.
 
 ## 확정된 데이터 규칙
 
@@ -98,15 +125,9 @@ git log -3 --oneline
 
 구현 전에 담당 파트와 합의하거나 API 명세에서 확정해야 한다.
 
-1. Part2가 그룹 생성을 요청하는 방식: 직접 서비스 호출, 애플리케이션 이벤트 또는 API 중 하나를 선택한다.
-2. 최초 그룹 생성 시 `LEADER`와 승인된 신청자를 `group_members`에 등록하는 주체와 트랜잭션 경계를 정한다.
-3. Part1에서 `@AuthenticationPrincipal AuthenticatedMember`로 인증 사용자 ID를 전달하는 공통 방식을 제공한다.
-4. Part1에서 `ApiResponse`, `GlobalExceptionHandler`, `ErrorCode` 공통 응답·오류 형식을 제공한다. Part3 구현 시 이 계약을 사용한다.
-5. 그룹 홈 응답에 포함할 데이터 범위를 확정한다.
-6. 일정 API의 생성·조회·수정·삭제 권한을 확정한다. 현재 확정된 내용은 등록 권한이 `LEADER` 또는 활성 `MANAGER`라는 점이다.
-7. `location`과 `online_link` 중 하나 이상을 필수로 할지 결정한다. DB에는 이를 강제하는 CHECK 제약이 없다.
-8. 그룹과 일정의 실제 삭제를 허용할지, 상태 종료 또는 소프트 삭제로 대체할지 결정한다.
-9. 그룹원 상태 전용 Enum 이름은 `GroupMemberStatus`로 결정했다.
+1. 일정 API의 생성·조회·수정·삭제 권한을 확정한다. 현재 확정된 내용은 등록 권한이 `LEADER` 또는 활성 `MANAGER`라는 점이다.
+2. `location`과 `online_link` 중 하나 이상을 필수로 할지 결정한다. DB에는 이를 강제하는 CHECK 제약이 없다.
+3. 그룹과 일정의 실제 삭제를 허용할지, 상태 종료 또는 소프트 삭제로 대체할지 결정한다.
 
 ## Part3 구현 로드맵
 
@@ -261,18 +282,27 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-다음 작업은 **4단계 그룹 조회와 그룹 홈 계약 확정**이다.
+다음 작업은 현재 변경을 검토·커밋·push·PR한 뒤 새 대화에서 **5단계 일정 영속성 및 생성 API**를 시작하는 것이다.
 
-1. Part2·Part1과 그룹 홈 조회에 필요한 입력과 인증 사용자 식별자 전달 경계를 확정한다.
-2. `StudyGroupHomeResponse` 필드와 비회원·탈퇴 회원의 오류 계약을 `api.md`에 기록한다.
-3. `feature/part3-group-home` 브랜치에서 조회 서비스·Controller·테스트를 구현한다.
+1. 그룹 홈 변경과 기존 `api.md`, `context.md` 변경을 함께 검토한다.
+2. `global/exception/ErrorCode.java`의 합의된 공통 변경을 PR 설명에 명시한다.
+3. 변경을 커밋하고 원격 `feature/part3-group-home`으로 push한다.
+4. `develop` 대상 PR을 만든다.
+5. 병합 후 최신 `develop`에서 `feature/part3-schedule-create` 브랜치를 만든다.
 
 ## 다음 세션용 시작 요청 예시
 
 ```text
-AGENTS.md와 docs/part3-group/context.md를 읽고 현재 Git 상태를 확인해줘.
-.local/part3/updates.md가 있으면 그 기록을 우선하고,
-현재 브랜치의 '바로 다음 작업'부터 이어서 진행해줘.
+Part3 그룹 홈 구현을 시작해줘. 먼저 AGENTS.md,
+docs/part3-group/development-guide.md, context.md, api.md, erd.md를 읽고
+.local/part3/updates.md와 현재 Git 상태를 대조해줘. git fetch origin develop으로
+그룹 생성 PR의 병합 상태를 다시 확인해줘. 현재 작업 트리의 미커밋
+docs/part3-group/api.md와 context.md 변경을 절대 버리지 말고 보존한 채,
+최신 origin/develop을 기준으로 feature/part3-group-home 브랜치를 만들어줘.
+api.md에 확정된 그룹 홈 조회 계약을 기준으로 구현 계획과 테스트 사례를 먼저
+제시하고, 내 승인을 받은 뒤 구현해줘. 다른 파트 코드는 수정하지 말고, 합의된 GROUP_NOT_FOUND,
+GROUP_ACCESS_DENIED, WITHDRAWN_GROUP_MEMBER만 global/exception/ErrorCode.java에
+추가해. 구현 후 관련 테스트, 전체 테스트와 spotlessCheck를 실행해줘.
 ```
 
 ## 세션 종료 시 갱신 규칙
