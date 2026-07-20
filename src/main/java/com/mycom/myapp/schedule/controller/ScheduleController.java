@@ -6,6 +6,7 @@ import com.mycom.myapp.global.response.ApiResponse;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleQueryRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.service.ScheduleService;
@@ -16,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -62,6 +64,16 @@ public class ScheduleController {
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
         Long memberId = requireAuthenticatedMemberId(authenticatedMember);
         return ApiResponse.success(scheduleService.getSchedule(groupId, memberId, scheduleId));
+    }
+
+    @PutMapping("/{scheduleId}")
+    public ApiResponse<ScheduleResponse> update(
+            @PathVariable Long groupId,
+            @PathVariable Long scheduleId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody ScheduleUpdateRequest request) {
+        Long memberId = requireAuthenticatedMemberId(authenticatedMember);
+        return ApiResponse.success(scheduleService.update(groupId, memberId, scheduleId, request));
     }
 
     private Long requireAuthenticatedMemberId(AuthenticatedMember authenticatedMember) {

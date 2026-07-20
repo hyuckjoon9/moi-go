@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,6 +22,7 @@ import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.member.entity.MemberRole;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleScope;
+import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleSummaryResponse;
@@ -61,6 +63,10 @@ class ScheduleControllerTest {
     private final String validRequestJson =
             """
             {"title":"3주차 스터디","scheduledAt":"2026-07-25T19:00:00","location":null,"onlineLink":null,"content":"3장 문제 풀이","materials":"교재와 노트북","responseDeadline":"2026-07-24T18:00:00"}
+            """;
+    private final String validUpdateRequestJson =
+            """
+            {"title":"수정 일정","scheduledAt":"2026-07-28T19:00:00","location":"수정 장소","onlineLink":null,"content":"수정 내용","materials":null}
             """;
     private MockMvc mockMvc;
 
@@ -222,6 +228,63 @@ class ScheduleControllerTest {
                                         .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 
+    @Test
+    void updatesScheduleAndReturnsFullResponse() throws Exception {
+        when(scheduleService.update(eq(10L), eq(1L), eq(100L), any(ScheduleUpdateRequest.class)))
+                .thenReturn(response());
+
+        mockMvc.perform(
+                        put("/api/groups/{groupId}/schedules/{scheduleId}", 10L, 100L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validUpdateRequestJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.scheduleId").value(100))
+                .andExpect(jsonPath("$.data.groupId").value(10));
+        verify(scheduleService).update(eq(10L), eq(1L), eq(100L), any(ScheduleUpdateRequest.class));
+    }
+
+    @Test
+    void rejectsInvalidUpdateBodyBeforeServiceCall() throws Exception {
+        mockMvc.perform(
+                        put("/api/groups/{groupId}/schedules/{scheduleId}", 10L, 100L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"title\":\"   \",\"scheduledAt\":null}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+        verifyNoInteractions(scheduleService);
+    }
+
+    @ParameterizedTest
+    @MethodSource("updateBusinessErrors")
+    void mapsUpdateBusinessErrors(ErrorCode errorCode) throws Exception {
+        when(scheduleService.update(eq(10L), eq(1L), eq(100L), any(ScheduleUpdateRequest.class)))
+                .thenThrow(new BusinessException(errorCode));
+
+        mockMvc.perform(
+                        put("/api/groups/{groupId}/schedules/{scheduleId}", 10L, 100L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validUpdateRequestJson))
+                .andExpect(status().is(errorCode.getStatus().value()))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorCode.getMessage()));
+    }
+
+    @Test
+    void rejectsMissingPrincipalForScheduleUpdate() {
+        ScheduleController controller = new ScheduleController(scheduleService);
+        ScheduleUpdateRequest request =
+                new ScheduleUpdateRequest(
+                        "수정 일정", LocalDateTime.of(2026, 7, 28, 19, 0), null, null, null, null);
+
+        assertThatThrownBy(() -> controller.update(10L, 100L, null, request))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
     private static Stream<ErrorCode> businessErrors() {
         return Stream.of(
                 ErrorCode.GROUP_NOT_FOUND,
@@ -229,6 +292,18 @@ class ScheduleControllerTest {
                 ErrorCode.WITHDRAWN_GROUP_MEMBER,
                 ErrorCode.GROUP_ENDED,
                 ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN,
+                ErrorCode.INVALID_SCHEDULE_TIME);
+    }
+
+    private static Stream<ErrorCode> updateBusinessErrors() {
+        return Stream.of(
+                ErrorCode.GROUP_NOT_FOUND,
+                ErrorCode.GROUP_ACCESS_DENIED,
+                ErrorCode.WITHDRAWN_GROUP_MEMBER,
+                ErrorCode.GROUP_ENDED,
+                ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN,
+                ErrorCode.SCHEDULE_NOT_FOUND,
+                ErrorCode.SCHEDULE_UPDATE_NOT_ALLOWED,
                 ErrorCode.INVALID_SCHEDULE_TIME);
     }
 

@@ -13,6 +13,7 @@ import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleScope;
+import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.entity.StudySchedule;
@@ -254,6 +255,138 @@ class ScheduleServiceTest {
                                         .isEqualTo(ErrorCode.SCHEDULE_NOT_FOUND));
     }
 
+    @ParameterizedTest
+    @EnumSource(
+            value = GroupRole.class,
+            names = {"LEADER", "MANAGER"})
+    void updatesFutureScheduleForManagementRole(GroupRole role) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, role));
+        LocalDateTime responseDeadline = NOW.minusHours(1);
+        StudySchedule schedule = schedule(group, 100L, NOW.plusHours(2), responseDeadline);
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule));
+
+        ScheduleResponse response = service.update(10L, 1L, 100L, updateRequest(NOW.plusHours(3)));
+
+        assertThat(response.title()).isEqualTo("수정 일정");
+        assertThat(response.scheduledAt()).isEqualTo(NOW.plusHours(3));
+        assertThat(response.location()).isEqualTo("수정 장소");
+        assertThat(response.responseDeadline()).isEqualTo(responseDeadline);
+        assertThat(response.creatorId()).isEqualTo(1L);
+        assertThat(response.updatedAt()).isEqualTo(NOW);
+        verify(scheduleRepository).findByIdAndStudyGroupId(100L, 10L);
+        verify(scheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsUpdateForEndedGroupBeforeRoleAndScheduleLookup() {
+        StudyGroup group = activeGroup();
+        group.end();
+        allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
+
+        assertUpdateError(ErrorCode.GROUP_ENDED, updateRequest(NOW.plusHours(3)));
+
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void rejectsUpdateForMemberBeforeScheduleLookup() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
+
+        assertUpdateError(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN, updateRequest(NOW.plusHours(3)));
+
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void reportsScheduleNotFoundBeforeTimeValidation() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L)).thenReturn(Optional.empty());
+
+        assertUpdateError(ErrorCode.SCHEDULE_NOT_FOUND, updateRequest(NOW));
+    }
+
+    @ParameterizedTest
+    @MethodSource("startedScheduleTimes")
+    void rejectsStartedScheduleWithStateConflict(LocalDateTime existingScheduledAt) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, existingScheduledAt, null)));
+
+        assertUpdateError(ErrorCode.SCHEDULE_UPDATE_NOT_ALLOWED, updateRequest(NOW.plusHours(3)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidNewScheduleTimes")
+    void rejectsNewScheduleTimeAtOrBeforeNow(LocalDateTime requestedScheduledAt) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(2), null)));
+
+        assertUpdateError(ErrorCode.INVALID_SCHEDULE_TIME, updateRequest(requestedScheduledAt));
+    }
+
+    @Test
+    void rejectsNewScheduleTimeBeforePreservedDeadline() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(4), NOW.plusHours(3))));
+
+        assertUpdateError(ErrorCode.INVALID_SCHEDULE_TIME, updateRequest(NOW.plusHours(2)));
+    }
+
+    @Test
+    void allowsNewScheduleTimeEqualToPreservedDeadline() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        LocalDateTime deadline = NOW.plusHours(3);
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(4), deadline)));
+
+        ScheduleResponse response = service.update(10L, 1L, 100L, updateRequest(deadline));
+
+        assertThat(response.scheduledAt()).isEqualTo(deadline);
+        assertThat(response.responseDeadline()).isEqualTo(deadline);
+    }
+
+    @Test
+    void rejectsUpdateForMissingGroupBeforeMembershipLookup() {
+        when(groupRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertUpdateError(ErrorCode.GROUP_NOT_FOUND, updateRequest(NOW.plusHours(3)));
+
+        verifyNoInteractions(memberRepository, scheduleRepository);
+    }
+
+    @Test
+    void rejectsUpdateForMissingMembershipBeforeScheduleLookup() {
+        StudyGroup group = activeGroup();
+        when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+        when(memberRepository.findByStudyGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
+
+        assertUpdateError(ErrorCode.GROUP_ACCESS_DENIED, updateRequest(NOW.plusHours(3)));
+
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void rejectsUpdateForWithdrawnMemberBeforeScheduleLookup() {
+        StudyGroup group = activeGroup();
+        GroupMember member = GroupMember.join(group, 1L, GroupRole.LEADER);
+        member.withdraw();
+        allow(group, member);
+
+        assertUpdateError(ErrorCode.WITHDRAWN_GROUP_MEMBER, updateRequest(NOW.plusHours(3)));
+
+        verifyNoInteractions(scheduleRepository);
+    }
+
     private static Stream<ScheduleCreateRequest> invalidTimeRequests() {
         return Stream.of(
                 request(NOW, null),
@@ -262,11 +395,34 @@ class ScheduleServiceTest {
                 request(NOW.plusHours(2), NOW.plusHours(3)));
     }
 
+    private static Stream<LocalDateTime> startedScheduleTimes() {
+        return Stream.of(NOW, NOW.minusSeconds(1));
+    }
+
+    private static Stream<LocalDateTime> invalidNewScheduleTimes() {
+        return Stream.of(NOW, NOW.minusSeconds(1));
+    }
+
     private StudySchedule schedule(StudyGroup group, Long scheduleId, LocalDateTime scheduledAt) {
+        return schedule(group, scheduleId, scheduledAt, null);
+    }
+
+    private StudySchedule schedule(
+            StudyGroup group,
+            Long scheduleId,
+            LocalDateTime scheduledAt,
+            LocalDateTime responseDeadline) {
         StudySchedule schedule =
-                StudySchedule.create(group, 1L, "조회 일정", scheduledAt, null, null, null, null, null);
+                StudySchedule.create(
+                        group, 1L, "조회 일정", scheduledAt, null, null, null, null, responseDeadline);
         ReflectionTestUtils.setField(schedule, "id", scheduleId);
+        ReflectionTestUtils.setField(schedule, "createdAt", NOW.minusDays(1));
+        ReflectionTestUtils.setField(schedule, "updatedAt", NOW.minusDays(1));
         return schedule;
+    }
+
+    private ScheduleUpdateRequest updateRequest(LocalDateTime scheduledAt) {
+        return new ScheduleUpdateRequest("수정 일정", scheduledAt, "수정 장소", null, "수정 내용", null);
     }
 
     private void assertError(ErrorCode errorCode, ScheduleCreateRequest request) {
@@ -275,6 +431,13 @@ class ScheduleServiceTest {
                         BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(errorCode));
         verify(scheduleRepository, never()).save(any());
+    }
+
+    private void assertUpdateError(ErrorCode errorCode, ScheduleUpdateRequest request) {
+        assertThatThrownBy(() -> service.update(10L, 1L, 100L, request))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(errorCode));
     }
 
     private void allow(StudyGroup group, GroupMember member) {
