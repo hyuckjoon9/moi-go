@@ -95,8 +95,8 @@ git log -3 --oneline
 
 1. Part2가 그룹 생성을 요청하는 방식: 직접 서비스 호출, 애플리케이션 이벤트 또는 API 중 하나를 선택한다.
 2. 최초 그룹 생성 시 `LEADER`와 승인된 신청자를 `group_members`에 등록하는 주체와 트랜잭션 경계를 정한다.
-3. 인증 사용자 ID를 Controller에 전달하는 공통 방식이 아직 구현되지 않았다.
-4. `ApiResponse`, `GlobalExceptionHandler`, `ErrorCode`가 빈 스켈레톤이므로 공통 응답·오류 형식을 팀과 맞춘다.
+3. Part1에서 `@AuthenticationPrincipal AuthenticatedMember`로 인증 사용자 ID를 전달하는 공통 방식을 제공한다.
+4. Part1에서 `ApiResponse`, `GlobalExceptionHandler`, `ErrorCode` 공통 응답·오류 형식을 제공한다. Part3 구현 시 이 계약을 사용한다.
 5. 그룹 홈 응답에 포함할 데이터 범위를 확정한다.
 6. 일정 API의 생성·조회·수정·삭제 권한을 확정한다. 현재 확정된 내용은 등록 권한이 `LEADER` 또는 활성 `MANAGER`라는 점이다.
 7. `location`과 `online_link` 중 하나 이상을 필수로 할지 결정한다. DB에는 이를 강제하는 CHECK 제약이 없다.
