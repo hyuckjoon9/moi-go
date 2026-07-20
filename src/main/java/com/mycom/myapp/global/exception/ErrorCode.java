@@ -17,6 +17,12 @@ public enum ErrorCode {
     WITHDRAWN_GROUP_MEMBER(HttpStatus.FORBIDDEN, "탈퇴한 그룹원은 그룹에 접근할 수 없습니다."),
     DUPLICATE_ATTENDANCE_ANSWER(HttpStatus.CONFLICT, "이미 참석 여부를 응답했습니다."),
     DUPLICATE_ATTENDANCE_RECORD(HttpStatus.CONFLICT, "이미 출석 체크가 등록되어 있습니다."),
+    GROUP_ENDED(HttpStatus.CONFLICT, "종료된 그룹에서는 일정을 관리할 수 없습니다."),
+    SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다."),
+    SCHEDULE_MANAGEMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "일정을 관리할 권한이 없습니다."),
+    SCHEDULE_UPDATE_NOT_ALLOWED(HttpStatus.CONFLICT, "이미 시작된 일정은 수정할 수 없습니다."),
+    INVALID_SCHEDULE_TIME(HttpStatus.BAD_REQUEST, "일정 또는 응답 마감 시간이 올바르지 않습니다."),
+    RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
 
     private final HttpStatus status;
