@@ -125,6 +125,8 @@ class AttendanceServiceTest {
 
     @Test
     void checkAttendanceSavesNewRecord() {
+        given(attendanceRecordRepository.findByScheduleIdAndUserId(10L, 20L))
+                .willReturn(Optional.empty());
         given(attendanceRecordRepository.save(any(AttendanceRecord.class)))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
@@ -136,6 +138,31 @@ class AttendanceServiceTest {
         assertThat(result.getUserId()).isEqualTo(20L);
         assertThat(result.getStatus()).isEqualTo(AttendanceStatus.PRESENT);
         assertThat(result.getCheckedBy()).isEqualTo(1L);
+    }
+
+    @Test
+    void checkAttendanceRejectsDuplicateRecord() {
+        AttendanceRecord existing =
+                AttendanceRecord.builder()
+                        .scheduleId(10L)
+                        .userId(20L)
+                        .status(AttendanceStatus.PRESENT)
+                        .checkedBy(1L)
+                        .build();
+        given(attendanceRecordRepository.findByScheduleIdAndUserId(10L, 20L))
+                .willReturn(Optional.of(existing));
+
+        assertThatThrownBy(
+                        () ->
+                                attendanceService.checkAttendance(
+                                        10L,
+                                        1L,
+                                        new AttendanceCheckRequest(20L, AttendanceStatus.PRESENT)))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.DUPLICATE_ATTENDANCE_RECORD));
     }
 
     @Test
