@@ -1,6 +1,6 @@
 package com.mycom.myapp.study.entity;
 
-public enum GroupStatus {
+public enum GroupMemberStatus {
     ACTIVE,
-    ENDED
+    WITHDRAWN
 }

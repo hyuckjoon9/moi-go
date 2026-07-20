@@ -3,12 +3,14 @@
 > 마지막 갱신: 2026-07-16
 >
 > 이 문서는 Part3 작업의 세션 핸드오프 문서다. 다음 세션을 시작하면 먼저 현재 Git 상태를 확인하고, 이 문서의 기록과 실제 저장소가 다르면 실제 저장소를 기준으로 이 문서를 갱신한다.
+> 개인 로컬 기록인 `.local/part3/updates.md`가 있으면 이 문서보다 해당 파일의 최신 작업 기록을 우선한다. `updates.md`는 `.git/info/exclude`로 제외하며 커밋하지 않는다.
 
 ## 다음 세션 시작 절차
 
 1. 루트 [`AGENTS.md`](../../AGENTS.md)를 읽는다.
 2. [`development-guide.md`](development-guide.md), [`erd.md`](erd.md), [`api.md`](api.md)를 읽는다.
-3. 다음 명령으로 브랜치와 변경 사항을 확인한다.
+3. `.local/part3/updates.md`가 있으면 최신 작업 기록과 바로 다음 작업을 확인한다.
+4. 다음 명령으로 브랜치와 변경 사항을 확인한다.
 
 ```powershell
 git branch --show-current
@@ -16,8 +18,7 @@ git status --short
 git log -3 --oneline
 ```
 
-4. `src/main/resources/application.properties`의 기존 사용자 변경을 수정하거나 Part3 문서 커밋에 포함하지 않는다.
-5. 아래의 "바로 다음 작업"부터 이어서 진행한다.
+5. 로컬 업데이트가 있으면 그 기록부터, 없으면 아래의 "바로 다음 작업"부터 이어서 진행한다.
 
 ## 프로젝트와 담당 범위
 
@@ -35,20 +36,16 @@ git log -3 --oneline
 
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
-- 현재 브랜치: `feature/api-docs-skeleton`
-- HEAD: `78d5dda docs: API 문서 스켈레톤 추가`
-- 현재 브랜치의 upstream은 설정되어 있지 않다.
-- 기존 API 스켈레톤 커밋은 이미 존재한다.
-- 새 Part3 기준 문서들은 아직 커밋되지 않았다.
+- 현재 브랜치: `feature/part3-group-persistence`
+- 구현 완료 HEAD: `6b06c55 docs: Part3 로컬 업데이트 확인 규칙 추가`
+- 현재 브랜치는 아직 원격에 push하지 않았다.
+- 그룹·그룹원 영속성 기반 구현과 문서 동기화가 완료되었다.
+- 최신 전체 테스트와 `spotlessCheck`가 통과했다.
 
 현재 변경 파일:
 
 ```text
-M  src/main/resources/application.properties    # 사용자 변경, 건드리거나 커밋하지 말 것
-?? AGENTS.md                                    # 이번 문서 작업
-?? docs/part3-group/development-guide.md        # 이번 문서 작업
-?? docs/part3-group/erd.md                      # 이번 문서 작업
-?? docs/part3-group/context.md                  # 이번 핸드오프 작업
+세션 종료 문서 갱신 전 작업 트리 clean
 ```
 
 ## 완료된 작업
@@ -60,7 +57,14 @@ M  src/main/resources/application.properties    # 사용자 변경, 건드리거
 - `docs/part3-group/erd.md`에 Part3 테이블과 외부 FK 경계가 정리되어 있다.
 - Part3 범위에서 `activity`를 제외하고 `study`, `schedule`만 소유하도록 바로잡았다.
 - API 기본 Prefix는 `/api`로 결정했고, 공통 버전 정책이 없어 `/api/v1`은 도입하지 않았다.
-- 마지막 문서 검증에서 `spotlessCheck`가 통과했다.
+- `StudyGroup`, `GroupMember`, `GroupMemberStatus`와 대응 Repository를 구현했다.
+- 외부 모집글·사용자는 다른 파트 Entity에 결합하지 않고 `Long` 식별자로 매핑했다.
+- Part3 내부의 `GroupMember.studyGroup`만 지연 로딩 연관관계로 매핑했다.
+- Enum 컬럼은 운영 MySQL 스키마와 동일한 `VARCHAR(20)`으로 고정했다.
+- 모집글별 그룹, 그룹·사용자별 그룹원, 사용자·상태별 그룹원 조회와 중복 제약 테스트를 추가했다.
+- Spring Boot 4.1의 `@DataJpaTest`를 위해 `spring-boot-starter-data-jpa-test`를 추가했다.
+- 독립 코드 리뷰 결과 Critical은 없었고, Important 1건과 Minor 항목을 모두 반영했다.
+- 마지막 검증에서 전체 테스트와 `spotlessCheck --rerun-tasks`가 통과했다.
 
 ## 확정된 데이터 규칙
 
@@ -97,13 +101,13 @@ M  src/main/resources/application.properties    # 사용자 변경, 건드리거
 6. 일정 API의 생성·조회·수정·삭제 권한을 확정한다. 현재 확정된 내용은 등록 권한이 `LEADER` 또는 활성 `MANAGER`라는 점이다.
 7. `location`과 `online_link` 중 하나 이상을 필수로 할지 결정한다. DB에는 이를 강제하는 CHECK 제약이 없다.
 8. 그룹과 일정의 실제 삭제를 허용할지, 상태 종료 또는 소프트 삭제로 대체할지 결정한다.
-9. 그룹원 상태 전용 Enum 이름을 결정한다. 현재 스켈레톤에는 `GroupStatus`, `GroupRole`만 있다.
+9. 그룹원 상태 전용 Enum 이름은 `GroupMemberStatus`로 결정했다.
 
 ## Part3 구현 로드맵
 
 "해야 할 작업 순서"는 이 프로젝트에서는 **Part3 구현 로드맵**이라고 부른다. 각 단계는 하나의 목적을 가진 별도 브랜치와 PR로 진행한다.
 
-### 0단계: 현재 문서 브랜치 마무리
+### 0단계: 현재 문서 브랜치 마무리 (완료)
 
 목표: Part3 개발 기준과 ERD를 팀이 검토할 수 있도록 현재 문서 브랜치를 정리한다.
 
@@ -129,11 +133,14 @@ git push -u origin feature/api-docs-skeleton
 
 6. 리뷰와 CI 통과 후 `develop`에 병합한다.
 
-### 1단계: Part3 API와 파트 간 계약 확정
+### 1단계: Part3 API와 파트 간 계약 확정 (별도 브랜치 생략)
 
 권장 브랜치: `feature/part3-docs-api`
 
 목표: 코드를 작성하기 전에 Part2·Part1·Part4와 맞닿는 계약과 Part3 API를 확정한다.
+
+API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기로 했다. 파트 간 계약이 필요한
+유스케이스를 시작하기 전 해당 항목만 확인하고 구현·테스트·`api.md`를 함께 진행한다.
 
 - 그룹 생성 요청 방식과 중복 요청 처리 방식을 확정한다.
 - 그룹 생성 시 리더·승인 회원 등록 책임을 확정한다.
@@ -144,7 +151,7 @@ git push -u origin feature/api-docs-skeleton
 
 완료 조건: 구현자가 추가 질문 없이 각 API의 성공·실패 테스트를 작성할 수 있다.
 
-### 2단계: 그룹·그룹원 영속성 기반
+### 2단계: 그룹·그룹원 영속성 기반 (완료)
 
 권장 브랜치: `feature/part3-group-persistence`
 
@@ -249,23 +256,21 @@ git push -u origin feature/api-docs-skeleton
 
 ## 바로 다음 작업
 
-현재는 구현보다 **0단계: 현재 문서 브랜치 마무리**가 먼저다.
+현재는 **2단계 그룹·그룹원 영속성 브랜치를 팀에 공유하는 작업**이 먼저다.
 
-다음 세션에서 사용자가 커밋과 push를 요청하면 다음 원칙을 지킨다.
-
-- `application.properties`는 stage하지 않는다.
-- `AGENTS.md`, `development-guide.md`, `erd.md`, `context.md`만 검토하고 stage한다.
-- 커밋 전 `git diff --cached`로 범위를 확인한다.
-- push 후 PR 대상은 `develop`이다.
-
-문서 PR이 병합된 뒤에는 최신 `develop`에서 `feature/part3-docs-api` 브랜치를 만들고 1단계를 진행한다.
+1. `feature/part3-group-persistence`를 원격에 push한다.
+2. `develop` 대상 PR을 만들고 공통 `build.gradle` 테스트 의존성 변경 이유를 명시한다.
+3. 리뷰와 CI 통과 후 `develop`에 병합한다.
+4. 최신 `develop`에서 `feature/part3-group-creation` 브랜치를 만든다.
+5. Part2와 그룹 생성 입력·호출 방식·초기 그룹원 책임 경계를 확인한다.
+6. TDD로 그룹과 초기 그룹원을 중복 없이 생성하는 서비스 유스케이스를 구현한다.
 
 ## 다음 세션용 시작 요청 예시
 
 ```text
 AGENTS.md와 docs/part3-group/context.md를 읽고 현재 Git 상태를 확인해줘.
-사용자 변경인 application.properties는 건드리지 말고,
-context.md의 '바로 다음 작업'부터 이어서 진행해줘.
+.local/part3/updates.md가 있으면 그 기록을 우선하고,
+현재 브랜치의 '바로 다음 작업'부터 이어서 진행해줘.
 ```
 
 ## 세션 종료 시 갱신 규칙
