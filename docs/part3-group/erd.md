@@ -175,5 +175,6 @@ erDiagram
 FK는 운영 데이터베이스 스키마가 보장하며, 외부 식별자의 존재 여부는 이후 합의된 공개 서비스
 경계에서 검증한다.
 
-`StudySchedule`은 아직 빈 스켈레톤이다. 실제 JPA 매핑을 구현할 때 이 문서와 SQL의 컬럼 길이,
-NULL 허용 여부, 유니크·CHECK·FK 제약을 함께 반영한다.
+`StudySchedule`은 이 문서의 컬럼 길이와 NULL 허용 여부에 맞춰 JPA 매핑되었다. 외부 사용자
+Entity에 결합하지 않도록 `creatorId`는 식별자 값으로 유지하고, Part3가 소유하는
+`StudyGroup`만 지연 로딩 연관관계로 매핑한다.

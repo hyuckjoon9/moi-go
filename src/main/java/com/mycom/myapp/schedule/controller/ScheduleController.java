@@ -5,16 +5,20 @@ import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.global.response.ApiResponse;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleQueryRequest;
+import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.service.ScheduleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -32,11 +36,38 @@ public class ScheduleController {
             @PathVariable Long groupId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody ScheduleCreateRequest request) {
+        Long memberId = requireAuthenticatedMemberId(authenticatedMember);
+        ScheduleResponse response = scheduleService.create(groupId, memberId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @GetMapping
+    public ApiResponse<SchedulePageResponse> getSchedules(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
+            @RequestParam(defaultValue = "upcoming") String scope,
+            @RequestParam(defaultValue = "0") String page,
+            @RequestParam(defaultValue = "20") String size) {
+        Long memberId = requireAuthenticatedMemberId(authenticatedMember);
+        ScheduleQueryRequest query = ScheduleQueryRequest.from(scope, page, size);
+        return ApiResponse.success(
+                scheduleService.getSchedules(
+                        groupId, memberId, query.scope(), query.page(), query.size()));
+    }
+
+    @GetMapping("/{scheduleId}")
+    public ApiResponse<ScheduleResponse> getSchedule(
+            @PathVariable Long groupId,
+            @PathVariable Long scheduleId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+        Long memberId = requireAuthenticatedMemberId(authenticatedMember);
+        return ApiResponse.success(scheduleService.getSchedule(groupId, memberId, scheduleId));
+    }
+
+    private Long requireAuthenticatedMemberId(AuthenticatedMember authenticatedMember) {
         if (authenticatedMember == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        ScheduleResponse response =
-                scheduleService.create(groupId, authenticatedMember.id(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+        return authenticatedMember.id();
     }
 }

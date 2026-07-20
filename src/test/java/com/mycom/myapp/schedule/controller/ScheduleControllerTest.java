@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -18,13 +20,18 @@ import com.mycom.myapp.global.exception.GlobalExceptionHandler;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.member.entity.MemberRole;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleScope;
+import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
+import com.mycom.myapp.schedule.dto.response.ScheduleSummaryResponse;
 import com.mycom.myapp.schedule.service.ScheduleService;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
@@ -121,6 +128,100 @@ class ScheduleControllerTest {
                                         .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 
+    @Test
+    void listsUpcomingSchedulesWithDefaultPageParameters() throws Exception {
+        when(scheduleService.getSchedules(10L, 1L, ScheduleScope.UPCOMING, 0, 20))
+                .thenReturn(pageResponse());
+
+        mockMvc.perform(get("/api/groups/{groupId}/schedules", 10L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.items[0].scheduleId").value(100))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+        verify(scheduleService).getSchedules(10L, 1L, ScheduleScope.UPCOMING, 0, 20);
+    }
+
+    @Test
+    void listsPastSchedulesWithRequestedPageParameters() throws Exception {
+        when(scheduleService.getSchedules(10L, 1L, ScheduleScope.PAST, 2, 10))
+                .thenReturn(new SchedulePageResponse(List.of(), 2, 10, 0, 0, false));
+
+        mockMvc.perform(
+                        get("/api/groups/{groupId}/schedules", 10L)
+                                .queryParam("scope", "past")
+                                .queryParam("page", "2")
+                                .queryParam("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.page").value(2));
+        verify(scheduleService).getSchedules(10L, 1L, ScheduleScope.PAST, 2, 10);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidListQueries")
+    void rejectsInvalidListQuery(String scope, String page, String size) throws Exception {
+        mockMvc.perform(
+                        get("/api/groups/{groupId}/schedules", 10L)
+                                .queryParam("scope", scope)
+                                .queryParam("page", page)
+                                .queryParam("size", size))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(ErrorCode.INVALID_REQUEST.getMessage()));
+        verifyNoMoreInteractions(scheduleService);
+    }
+
+    @Test
+    void returnsFullScheduleDetail() throws Exception {
+        when(scheduleService.getSchedule(10L, 1L, 100L)).thenReturn(response());
+
+        mockMvc.perform(get("/api/groups/{groupId}/schedules/{scheduleId}", 10L, 100L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.scheduleId").value(100))
+                .andExpect(jsonPath("$.data.groupId").value(10))
+                .andExpect(jsonPath("$.data.content").value("3장 문제 풀이"));
+        verify(scheduleService).getSchedule(10L, 1L, 100L);
+    }
+
+    @Test
+    void mapsScheduleNotFoundOnDetail() throws Exception {
+        when(scheduleService.getSchedule(10L, 1L, 999L))
+                .thenThrow(new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        mockMvc.perform(get("/api/groups/{groupId}/schedules/{scheduleId}", 10L, 999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(ErrorCode.SCHEDULE_NOT_FOUND.getMessage()));
+    }
+
+    @Test
+    void rejectsMissingPrincipalForScheduleList() {
+        ScheduleController controller = new ScheduleController(scheduleService);
+
+        assertThatThrownBy(() -> controller.getSchedules(10L, null, "upcoming", "0", "20"))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
+    @Test
+    void rejectsMissingPrincipalForScheduleDetail() {
+        ScheduleController controller = new ScheduleController(scheduleService);
+
+        assertThatThrownBy(() -> controller.getSchedule(10L, 100L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
     private static Stream<ErrorCode> businessErrors() {
         return Stream.of(
                 ErrorCode.GROUP_NOT_FOUND,
@@ -145,6 +246,28 @@ class ScheduleControllerTest {
                 LocalDateTime.of(2026, 7, 24, 18, 0),
                 LocalDateTime.of(2026, 7, 20, 12, 0),
                 LocalDateTime.of(2026, 7, 20, 12, 0));
+    }
+
+    private static SchedulePageResponse pageResponse() {
+        ScheduleSummaryResponse item =
+                new ScheduleSummaryResponse(
+                        100L,
+                        1L,
+                        "3주차 스터디",
+                        LocalDateTime.of(2026, 7, 25, 19, 0),
+                        null,
+                        null,
+                        LocalDateTime.of(2026, 7, 24, 18, 0));
+        return new SchedulePageResponse(List.of(item), 0, 20, 1, 1, false);
+    }
+
+    private static Stream<Arguments> invalidListQueries() {
+        return Stream.of(
+                Arguments.of("all", "0", "20"),
+                Arguments.of("upcoming", "-1", "20"),
+                Arguments.of("past", "page", "20"),
+                Arguments.of("past", "0", "0"),
+                Arguments.of("past", "0", "101"));
     }
 
     private class PrincipalResolver implements HandlerMethodArgumentResolver {
