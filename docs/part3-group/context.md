@@ -37,16 +37,17 @@ git log -3 --oneline
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
 - 현재 브랜치: `feature/part3-schedule-query`
-- HEAD: `19d8b22 Merge pull request #11 from hyuckjoon9/feature/part3-schedule-create`
+- HEAD: `c127fcf docs: 일정 조회 API 설계 추가`
 - 원격 `develop`: `19d8b22 Merge pull request #11 from hyuckjoon9/feature/part3-schedule-create`
 - 일정 생성 PR #11은 원격 `develop`에 병합되었다.
 - 일정 조회 API의 예정·지난 목록, 페이지네이션과 상세 조회 설계를 확정했다.
+- 승인된 설계를 테스트 우선으로 실행할 일정 조회 구현 계획을 작성했다.
 
 현재 변경 파일:
 
 ```text
 docs/part3-group/context.md
-docs/part3-group/schedule-query-design.md
+docs/part3-group/schedule-query-implementation-plan.md
 ```
 
 ## 완료된 작업
@@ -307,14 +308,15 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-다음 작업은 **6단계 일정 조회 API의 승인된 설계를 구현 계획으로 구체화하는 것**이다.
+다음 작업은 **6단계 일정 조회 API 구현 계획을 테스트 우선으로 실행하는 것**이다.
 
-1. `schedule-query-design.md`를 사용자에게 검토받는다.
-2. 승인된 설계를 기준으로 테스트 우선 구현 계획을 작성한다.
-3. Repository, Service·Response, Controller 순서로 실패 테스트를 먼저 작성하고 구현한다.
-4. 공통 영역에는 `SCHEDULE_NOT_FOUND`만 추가한다.
+1. `schedule-query-implementation-plan.md`를 검토하고 실행 방식을 선택한다.
+2. Repository, 조회 DTO, 목록 Service, 상세 Service, Controller 순서로 실패 테스트를 먼저
+   작성하고 구현한다.
+3. 공통 영역에는 `SCHEDULE_NOT_FOUND`만 추가한다.
+4. 일정 조회 통합 테스트와 `api.md`를 구현에 맞게 갱신한다.
 5. 관련 테스트, 전체 테스트와 `spotlessCheck`를 실행한다.
-6. 구현 결과와 `api.md`, `context.md`를 대조하고 `develop` 대상 PR을 준비한다.
+6. 구현 결과와 `context.md`를 대조하고 `develop` 대상 PR을 준비한다.
 
 ## 다음 세션용 시작 요청 예시
 
