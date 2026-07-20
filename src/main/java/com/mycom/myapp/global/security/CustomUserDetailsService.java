@@ -1,16 +1,39 @@
 package com.mycom.myapp.global.security;
 
+import com.mycom.myapp.member.entity.Member;
+import com.mycom.myapp.member.entity.MemberStatus;
+import com.mycom.myapp.member.repository.MemberRepository;
+import java.util.List;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-// TODO(auth 담당): MemberRepository로 email 조회해서 UserDetails 구현체 반환
-// 지금은 로그인 로직 없이 컴파일만 되게
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
+
+    private final MemberRepository memberRepository;
+
+    public CustomUserDetailsService(MemberRepository memberRepository) {
+        this.memberRepository = memberRepository;
+    }
+
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        throw new UnsupportedOperationException("TODO: implement");
+        Member member =
+                memberRepository
+                        .findByEmail(email)
+                        .orElseThrow(() -> new UsernameNotFoundException("회원을 찾을 수 없습니다."));
+        boolean enabled = member.getStatus() == MemberStatus.ACTIVE;
+        return new User(
+                member.getEmail(),
+                member.getPassword(),
+                enabled,
+                true,
+                true,
+                true,
+                List.of(new SimpleGrantedAuthority("ROLE_" + member.getRole().name())));
     }
 }

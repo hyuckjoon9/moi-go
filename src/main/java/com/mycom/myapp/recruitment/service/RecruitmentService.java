@@ -1,7 +1,9 @@
 package com.mycom.myapp.recruitment.service;
 
+import com.mycom.myapp.global.exception.BusinessException;
+import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.member.entity.Member;
-import com.mycom.myapp.member.repository.MemberRepository; // 추가
+import com.mycom.myapp.member.repository.MemberRepository;
 import com.mycom.myapp.recruitment.dto.request.RecruitmentCreateRequest;
 import com.mycom.myapp.recruitment.dto.response.RecruitmentResponse;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
@@ -13,18 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class RecruitmentService {
 
     private final RecruitmentRepository recruitmentRepository;
     private final MemberRepository memberRepository;
 
     @Transactional
-    public RecruitmentResponse create(RecruitmentCreateRequest request) {
+    public RecruitmentResponse create(Long leaderId, RecruitmentCreateRequest request) {
         Member leader =
                 memberRepository
-                        .findById(1L) // TODO: 로그인 붙으면 실제 로그인 유저로 교체
-                        .orElseThrow(() -> new IllegalStateException("테스트용 leader(id=1)가 DB에 없음"));
+                        .findById(leaderId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         RecruitmentPost post =
                 RecruitmentPost.builder()
