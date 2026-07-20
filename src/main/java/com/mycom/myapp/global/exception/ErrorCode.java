@@ -19,6 +19,10 @@ public enum ErrorCode {
     SCHEDULE_MANAGEMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "일정을 관리할 권한이 없습니다."),
     INVALID_SCHEDULE_TIME(HttpStatus.BAD_REQUEST, "일정 또는 응답 마감 시간이 올바르지 않습니다."),
     RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다."),
+    DUPLICATE_APPLICATION(HttpStatus.CONFLICT, "이미 지원한 모집글입니다."),
+    SELF_APPLICATION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "본인이 작성한 모집글에는 지원할 수 없습니다."),
+    RECRUITMENT_CLOSED(HttpStatus.BAD_REQUEST, "모집이 마감된 모집글입니다."),
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "지원 내역을 찾을 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
 
     private final HttpStatus status;
