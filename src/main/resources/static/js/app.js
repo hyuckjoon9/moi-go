@@ -94,8 +94,37 @@
     }
   }
   function cacheMemberIdentity(member) {
+    if (member?.id) localStorage.setItem("memberId", String(member.id));
     if (member?.nickname) localStorage.setItem("memberNickname", member.nickname);
     if (member?.profileImageUrl) localStorage.setItem("memberProfileImageUrl", member.profileImageUrl);
+  }
+  function currentMemberId() {
+    const value = localStorage.getItem("memberId");
+    return value ? Number(value) : null;
+  }
+  function ownRecruitmentIds() {
+    try { return JSON.parse(localStorage.getItem("ownRecruitmentIds") || "[]"); }
+    catch (_) { return []; }
+  }
+  function markRecruitmentAsOwn(id) {
+    if (!id) return;
+    const ids = new Set(ownRecruitmentIds().map(String));
+    ids.add(String(id));
+    localStorage.setItem("ownRecruitmentIds", JSON.stringify([...ids]));
+  }
+  function isOwnRecruitment(detail) {
+    if (!detail) return false;
+    if (detail.isOwner === true || detail.owner === true) return true;
+    const memberId = currentMemberId();
+    const leaderId = detail.leaderId || detail.leader?.id || detail.leader?.memberId;
+    if (memberId && leaderId && Number(leaderId) === memberId) return true;
+    return ownRecruitmentIds().map(String).includes(String(detail.id));
+  }
+  function setRecruitmentStatusFilter(status) {
+    recruitmentState.status = status;
+    document.querySelectorAll("[data-recruitment-status]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.recruitmentStatus === recruitmentState.status);
+    });
   }
   function ensureHeaderAvatar() {
     let avatar = $("#headerProfileAvatar");
@@ -283,6 +312,10 @@
     const detail = await run(() => window.moiApi.request(`/api/recruitment-posts/${id}`), showToast ? "모집글 상세를 조회했습니다." : null);
     const view = $("#recruitmentDetailView");
     if (!view) return;
+    const owner = isOwnRecruitment(detail);
+    const actionButtons = owner
+      ? `<button class="button ghost" type="button" data-recruitment-action="edit">\uC218\uC815</button><button class="button danger" type="button" data-recruitment-action="delete">\uC0AD\uC81C</button><button class="button" type="button" data-recruitment-action="applications">\uC2E0\uCCAD\uC790 \uAD00\uB9AC</button>`
+      : `<button class="button" type="button" data-recruitment-action="apply">\uCC38\uAC00 \uC2E0\uCCAD</button>`;
     view.innerHTML = `
       <header class="board-detail-header">
         <div class="recruitment-row-meta"><span class="badge status-${statusGroup(detail.status).toLowerCase()}">${escapeHtml(statusLabel(detail.status))}</span><span>${escapeHtml(detail.category || "카테고리 없음")}</span><span>글 번호 ${escapeHtml(detail.id)}</span></div>
@@ -294,7 +327,15 @@
       <div class="board-body">
         ${detailTextSection("소개", detail.description)}${detailTextSection("목표", detail.goal)}${detailTextSection("진행 방식", detail.method)}${detailTextSection("참가 조건", detail.conditions)}
       </div>
-      <div class="detail-actions"><a class="button ghost" href="/recruitments.html">목록으로</a><button class="button" type="button">참가 신청</button></div>`;
+      <div class="detail-actions"><a class="button ghost" href="/recruitments.html">\uBAA9\uB85D\uC73C\uB85C</a>${actionButtons}</div>`;
+    view.querySelectorAll("[data-recruitment-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.recruitmentAction;
+        if (action === "edit" || action === "delete") toast("\uBAA8\uC9D1\uAE00 \uC218\uC815/\uC0AD\uC81C API\uAC00 \uC544\uC9C1 \uD544\uC694\uD569\uB2C8\uB2E4.", true);
+        if (action === "applications") toast("\uCC38\uAC00 \uC2E0\uCCAD \uC2B9\uC778/\uAC70\uC808 API\uAC00 \uC544\uC9C1 \uD544\uC694\uD569\uB2C8\uB2E4.", true);
+        if (action === "apply") toast("\uCC38\uAC00 \uC2E0\uCCAD API\uAC00 \uC544\uC9C1 \uD544\uC694\uD569\uB2C8\uB2E4.", true);
+      });
+    });
   }
   function openMemberEditModal() { showPanel("#memberEditBackdrop"); showPanel("#memberEditPanel"); document.body.classList.add("modal-open"); setTimeout(() => $("#updateMemberForm input[name='nickname']")?.focus(), 0); }
   function closeMemberEditModal() { hidePanel("#memberEditBackdrop"); hidePanel("#memberEditPanel"); document.body.classList.remove("modal-open"); }
@@ -424,11 +465,22 @@
     document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeRecruitmentCreateModal(); });
     $("#createRecruitmentForm")?.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const payload = compact(formData(event.currentTarget));
+      const payload = formData(event.currentTarget);
+      payload.title = payload.title?.trim() || "";
+      payload.category = payload.category?.trim() || "";
       payload.capacity = asNumber(payload.capacity);
-      await run(() => window.moiApi.request("/api/recruitment-posts", { method: "POST", body: window.moiApi.toJsonBody(payload) }), "모집글을 등록했습니다.");
+      payload.recruitmentDeadline = payload.recruitmentDeadline || null;
+      if (!payload.title || !payload.category || !payload.capacity) {
+        toast("스터디 이름, 카테고리, 모집 인원은 필수입니다.", true);
+        return;
+      }
+      const created = await run(() => window.moiApi.request("/api/recruitment-posts", { method: "POST", body: window.moiApi.toJsonBody(payload) }), "\uBAA8\uC9D1\uAE00\uC744 \uB4F1\uB85D\uD588\uC2B5\uB2C8\uB2E4.");
+      markRecruitmentAsOwn(created?.id);
       closeRecruitmentCreateModal();
       event.currentTarget.reset();
+      if ($("#recruitmentCategory")) $("#recruitmentCategory").value = "";
+      setRecruitmentStatusFilter("ALL");
+      window.history.replaceState(null, "", "/recruitments.html");
       await loadRecruitments(0);
     });
     if (id) loadRecruitmentDetail(id).catch(() => {});
