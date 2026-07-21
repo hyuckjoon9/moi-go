@@ -1,5 +1,6 @@
 package com.mycom.myapp.application.repository;
 
+import com.mycom.myapp.application.entity.ApplicationStatus;
 import com.mycom.myapp.application.entity.JoinApplication;
 import java.util.List;
 import java.util.Optional;
@@ -12,4 +13,8 @@ public interface JoinApplicationRepository extends JpaRepository<JoinApplication
     Optional<JoinApplication> findByIdAndPostId(Long id, Long postId);
 
     List<JoinApplication> findByPostId(Long postId);
+
+    List<JoinApplication> findByApplicantId(Long applicantId);
+
+    List<JoinApplication> findByApplicantIdAndStatus(Long applicantId, ApplicationStatus status);
 }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>모집글 - Moi-Go</title>
-    <link rel="stylesheet" href="/css/style.css?v=20260721-recruitment-detail" />
+    <link rel="stylesheet" href="/css/style.css?v=20260721-recruitment-required3" />
   </head>
   <body data-page="recruitments" data-protected="true">
     <header class="app-header">
@@ -58,27 +58,27 @@
           <div><p class="eyebrow">New Study</p><h2 id="recruitmentCreateTitle">모집글 작성</h2></div>
           <button id="closeCreateRecruitmentButton" class="button ghost small" type="button">닫기</button>
         </div>
-        <form id="createRecruitmentForm" class="form-grid two">
-          <label class="span-2">스터디 이름<input name="title" placeholder="예: 프론트엔드 스터디 모집" required maxlength="100" /></label>
-          <label>카테고리<input name="category" placeholder="예: 개발, 어학, 취업" maxlength="50" /></label>
-          <label>모임 방식<select name="meetingType"><option value="ONLINE">온라인</option><option value="OFFLINE">오프라인</option><option value="HYBRID">온·오프라인 병행</option></select></label>
-          <label>활동 지역<input name="location" placeholder="예: 서울 강남" /></label>
-          <label>온라인 링크<input name="onlineLink" placeholder="예: https://meet.google.com/..." /></label>
-          <label>정기 모임 요일<input name="meetingDay" placeholder="예: 매주 화요일" maxlength="50" /></label>
-          <label>모집 인원<input name="capacity" type="number" min="1" placeholder="예: 4" /></label>
-          <label>모집 마감일<input name="recruitmentDeadline" type="date" /></label>
-          <label class="span-2">예상 활동 기간<input name="expectedDuration" placeholder="예: 8주, 3개월" maxlength="50" /></label>
-          <label class="span-2">소개<textarea name="description" placeholder="스터디에서 다룰 내용과 분위기를 적어주세요."></textarea></label>
-          <label class="span-2">목표<textarea name="goal" placeholder="스터디를 통해 달성하려는 목표를 적어주세요."></textarea></label>
-          <label class="span-2">진행 방식<textarea name="method" placeholder="모임 주기, 과제, 발표 방식 등을 적어주세요."></textarea></label>
-          <label class="span-2">참가 조건<textarea name="conditions" placeholder="필요한 경험이나 준비물을 적어주세요."></textarea></label>
+                <form id="createRecruitmentForm" class="form-grid two">
+          <label class="span-2"><span class="field-label">스터디 이름 <em class="field-tag required">필수</em></span><input name="title" placeholder="예: 프론트엔드 스터디 모집" required maxlength="100" /></label>
+          <label><span class="field-label">카테고리 <em class="field-tag required">필수</em></span><input name="category" placeholder="예: 개발, 어학, 취업" required maxlength="50" /></label>
+          <label><span class="field-label">모임 방식 <em class="field-tag optional">선택</em></span><select name="meetingType"><option value="ONLINE">온라인</option><option value="OFFLINE">오프라인</option><option value="HYBRID">온오프라인 병행</option></select></label>
+          <label><span class="field-label">활동 지역 <em class="field-tag optional">선택</em></span><input name="location" placeholder="예: 서울 강남" /></label>
+          <label><span class="field-label">온라인 링크 <em class="field-tag optional">선택</em></span><input name="onlineLink" placeholder="예: https://meet.google.com/..." /></label>
+          <label><span class="field-label">정기 모임 요일 <em class="field-tag optional">선택</em></span><input name="meetingDay" placeholder="예: 매주 화요일" maxlength="50" /></label>
+          <label><span class="field-label">모집 인원 <em class="field-tag required">필수</em></span><input name="capacity" type="number" min="1" placeholder="예: 4" required /></label>
+          <label><span class="field-label">모집 마감일 <em class="field-tag required">필수</em></span><input name="recruitmentDeadline" type="date" required /></label>
+          <label class="span-2"><span class="field-label">예상 활동 기간 <em class="field-tag optional">선택</em></span><input name="expectedDuration" placeholder="예: 8주, 3개월" maxlength="50" /></label>
+          <label class="span-2"><span class="field-label">소개 <em class="field-tag optional">선택</em></span><textarea name="description" placeholder="스터디에서 다룰 내용과 분위기를 적어주세요."></textarea></label>
+          <label class="span-2"><span class="field-label">목표 <em class="field-tag optional">선택</em></span><textarea name="goal" placeholder="스터디를 통해 달성하려는 목표를 적어주세요."></textarea></label>
+          <label class="span-2"><span class="field-label">진행 방식 <em class="field-tag optional">선택</em></span><textarea name="method" placeholder="모임 주기, 과제, 발표 방식 등을 적어주세요."></textarea></label>
+          <label class="span-2"><span class="field-label">참가 조건 <em class="field-tag optional">선택</em></span><textarea name="conditions" placeholder="필요한 경험이나 준비물을 적어주세요."></textarea></label>
           <button class="button span-2" type="submit">등록하기</button>
         </form>
       </article>
     </main>
 
-    <script src="/js/api.js?v=20260721-recruitment-detail"></script>
-    <script src="/js/auth.js?v=20260721-recruitment-detail"></script>
-    <script src="/js/app.js?v=20260721-recruitment-detail"></script>
+    <script src="/js/api.js?v=20260721-recruitment-required3"></script>
+    <script src="/js/auth.js?v=20260721-recruitment-required3"></script>
+    <script src="/js/app.js?v=20260721-recruitment-required3"></script>
   </body>
 </html>
