@@ -7,6 +7,7 @@ Part3 그룹·일정 작업의 범위와 협업 경계를 정의한다. 공통 �
 - 브랜치·커밋·PR 흐름: [`README.md`](../../README.md)
 - 계층과 패키지 책임: [`docs/architecture/folder-structure.md`](../architecture/folder-structure.md)
 - HTTP·내부 서비스 계약: [`api.md`](api.md)
+- 사용자 기능·권한·화면 처리 기준: [`feature-spec.md`](feature-spec.md)
 - 테이블·FK·인덱스: [`erd.md`](erd.md)
 - 현재 상태와 다음 작업: [`context.md`](context.md)
 
@@ -45,7 +46,7 @@ Part3 그룹·일정 작업의 범위와 협업 경계를 정의한다. 공통 �
 - 참석 응답 등록·변경·삭제는 현재 시각이 실질 마감보다 이를 때만 허용한다.
 - 미래 일정만 삭제한다. 참석 응답은 연쇄 삭제하고 출석·활동 기록이 있으면 거부한다.
 
-세부 데이터 계약은 `erd.md`, API·오류 계약은 `api.md`, 삭제·마감의 파트 간 경계는 [`schedule-deletion-deadline-design.md`](schedule-deletion-deadline-design.md)를 따른다.
+세부 데이터 계약은 `erd.md`, API·오류 계약은 `api.md`, 사용자 기능·권한 규칙은 `feature-spec.md`, 삭제·마감의 파트 간 경계는 [`schedule-deletion-deadline-design.md`](schedule-deletion-deadline-design.md)를 따른다.
 
 ## 작업 흐름
 
@@ -97,4 +98,4 @@ Part3 그룹·일정 작업의 범위와 협업 경계를 정의한다. 공통 �
 - 버그 수정: 실패 재현 테스트를 먼저 추가
 - 파트 간 계약 변경: 양쪽 경계 테스트와 PR 설명을 보완
 
-API는 `api.md`, 데이터는 `erd.md`, Part3 작업 규칙은 이 문서, 현재 진행 상태는 `context.md`에만 상세히 기록한다. 완료된 구현 계획과 세션별 작업 일지는 장기 보관하지 않는다.
+API는 `api.md`, 기능은 `feature-spec.md`, 데이터는 `erd.md`, Part3 작업 규칙은 이 문서, 현재 진행 상태는 `context.md`에만 상세히 기록한다. 완료된 구현 계획과 세션별 작업 일지는 장기 보관하지 않는다.

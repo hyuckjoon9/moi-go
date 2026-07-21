@@ -49,3 +49,6 @@ application-secret.yml
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Runtime uploaded files
+uploads/
