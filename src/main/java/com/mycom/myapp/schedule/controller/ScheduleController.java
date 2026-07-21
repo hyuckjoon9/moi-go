@@ -5,6 +5,7 @@ import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.global.response.ApiResponse;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleDeadlineUpdateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleQueryRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -74,6 +76,17 @@ public class ScheduleController {
             @Valid @RequestBody ScheduleUpdateRequest request) {
         Long memberId = requireAuthenticatedMemberId(authenticatedMember);
         return ApiResponse.success(scheduleService.update(groupId, memberId, scheduleId, request));
+    }
+
+    @PatchMapping("/{scheduleId}/response-deadline")
+    public ApiResponse<ScheduleResponse> updateResponseDeadline(
+            @PathVariable("groupId") Long groupId,
+            @PathVariable("scheduleId") Long scheduleId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
+            @Valid @RequestBody ScheduleDeadlineUpdateRequest request) {
+        Long memberId = requireAuthenticatedMemberId(authenticatedMember);
+        return ApiResponse.success(
+                scheduleService.updateResponseDeadline(groupId, memberId, scheduleId, request));
     }
 
     private Long requireAuthenticatedMemberId(AuthenticatedMember authenticatedMember) {

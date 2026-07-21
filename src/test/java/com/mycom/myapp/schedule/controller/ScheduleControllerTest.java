@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,6 +22,7 @@ import com.mycom.myapp.global.exception.GlobalExceptionHandler;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.member.entity.MemberRole;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleDeadlineUpdateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleScope;
 import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
@@ -283,6 +285,40 @@ class ScheduleControllerTest {
                         exception ->
                                 assertThat(exception.getErrorCode())
                                         .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
+    @Test
+    void updatesAndRemovesResponseDeadline() throws Exception {
+        when(scheduleService.updateResponseDeadline(
+                        eq(10L), eq(1L), eq(100L), any(ScheduleDeadlineUpdateRequest.class)))
+                .thenReturn(response());
+
+        mockMvc.perform(
+                        patch(
+                                        "/api/groups/{groupId}/schedules/{scheduleId}/response-deadline",
+                                        10L,
+                                        100L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"responseDeadline\":null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+        verify(scheduleService)
+                .updateResponseDeadline(
+                        eq(10L), eq(1L), eq(100L), any(ScheduleDeadlineUpdateRequest.class));
+    }
+
+    @Test
+    void rejectsMissingResponseDeadlineProperty() throws Exception {
+        mockMvc.perform(
+                        patch(
+                                        "/api/groups/{groupId}/schedules/{scheduleId}/response-deadline",
+                                        10L,
+                                        100L)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+        verifyNoInteractions(scheduleService);
     }
 
     private static Stream<ErrorCode> businessErrors() {

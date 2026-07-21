@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleDeadlineUpdateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleScope;
 import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
@@ -387,6 +388,91 @@ class ScheduleServiceTest {
         verifyNoInteractions(scheduleRepository);
     }
 
+    @ParameterizedTest
+    @EnumSource(
+            value = GroupRole.class,
+            names = {"LEADER", "MANAGER"})
+    void changesDeadlineBeforeCurrentEffectiveDeadline(GroupRole role) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, role));
+        StudySchedule schedule = schedule(group, 100L, NOW.plusHours(3), NOW.plusHours(1));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule));
+
+        ScheduleResponse response =
+                service.updateResponseDeadline(10L, 1L, 100L, deadlineRequest(NOW.plusHours(2)));
+
+        assertThat(response.responseDeadline()).isEqualTo(NOW.plusHours(2));
+        assertThat(response.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void removesDeadlineBeforeCurrentEffectiveDeadline() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(3), NOW.plusHours(1))));
+
+        ScheduleResponse response =
+                service.updateResponseDeadline(10L, 1L, 100L, deadlineRequest(null));
+
+        assertThat(response.responseDeadline()).isNull();
+    }
+
+    @Test
+    void rejectsDeadlineReopeningAfterCurrentDeadline() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(3), NOW)));
+
+        assertDeadlineError(
+                ErrorCode.SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED, deadlineRequest(NOW.plusHours(2)));
+    }
+
+    @Test
+    void rejectsNewDeadlineAtNowOrAfterSchedule() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(3), null)));
+
+        assertDeadlineError(ErrorCode.INVALID_SCHEDULE_TIME, deadlineRequest(NOW));
+        assertDeadlineError(ErrorCode.INVALID_SCHEDULE_TIME, deadlineRequest(NOW.plusHours(4)));
+    }
+
+    @Test
+    void rejectsDeadlineChangeForMissingGroupBeforeMembershipLookup() {
+        when(groupRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertDeadlineError(ErrorCode.GROUP_NOT_FOUND, deadlineRequest(NOW.plusHours(1)));
+
+        verifyNoInteractions(memberRepository, scheduleRepository);
+    }
+
+    @Test
+    void reportsMissingScheduleBeforeDeadlineValidation() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L)).thenReturn(Optional.empty());
+
+        assertDeadlineError(ErrorCode.SCHEDULE_NOT_FOUND, deadlineRequest(NOW.minusHours(1)));
+    }
+
+    @Test
+    void allowsNewDeadlineEqualToScheduledAt() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        LocalDateTime scheduledAt = NOW.plusHours(3);
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, scheduledAt, null)));
+
+        ScheduleResponse response =
+                service.updateResponseDeadline(10L, 1L, 100L, deadlineRequest(scheduledAt));
+
+        assertThat(response.responseDeadline()).isEqualTo(scheduledAt);
+    }
+
     private static Stream<ScheduleCreateRequest> invalidTimeRequests() {
         return Stream.of(
                 request(NOW, null),
@@ -435,6 +521,19 @@ class ScheduleServiceTest {
 
     private void assertUpdateError(ErrorCode errorCode, ScheduleUpdateRequest request) {
         assertThatThrownBy(() -> service.update(10L, 1L, 100L, request))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(errorCode));
+    }
+
+    private ScheduleDeadlineUpdateRequest deadlineRequest(LocalDateTime value) {
+        ScheduleDeadlineUpdateRequest request = new ScheduleDeadlineUpdateRequest();
+        request.setResponseDeadline(value);
+        return request;
+    }
+
+    private void assertDeadlineError(ErrorCode errorCode, ScheduleDeadlineUpdateRequest request) {
+        assertThatThrownBy(() -> service.updateResponseDeadline(10L, 1L, 100L, request))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(errorCode));

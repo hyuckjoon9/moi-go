@@ -3,6 +3,7 @@ package com.mycom.myapp.schedule.service;
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleDeadlineUpdateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleScope;
 import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
@@ -100,6 +101,33 @@ public class ScheduleService {
                 request.content(),
                 request.materials(),
                 now);
+        return ScheduleResponse.from(schedule);
+    }
+
+    @Transactional
+    public ScheduleResponse updateResponseDeadline(
+            Long groupId, Long memberId, Long scheduleId, ScheduleDeadlineUpdateRequest request) {
+        StudyGroup group = getGroup(groupId);
+        GroupMember member = getActiveMember(groupId, memberId);
+        validateScheduleManagement(group, member);
+        StudySchedule schedule =
+                scheduleRepository
+                        .findByIdAndStudyGroupId(scheduleId, groupId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime currentEffectiveDeadline =
+                schedule.getResponseDeadline() != null
+                        ? schedule.getResponseDeadline()
+                        : schedule.getScheduledAt();
+        if (!schedule.getScheduledAt().isAfter(now) || !currentEffectiveDeadline.isAfter(now)) {
+            throw new BusinessException(ErrorCode.SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED);
+        }
+        LocalDateTime newDeadline = request.responseDeadline();
+        if (newDeadline != null
+                && (!newDeadline.isAfter(now) || newDeadline.isAfter(schedule.getScheduledAt()))) {
+            throw new BusinessException(ErrorCode.INVALID_SCHEDULE_TIME);
+        }
+        schedule.updateResponseDeadline(newDeadline, now);
         return ScheduleResponse.from(schedule);
     }
 
