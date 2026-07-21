@@ -18,7 +18,6 @@ import com.mycom.myapp.attendance.repository.AttendanceRecordRepository;
 import com.mycom.myapp.attendance.repository.AttendanceResponseRepository;
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -104,7 +103,11 @@ class AttendanceServiceTest {
                                         10L,
                                         20L,
                                         new AttendanceAnswerRequest(AttendanceResponse.ATTEND)))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_ANSWER_NOT_FOUND));
     }
 
     @Test
@@ -196,7 +199,11 @@ class AttendanceServiceTest {
                                         10L,
                                         2L,
                                         new AttendanceCheckRequest(20L, AttendanceStatus.LATE)))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_RECORD_NOT_FOUND));
     }
 
     @Test
