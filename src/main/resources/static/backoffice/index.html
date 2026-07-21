@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="ko">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Moi-Go Back Office</title><link rel="stylesheet" href="/css/style.css?v=20260721-service-ux" /></head>
+  <body data-page="backoffice">
+    <header class="app-header backoffice-header"><a class="brand" href="/backoffice/index.html" aria-label="Moi-Go Back Office"><img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" /><span class="ops-label">Back Office</span></a><nav class="main-nav" aria-label="백오피스 메뉴"><a href="/backoffice/index.html">운영 현황</a><a href="/index.html">사용자 서비스</a></nav><div class="header-actions"><span class="auth-chip">운영자 인증 필요</span></div></header>
+    <main class="page-shell"><div class="page-title"><p class="eyebrow">Back Office</p><h1>운영 현황</h1><p>사용자 서비스와 분리된 운영자용 화면입니다. admin 계정 자동 로그인이나 하드코딩 로그인은 제공하지 않습니다.</p></div><section class="ops-notice"><strong>운영자 인증 정책</strong><span>실제 운영자 로그인 API가 정해지기 전까지는 조회 중심 프로토타입으로 유지합니다.</span></section><section class="dashboard-grid"><article class="panel wide"><div class="panel-heading"><div><p class="eyebrow">Recruitments</p><h2>모집글 운영 조회</h2></div><button id="boLoadRecruitments" class="button small" type="button">조회</button></div><div id="boRecruitmentList" class="card-list"></div></article><article class="panel"><p class="eyebrow">Attendance</p><h2>출석 요약 조회</h2><label>일정 ID<input id="boSummaryScheduleId" type="number" value="1" /></label><button id="boLoadAttendanceSummary" class="button full" type="button">요약 조회</button><pre id="boOutput" class="output"></pre></article></section></main>
+    <script src="/js/api.js?v=20260721-service-ux"></script><script src="/js/auth.js?v=20260721-service-ux"></script><script src="/js/app.js?v=20260721-service-ux"></script>
+  </body>
+</html>
