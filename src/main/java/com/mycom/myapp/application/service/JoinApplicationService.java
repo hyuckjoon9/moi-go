@@ -12,6 +12,7 @@ import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -57,5 +58,20 @@ public class JoinApplicationService {
                         .build();
 
         return JoinApplicationResponse.from(joinApplicationRepository.save(application));
+    }
+
+    public List<JoinApplicationResponse> getApplicants(Long postId, Long requesterId) {
+        RecruitmentPost post =
+                recruitmentRepository
+                        .findById(postId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND));
+
+        if (!post.getLeader().getId().equals(requesterId)) {
+            throw new BusinessException(ErrorCode.APPLICATION_ACCESS_DENIED);
+        }
+
+        return joinApplicationRepository.findByPostId(postId).stream()
+                .map(JoinApplicationResponse::from)
+                .toList();
     }
 }
