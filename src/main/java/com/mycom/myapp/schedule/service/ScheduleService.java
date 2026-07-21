@@ -83,6 +83,7 @@ public class ScheduleService {
                 scheduleRepository
                         .findByIdAndStudyGroupId(scheduleId, groupId)
                         .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+
         LocalDateTime now = LocalDateTime.now(clock);
         if (!schedule.getScheduledAt().isAfter(now)) {
             throw new BusinessException(ErrorCode.SCHEDULE_UPDATE_NOT_ALLOWED);

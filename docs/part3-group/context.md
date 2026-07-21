@@ -37,14 +37,14 @@ git log -3 --oneline
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
 - 로컬 브랜치: `feature/part3-schedule-deletion-policy`
-- 브랜치 시작 기준 HEAD와 원격 `develop`: `9fadc2e Merge pull request #19 from hyuckjoon9/feature/attendance`
+- 최신 병합 기준 `develop`: `445832e Merge pull request #20 from hyuckjoon9/hyuckjoon9-patch-1`
 - 컨트롤러 바인딩 수정 PR #18은 `develop`에 병합되었다.
 - Part4 출석 기능 PR #19는 `develop`에 병합되었다.
 - 일정 조회 PR #12가 `develop`에 병합되었다.
 - 6단계 일정 조회 API는 완료다.
 - 7단계를 일정 수정과 삭제로 분리했다.
 - 일정 수정은 PUT 전체 교체, 활성 `LEADER`·`MANAGER` 권한으로 구현한다.
-- 일정 삭제와 `responseDeadline` 변경 정책은 2026-07-21 합의되었고 구현은 아직 시작하지 않았다.
+- 일정 삭제와 `responseDeadline` 변경 정책은 2026-07-21 합의되었고, 응답 마감 PATCH 구현은 완료했다.
 
 현재 정책 문서 작업 범위는 다음과 같다.
 
@@ -53,6 +53,7 @@ docs/part3-group/context.md
 docs/part3-group/development-guide.md
 docs/part3-group/erd.md
 docs/part3-group/schedule-deletion-deadline-design.md
+docs/part3-group/schedule-deletion-deadline-implementation-plan.md
 ```
 
 ## 완료된 작업
@@ -106,6 +107,9 @@ docs/part3-group/schedule-deletion-deadline-design.md
 - 일정 수정 PR #16이 `develop`에 병합되었다.
 - 컨트롤러 바인딩 수정 PR #18이 `develop`에 병합되었다.
 - 일정 삭제와 응답 마감 변경의 파트 간 정책을 확정했다.
+- `ScheduleAttendancePolicy`와 Part4용 읽기 포트, 출석·활동 기록 존재 조회 포트를 추가했다.
+- `PATCH /api/groups/{groupId}/schedules/{scheduleId}/response-deadline`와 관련 DTO·도메인·서비스·컨트롤러·통합 테스트를 구현했다.
+- 일정 패키지 전체 테스트를 통과했다.
 
 ## 확정된 그룹 홈 조회 계약
 
@@ -348,11 +352,11 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-다음 작업은 **확정된 설계 문서를 검토한 뒤 구현 계획을 작성하는 것**이다.
+다음 작업은 **Part4·활동 어댑터 계약을 반영한 뒤 일정 삭제 유스케이스를 구현하는 것**이다.
 
-1. `schedule-deletion-deadline-design.md`의 정책과 파트 간 공개 계약을 검토한다.
-2. Part4·활동·DB·공통 영역의 변경을 독립적으로 검토할 수 있는 작업으로 분리한다.
-3. Part3 일정 삭제와 응답 마감 `PATCH`의 테스트 우선 구현 계획을 작성한다.
+1. Part4의 출석 기록 조회와 활동 기록 조회 어댑터를 각 담당 영역에서 적용한다.
+2. 일정 삭제 서비스·컨트롤러를 테스트 우선으로 구현한다.
+3. FK 통합 검증과 API·세션 문서를 구현 결과에 맞춰 갱신한다.
 
 ## 다음 세션용 시작 요청 예시
 

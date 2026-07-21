@@ -12,7 +12,6 @@
 | 그룹 홈 조회 | `GET` | `/api/groups/{groupId}` | 필수 |
 | 일정 생성 | `POST` | `/api/groups/{groupId}/schedules` | 필수 |
 | 일정 목록 조회 | `GET` | `/api/groups/{groupId}/schedules` | 필수 |
-| 일정 상세 조회 | `GET` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
 | 일정 수정 | `PUT` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
 
 ## 내부 서비스 계약
