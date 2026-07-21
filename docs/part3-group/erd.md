@@ -118,7 +118,15 @@ erDiagram
 | `created_at` | `DATETIME` | 생성 시각 |
 | `updated_at` | `DATETIME` | 수정 시각 |
 
-`response_deadline`은 NULL이거나 `scheduled_at`보다 같거나 이른 값이어야 한다. SQL에는 `location`과 `online_link` 중 하나를 강제하는 CHECK 제약이 없으므로, 필요하다면 API 요청 검증 또는 서비스 규칙으로 별도 정의한다.
+`response_deadline`은 NULL이거나 `scheduled_at`보다 같거나 이른 값이어야 한다. 일정 생성 API는
+두 시각을 모두 생성 시점보다 미래로 제한하되, 이 규칙은 현재 시각에 의존하므로 데이터베이스가
+아닌 서비스에서 검증한다.
+
+`location`과 `online_link`는 모두 NULL을 허용한다. 둘 다 NULL이면 장소 미정, 하나만 있으면
+오프라인 또는 온라인 일정, 둘 다 있으면 온·오프라인 병행 일정으로 해석한다. `online_link`는
+컬럼명을 유지하지만 URL만 강제하지 않고 Discord 채널명이나 Zoom 회의 ID를 포함한 온라인
+접속 정보를 최대 500자의 일반 문자열로 저장한다. 공백 문자열은 API 경계에서 NULL로
+정규화한다.
 
 ## 외부 테이블 경계
 
@@ -167,5 +175,6 @@ erDiagram
 FK는 운영 데이터베이스 스키마가 보장하며, 외부 식별자의 존재 여부는 이후 합의된 공개 서비스
 경계에서 검증한다.
 
-`StudySchedule`은 아직 빈 스켈레톤이다. 실제 JPA 매핑을 구현할 때 이 문서와 SQL의 컬럼 길이,
-NULL 허용 여부, 유니크·CHECK·FK 제약을 함께 반영한다.
+`StudySchedule`은 이 문서의 컬럼 길이와 NULL 허용 여부에 맞춰 JPA 매핑되었다. 외부 사용자
+Entity에 결합하지 않도록 `creatorId`는 식별자 값으로 유지하고, Part3가 소유하는
+`StudyGroup`만 지연 로딩 연관관계로 매핑한다.

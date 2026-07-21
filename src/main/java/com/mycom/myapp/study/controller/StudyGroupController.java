@@ -24,7 +24,7 @@ public class StudyGroupController {
 
     @GetMapping("/{groupId}")
     public ApiResponse<StudyGroupHomeResponse> getHome(
-            @PathVariable Long groupId,
+            @PathVariable("groupId") Long groupId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
         if (authenticatedMember == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
