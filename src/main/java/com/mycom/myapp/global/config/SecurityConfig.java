@@ -28,6 +28,20 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         auth ->
                                 auth.requestMatchers(
+                                                "/",
+                                                "/index.html",
+                                                "/login.html",
+                                                "/signup.html",
+                                                "/recruitments.html",
+                                                "/mypage.html",
+                                                "/group.html",
+                                                "/schedules.html",
+                                                "/attendance.html",
+                                                "/backoffice/**",
+                                                "/css/**",
+                                                "/js/**",
+                                                "/assets/**",
+                                                "/uploads/**",
                                                 "/api/auth/signup",
                                                 "/api/auth/login",
                                                 "/api/auth/reissue")

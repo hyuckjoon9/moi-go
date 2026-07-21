@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>모집글 - Moi-Go</title>
+    <link rel="stylesheet" href="/css/style.css?v=20260721-recruitment-pages" />
+  </head>
+  <body data-page="recruitments" data-protected="true">
+    <header class="app-header">
+      <a class="brand" href="/index.html" aria-label="Moi-Go 홈"><img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" /></a>
+      <nav class="main-nav" aria-label="주요 메뉴"><a href="/recruitments.html" data-protected-link="true">모집글</a><a href="/group.html" data-protected-link="true">그룹 홈</a></nav>
+      <div class="header-actions"><a class="header-profile" href="/mypage.html" data-protected-link="true">내 정보</a><span id="authStatus" class="auth-chip">로그인 필요</span><a id="headerAuthLink" class="button ghost" href="/login.html">로그인</a></div>
+    </header>
+
+    <main class="page-shell recruitment-page">
+      <div class="page-title action-title">
+        <div>
+          <p class="eyebrow">Recruitments</p>
+          <h1 id="recruitmentPageTitle">모집글</h1>
+          <p id="recruitmentPageDescription">최신 모집글을 확인하고 스터디 참여 흐름을 시작합니다.</p>
+        </div>
+        <div class="page-actions">
+          <a id="backToRecruitmentList" class="button ghost hidden" href="/recruitments.html">목록으로</a>
+          <button id="openCreateRecruitmentButton" class="button" type="button">모집글 작성</button>
+        </div>
+      </div>
+
+      <section id="recruitmentListSection" class="recruitment-list-section">
+        <article class="panel list-panel full-list-panel">
+          <div class="panel-heading recruitment-toolbar">
+            <div>
+              <h2>모집글 목록</h2>
+
+            </div>
+            <label class="inline-filter">카테고리<input id="recruitmentCategory" placeholder="전체" /></label>
+          </div>
+          <div id="recruitmentList" class="recruitment-table-list selectable-list"></div>
+          <nav id="recruitmentPagination" class="pagination" aria-label="모집글 페이지"></nav>
+        </article>
+      </section>
+
+      <section id="recruitmentDetailSection" class="recruitment-detail-section hidden">
+        <article id="recruitmentDetailPanel" class="panel detail-panel recruitment-detail-panel">
+          <p class="eyebrow">Detail</p>
+          <h2>모집글 상세</h2>
+          <p class="muted">모집글 정보를 불러오고 있습니다.</p>
+          <div id="recruitmentDetailView" class="detail-view"></div>
+        </article>
+      </section>
+
+      <div id="recruitmentCreateBackdrop" class="modal-backdrop hidden"></div>
+      <article id="recruitmentCreatePanel" class="panel edit-panel modal-panel hidden" role="dialog" aria-modal="true" aria-labelledby="recruitmentCreateTitle">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Create</p><h2 id="recruitmentCreateTitle">모집글 작성</h2></div>
+          <button id="closeCreateRecruitmentButton" class="button ghost small" type="button">닫기</button>
+        </div>
+        <form id="createRecruitmentForm" class="form-grid two">
+          <label class="span-2">스터디 이름<input name="title" value="프론트엔드 스터디 모집" required maxlength="100" /></label>
+          <label>카테고리<input name="category" value="개발" maxlength="50" /></label>
+          <label>모임 방식<select name="meetingType"><option value="ONLINE">온라인</option><option value="OFFLINE">오프라인</option><option value="HYBRID">온/오프라인 병행</option></select></label>
+          <label>활동 지역<input name="location" placeholder="예: 서울 강남" /></label>
+          <label>온라인 링크<input name="onlineLink" placeholder="https://..." /></label>
+          <label>정기 모임 요일<input name="meetingDay" value="매주 토요일" maxlength="50" /></label>
+          <label>모집 인원<input name="capacity" type="number" min="1" value="4" /></label>
+          <label>모집 마감일<input name="recruitmentDeadline" type="date" /></label>
+          <label>예상 활동 기간<input name="expectedDuration" value="8주" maxlength="50" /></label>
+          <label class="span-2">소개<textarea name="description">HTML, CSS, JavaScript 중심으로 화면 구현을 연습합니다.</textarea></label>
+          <label class="span-2">목표<textarea name="goal">백엔드 API와 연결되는 스터디 운영 프로토타입 완성</textarea></label>
+          <label class="span-2">진행 방식<textarea name="method">온라인 과제와 주간 회의로 진행합니다.</textarea></label>
+          <label class="span-2">참가 조건<textarea name="conditions" placeholder="필요한 경험이나 준비물을 적어주세요."></textarea></label>
+          <button class="button span-2" type="submit">등록하기</button>
+        </form>
+      </article>
+    </main>
+
+    <script src="/js/api.js?v=20260721-recruitment-pages"></script>
+    <script src="/js/auth.js?v=20260721-recruitment-pages"></script>
+    <script src="/js/app.js?v=20260721-recruitment-pages"></script>
+  </body>
+</html>
