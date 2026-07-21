@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
+import com.mycom.myapp.schedule.dto.request.ScheduleDeadlineUpdateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.entity.StudySchedule;
@@ -162,6 +163,48 @@ class ScheduleUpdateIntegrationTest {
                                 assertThat(exception.getErrorCode())
                                         .isEqualTo(ErrorCode.SCHEDULE_NOT_FOUND));
         assertThat(otherSchedule.getTitle()).isEqualTo("다른 그룹 일정");
+    }
+
+    @Test
+    void changesAndRemovesOnlyResponseDeadline() {
+        StudyGroup group = saveGroupWithLeader(27L, 1L);
+        StudySchedule schedule =
+                scheduleRepository.saveAndFlush(
+                        StudySchedule.create(
+                                group,
+                                9L,
+                                "기존 일정",
+                                NOW.plusDays(3),
+                                "기존 장소",
+                                null,
+                                "기존 내용",
+                                "기존 준비물",
+                                NOW.plusDays(1)));
+        Long scheduleId = schedule.getId();
+        entityManager.clear();
+        LocalDateTime createdAt =
+                scheduleRepository.findById(scheduleId).orElseThrow().getCreatedAt();
+        ScheduleDeadlineUpdateRequest change = new ScheduleDeadlineUpdateRequest();
+        change.setResponseDeadline(NOW.plusDays(2));
+
+        service.updateResponseDeadline(group.getId(), 1L, scheduleId, change);
+        entityManager.flush();
+        entityManager.clear();
+
+        StudySchedule changed = scheduleRepository.findById(scheduleId).orElseThrow();
+        assertThat(changed.getResponseDeadline()).isEqualTo(NOW.plusDays(2));
+        assertThat(changed.getCreatorId()).isEqualTo(9L);
+        assertThat(changed.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(changed.getTitle()).isEqualTo("기존 일정");
+
+        ScheduleDeadlineUpdateRequest remove = new ScheduleDeadlineUpdateRequest();
+        remove.setResponseDeadline(null);
+        service.updateResponseDeadline(group.getId(), 1L, scheduleId, remove);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(scheduleRepository.findById(scheduleId).orElseThrow().getResponseDeadline())
+                .isNull();
     }
 
     private StudyGroup saveGroupWithLeader(Long postId, Long leaderId) {

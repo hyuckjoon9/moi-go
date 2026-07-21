@@ -12,12 +12,15 @@ import static org.mockito.Mockito.when;
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.schedule.dto.request.ScheduleCreateRequest;
+import com.mycom.myapp.schedule.dto.request.ScheduleDeadlineUpdateRequest;
 import com.mycom.myapp.schedule.dto.request.ScheduleScope;
 import com.mycom.myapp.schedule.dto.request.ScheduleUpdateRequest;
 import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.entity.StudySchedule;
 import com.mycom.myapp.schedule.repository.StudyScheduleRepository;
+import com.mycom.myapp.schedule.service.port.ActivityRecordLookup;
+import com.mycom.myapp.schedule.service.port.AttendanceRecordLookup;
 import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupRole;
 import com.mycom.myapp.study.entity.StudyGroup;
@@ -33,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -46,8 +50,17 @@ class ScheduleServiceTest {
     private final StudyGroupRepository groupRepository = mock(StudyGroupRepository.class);
     private final GroupMemberRepository memberRepository = mock(GroupMemberRepository.class);
     private final StudyScheduleRepository scheduleRepository = mock(StudyScheduleRepository.class);
+    private final AttendanceRecordLookup attendanceRecordLookup =
+            mock(AttendanceRecordLookup.class);
+    private final ActivityRecordLookup activityRecordLookup = mock(ActivityRecordLookup.class);
     private final ScheduleService service =
-            new ScheduleService(groupRepository, memberRepository, scheduleRepository, clock);
+            new ScheduleService(
+                    groupRepository,
+                    memberRepository,
+                    scheduleRepository,
+                    attendanceRecordLookup,
+                    activityRecordLookup,
+                    clock);
 
     @ParameterizedTest
     @EnumSource(
@@ -80,7 +93,6 @@ class ScheduleServiceTest {
     @Test
     void rejectsMissingGroup() {
         when(groupRepository.findById(10L)).thenReturn(Optional.empty());
-
         assertError(ErrorCode.GROUP_NOT_FOUND, validRequest());
     }
 
@@ -89,7 +101,6 @@ class ScheduleServiceTest {
         StudyGroup group = activeGroup();
         when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
         when(memberRepository.findByStudyGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
-
         assertError(ErrorCode.GROUP_ACCESS_DENIED, validRequest());
     }
 
@@ -99,7 +110,6 @@ class ScheduleServiceTest {
         GroupMember member = GroupMember.join(group, 1L, GroupRole.LEADER);
         member.withdraw();
         allow(group, member);
-
         assertError(ErrorCode.WITHDRAWN_GROUP_MEMBER, validRequest());
     }
 
@@ -108,7 +118,6 @@ class ScheduleServiceTest {
         StudyGroup group = activeGroup();
         group.end();
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
-
         assertError(ErrorCode.GROUP_ENDED, validRequest());
     }
 
@@ -116,7 +125,6 @@ class ScheduleServiceTest {
     void rejectsActiveMemberWithoutManagementRole() {
         StudyGroup group = activeGroup();
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
-
         assertError(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN, validRequest());
     }
 
@@ -125,7 +133,6 @@ class ScheduleServiceTest {
     void rejectsInvalidScheduleTimes(ScheduleCreateRequest request) {
         StudyGroup group = activeGroup();
         allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
-
         assertError(ErrorCode.INVALID_SCHEDULE_TIME, request);
     }
 
@@ -135,8 +142,8 @@ class ScheduleServiceTest {
         allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
         when(scheduleRepository.save(any(StudySchedule.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        LocalDateTime scheduledAt = NOW.plusHours(2);
 
+        LocalDateTime scheduledAt = NOW.plusHours(2);
         service.create(10L, 1L, request(scheduledAt, scheduledAt));
 
         verify(scheduleRepository).save(any(StudySchedule.class));
@@ -286,7 +293,6 @@ class ScheduleServiceTest {
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
 
         assertUpdateError(ErrorCode.GROUP_ENDED, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
     }
 
@@ -296,7 +302,6 @@ class ScheduleServiceTest {
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
 
         assertUpdateError(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
     }
 
@@ -360,7 +365,6 @@ class ScheduleServiceTest {
         when(groupRepository.findById(10L)).thenReturn(Optional.empty());
 
         assertUpdateError(ErrorCode.GROUP_NOT_FOUND, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(memberRepository, scheduleRepository);
     }
 
@@ -371,7 +375,6 @@ class ScheduleServiceTest {
         when(memberRepository.findByStudyGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
 
         assertUpdateError(ErrorCode.GROUP_ACCESS_DENIED, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
     }
 
@@ -383,8 +386,220 @@ class ScheduleServiceTest {
         allow(group, member);
 
         assertUpdateError(ErrorCode.WITHDRAWN_GROUP_MEMBER, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = GroupRole.class,
+            names = {"LEADER", "MANAGER"})
+    void changesDeadlineBeforeCurrentEffectiveDeadline(GroupRole role) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, role));
+        StudySchedule schedule = schedule(group, 100L, NOW.plusHours(3), NOW.plusHours(1));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule));
+
+        ScheduleResponse response =
+                service.updateResponseDeadline(10L, 1L, 100L, deadlineRequest(NOW.plusHours(2)));
+
+        assertThat(response.responseDeadline()).isEqualTo(NOW.plusHours(2));
+        assertThat(response.updatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void removesDeadlineBeforeCurrentEffectiveDeadline() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(3), NOW.plusHours(1))));
+
+        ScheduleResponse response =
+                service.updateResponseDeadline(10L, 1L, 100L, deadlineRequest(null));
+
+        assertThat(response.responseDeadline()).isNull();
+    }
+
+    @Test
+    void rejectsDeadlineReopeningAfterCurrentDeadline() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(3), NOW)));
+
+        assertDeadlineError(
+                ErrorCode.SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED, deadlineRequest(NOW.plusHours(2)));
+    }
+
+    @Test
+    void rejectsNewDeadlineAtNowOrAfterSchedule() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(3), null)));
+
+        assertDeadlineError(ErrorCode.INVALID_SCHEDULE_TIME, deadlineRequest(NOW));
+        assertDeadlineError(ErrorCode.INVALID_SCHEDULE_TIME, deadlineRequest(NOW.plusHours(4)));
+    }
+
+    @Test
+    void rejectsDeadlineChangeForMissingGroupBeforeMembershipLookup() {
+        when(groupRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertDeadlineError(ErrorCode.GROUP_NOT_FOUND, deadlineRequest(NOW.plusHours(1)));
+
+        verifyNoInteractions(memberRepository, scheduleRepository);
+    }
+
+    @Test
+    void reportsMissingScheduleBeforeDeadlineValidation() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L)).thenReturn(Optional.empty());
+
+        assertDeadlineError(ErrorCode.SCHEDULE_NOT_FOUND, deadlineRequest(NOW.minusHours(1)));
+    }
+
+    @Test
+    void allowsNewDeadlineEqualToScheduledAt() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        LocalDateTime scheduledAt = NOW.plusHours(3);
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, scheduledAt, null)));
+
+        ScheduleResponse response =
+                service.updateResponseDeadline(10L, 1L, 100L, deadlineRequest(scheduledAt));
+
+        assertThat(response.responseDeadline()).isEqualTo(scheduledAt);
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = GroupRole.class,
+            names = {"LEADER", "MANAGER"})
+    void deletesFutureScheduleWithoutProtectedRecords(GroupRole role) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, role));
+        StudySchedule schedule = schedule(group, 100L, NOW.plusHours(1), null);
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule));
+
+        service.delete(10L, 1L, 100L);
+
+        verify(scheduleRepository).delete(schedule);
+        verify(scheduleRepository).flush();
+    }
+
+    @Test
+    void rejectsDeletionWhenAttendanceRecordExists() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(1), null)));
+        when(attendanceRecordLookup.existsByScheduleId(100L)).thenReturn(true);
+
+        assertDeleteError(ErrorCode.SCHEDULE_DELETE_NOT_ALLOWED);
+
+        verify(scheduleRepository, never()).delete(any());
+        verifyNoInteractions(activityRecordLookup);
+    }
+
+    @Test
+    void rejectsDeletionWhenActivityRecordExists() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, NOW.plusHours(1), null)));
+        when(activityRecordLookup.existsByScheduleId(100L)).thenReturn(true);
+
+        assertDeleteError(ErrorCode.SCHEDULE_DELETE_NOT_ALLOWED);
+
+        verify(scheduleRepository, never()).delete(any());
+    }
+
+    @Test
+    void rejectsDeletionForMissingGroup() {
+        when(groupRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertDeleteError(ErrorCode.GROUP_NOT_FOUND);
+        verifyNoInteractions(memberRepository, scheduleRepository);
+    }
+
+    @Test
+    void rejectsDeletionForMissingMembership() {
+        StudyGroup group = activeGroup();
+        when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
+        when(memberRepository.findByStudyGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
+
+        assertDeleteError(ErrorCode.GROUP_ACCESS_DENIED);
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void rejectsDeletionForWithdrawnMember() {
+        StudyGroup group = activeGroup();
+        GroupMember member = GroupMember.join(group, 1L, GroupRole.LEADER);
+        member.withdraw();
+        allow(group, member);
+
+        assertDeleteError(ErrorCode.WITHDRAWN_GROUP_MEMBER);
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void rejectsDeletionForEndedGroup() {
+        StudyGroup group = activeGroup();
+        group.end();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+
+        assertDeleteError(ErrorCode.GROUP_ENDED);
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void rejectsDeletionForRegularMember() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
+
+        assertDeleteError(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN);
+        verifyNoInteractions(scheduleRepository);
+    }
+
+    @Test
+    void reportsMissingScheduleBeforeTimeAndDependencyChecks() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L)).thenReturn(Optional.empty());
+
+        assertDeleteError(ErrorCode.SCHEDULE_NOT_FOUND);
+        verifyNoInteractions(attendanceRecordLookup, activityRecordLookup);
+    }
+
+    @ParameterizedTest
+    @MethodSource("startedScheduleTimes")
+    void rejectsDeletionAtOrBeforeScheduleTime(LocalDateTime scheduledAt) {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule(group, 100L, scheduledAt, null)));
+
+        assertDeleteError(ErrorCode.SCHEDULE_DELETE_NOT_ALLOWED);
+        verifyNoInteractions(attendanceRecordLookup, activityRecordLookup);
+    }
+
+    @Test
+    void mapsForeignKeyRaceToDeleteNotAllowed() {
+        StudyGroup group = activeGroup();
+        allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
+        StudySchedule schedule = schedule(group, 100L, NOW.plusHours(1), null);
+        when(scheduleRepository.findByIdAndStudyGroupId(100L, 10L))
+                .thenReturn(Optional.of(schedule));
+        org.mockito.Mockito.doThrow(new DataIntegrityViolationException("protected schedule"))
+                .when(scheduleRepository)
+                .flush();
+
+        assertDeleteError(ErrorCode.SCHEDULE_DELETE_NOT_ALLOWED);
     }
 
     private static Stream<ScheduleCreateRequest> invalidTimeRequests() {
@@ -435,6 +650,26 @@ class ScheduleServiceTest {
 
     private void assertUpdateError(ErrorCode errorCode, ScheduleUpdateRequest request) {
         assertThatThrownBy(() -> service.update(10L, 1L, 100L, request))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(errorCode));
+    }
+
+    private ScheduleDeadlineUpdateRequest deadlineRequest(LocalDateTime value) {
+        ScheduleDeadlineUpdateRequest request = new ScheduleDeadlineUpdateRequest();
+        request.setResponseDeadline(value);
+        return request;
+    }
+
+    private void assertDeadlineError(ErrorCode errorCode, ScheduleDeadlineUpdateRequest request) {
+        assertThatThrownBy(() -> service.updateResponseDeadline(10L, 1L, 100L, request))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception -> assertThat(exception.getErrorCode()).isEqualTo(errorCode));
+    }
+
+    private void assertDeleteError(ErrorCode errorCode) {
+        assertThatThrownBy(() -> service.delete(10L, 1L, 100L))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception -> assertThat(exception.getErrorCode()).isEqualTo(errorCode));

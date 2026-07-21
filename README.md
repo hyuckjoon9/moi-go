@@ -4,14 +4,18 @@ Spring Boot 기반 4인 팀 프로젝트
 
 ## 개발 환경
 
-| 도구             | 버전                                             |
-| -------------- | ---------------------------------------------- |
-| Java           | 21                                             |
-| Spring Boot    | 4.1.0                                          |
-| Gradle         | 9.5.1                 |
-| MySQL          |                                   				|
-| Spotless       | 8.8.0                                          |
-| GitHub Actions | `actions/checkout@v4`, `actions/setup-java@v4` |
+| 도구              | 버전                                             |
+| --------------- | ---------------------------------------------- |
+| Java            | 21                                             |
+| Spring Boot     | 4.1.0                                          |
+| Spring Security | Spring Boot 4.1.0 의존성 관리 버전                    |
+| Spring Data JPA | Spring Boot 4.1.0 의존성 관리 버전                    |
+| JUnit           | JUnit 5                                        |
+| Gradle          | 9.5.1                                          |
+| MySQL           | 8 이상                                           |
+| Spotless        | 8.8.0                                          |
+| GitHub Actions  | `actions/checkout@v4`, `actions/setup-java@v4` |
+
 
 ## 최초 개발 설정
 
