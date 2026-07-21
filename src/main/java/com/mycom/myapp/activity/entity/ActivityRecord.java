@@ -89,6 +89,5 @@ public class ActivityRecord {
         this.nextPreparation = nextPreparation;
         this.referenceLinks = referenceLinks;
         this.updatedAt = LocalDateTime.now();
-   
     }
 }

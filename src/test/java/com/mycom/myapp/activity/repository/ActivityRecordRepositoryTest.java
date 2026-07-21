@@ -29,14 +29,14 @@ class ActivityRecordRepositoryTest {
         save(10L, 1L);
 
         assertThatThrownBy(
-                () ->
-                        activityRecordRepository.saveAndFlush(
-                                ActivityRecord.builder()
-                                        .scheduleId(10L)
-                                        .authorId(2L)
-                                        .topic("다른 토픽")
-                                        .content("다른 내용")
-                                        .build()))
+                        () ->
+                                activityRecordRepository.saveAndFlush(
+                                        ActivityRecord.builder()
+                                                .scheduleId(10L)
+                                                .authorId(2L)
+                                                .topic("다른 토픽")
+                                                .content("다른 내용")
+                                                .build()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
