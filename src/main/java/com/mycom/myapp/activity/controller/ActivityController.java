@@ -29,9 +29,6 @@ public class ActivityController {
 
     private final ActivityService activityService;
 
-    // TODO: 활동 기록 등록·수정·삭제 시 authorId가 해당 일정 그룹의 활성 LEADER/MANAGER인지 검증 (StudySchedule 연동 후)
-    // TODO: 리뷰 작성·삭제 시 userId가 해당 일정 그룹의 활성 멤버(LEADER/MANAGER/MEMBER)인지 검증 (StudySchedule 연동 후)
-
     /** 활동 기록 등록 */
     @PostMapping("/schedules/{scheduleId}/record")
     public ResponseEntity<ActivityRecordResponse> createRecord(

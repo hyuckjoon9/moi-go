@@ -4,19 +4,19 @@
 
 | 메서드 | 경로 | 인증 | 설명 |
 | --- | --- | --- | --- |
-| `POST` | `/api/activity/schedules/{scheduleId}/record` | 필요 | 활동 기록 등록 |
-| `PUT` | `/api/activity/schedules/{scheduleId}/record` | 필요 (작성자 본인) | 활동 기록 수정 |
-| `DELETE` | `/api/activity/schedules/{scheduleId}/record` | 필요 (작성자 본인) | 활동 기록 삭제 |
+| `POST` | `/api/activity/schedules/{scheduleId}/record` | 필요 (그룹 LEADER/MANAGER) | 활동 기록 등록 |
+| `PUT` | `/api/activity/schedules/{scheduleId}/record` | 필요 (그룹 LEADER/MANAGER) | 활동 기록 수정 |
+| `DELETE` | `/api/activity/schedules/{scheduleId}/record` | 필요 (그룹 LEADER/MANAGER) | 활동 기록 삭제 |
 | `GET` | `/api/activity/schedules/{scheduleId}/record` | 불필요 | 활동 기록 조회 |
-| `POST` | `/api/activity/records/{activityRecordId}/reviews` | 필요 | 활동 기록 리뷰 작성 |
-| `DELETE` | `/api/activity/records/{activityRecordId}/reviews` | 필요 (작성자 본인) | 리뷰 삭제 |
+| `POST` | `/api/activity/records/{activityRecordId}/reviews` | 필요 (그룹 활성 멤버) | 활동 기록 리뷰 작성 |
+| `DELETE` | `/api/activity/records/{activityRecordId}/reviews` | 필요 (그룹 활성 멤버 · 작성자 본인) | 리뷰 삭제 |
 | `GET` | `/api/activity/records/{activityRecordId}/reviews` | 불필요 | 리뷰 목록 조회 |
 
 ## 구현 상태 메모
 
 - `authorId`/`userId`는 쿼리 파라미터로 받지 않는다. `@AuthenticationPrincipal AuthenticatedMember`로 로그인한 사용자 id를 서버가 직접 채운다 (attendance와 동일한 방식, `Authorization: Bearer {accessToken}` 헤더 필요). 인증 정보가 없으면 `401`.
-- 활동 기록 수정·삭제는 서비스에서 `authorId` 일치 여부를 자체적으로 검증한다(`ACTIVITY_RECORD_ACCESS_DENIED`). 다만 `authorId`가 실제로 해당 일정 그룹의 활성 `LEADER`/`MANAGER`인지에 대한 검증은 아직 없다. 로그인한 사용자면 누구든 등록을 시도할 수 있는 상태다. `StudySchedule ↔ StudyGroup` 연결 후 추가 예정.
-- 리뷰 작성·삭제도 마찬가지로, 요청자가 해당 일정 그룹의 활성 멤버인지 검증은 아직 없다.
+- 활동 기록 등록·수정·삭제는 `StudySchedule → StudyGroup → GroupMember` 조회로 요청자가 해당 일정 그룹의 활성 `LEADER`/`MANAGER`인지 검증한다. 원래 작성자인지는 더 이상 확인하지 않는다 — 같은 그룹의 다른 `LEADER`/`MANAGER`도 수정·삭제할 수 있다(Schedule 도메인의 일정 관리 권한과 동일한 정책). 검증 순서는 일정 없음(`SCHEDULE_NOT_FOUND`) → 그룹원 아님(`GROUP_ACCESS_DENIED`) → 탈퇴 그룹원(`WITHDRAWN_GROUP_MEMBER`) → 권한 없음(`ACTIVITY_RECORD_ACCESS_DENIED`) 순이다.
+- 리뷰 작성·삭제는 활동 기록 → `scheduleId` → `StudyGroup` → `GroupMember` 조회로 요청자가 해당 일정 그룹의 활성 그룹원인지 검증한다. 역할(`LEADER`/`MANAGER`/`MEMBER`)은 가리지 않는다 — 활동 기록과 달리 리뷰는 역할 무관하게 그룹원이면 누구나 남길 수 있도록 의도적으로 설계했다. 검증 순서는 활동 기록 없음(`ACTIVITY_RECORD_NOT_FOUND`) → 그룹원 아님(`GROUP_ACCESS_DENIED`) → 탈퇴 그룹원(`WITHDRAWN_GROUP_MEMBER`) 순이다.
 - 같은 `scheduleId`로 이미 활동 기록이 있으면 등록(`POST`)은 `409`로 거부한다(`DUPLICATE_ACTIVITY_RECORD`). 수정은 `PUT`을 쓴다.
 - 같은 `(activityRecordId, userId)` 조합으로 이미 리뷰가 있으면 등록은 `409`로 거부한다(`DUPLICATE_ACTIVITY_REVIEW`).
 - 리뷰는 수정 API가 없다. `activity_reviews` 테이블에 `updated_at` 컬럼이 없어 생성 후 불변으로 설계했다. 수정이 필요하면 삭제 후 재작성한다.
@@ -27,7 +27,7 @@
 
 ## POST /api/activity/schedules/{scheduleId}/record
 
-일정에 활동 기록을 처음 등록한다. 작성자는 인증 토큰에서 가져온다.
+일정 그룹의 활성 `LEADER`/`MANAGER`가 활동 기록을 처음 등록한다. 작성자(`authorId`)는 인증 토큰에서 가져온다.
 
 ### Request
 
@@ -73,11 +73,15 @@
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `404` | 해당 `scheduleId`의 일정이 없음 (`SCHEDULE_NOT_FOUND`) |
+| `403` | 요청자가 일정 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
+| `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
+| `403` | 요청자가 `LEADER`/`MANAGER`가 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
 | `409` | 해당 `scheduleId`의 활동 기록이 이미 존재함 (`DUPLICATE_ACTIVITY_RECORD`) |
 
 ## PUT /api/activity/schedules/{scheduleId}/record
 
-기존 활동 기록을 수정한다. 요청자가 작성자 본인이 아니면 거부한다.
+일정 그룹의 활성 `LEADER`/`MANAGER`가 기존 활동 기록을 수정한다.
 
 ### Request
 
@@ -92,12 +96,15 @@
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
-| `403` | 요청자가 작성자 본인이 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
+| `404` | 해당 `scheduleId`의 일정이 없음 (`SCHEDULE_NOT_FOUND`) |
+| `403` | 요청자가 일정 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
+| `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
+| `403` | 요청자가 `LEADER`/`MANAGER`가 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
 | `404` | 해당 `scheduleId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
 
 ## DELETE /api/activity/schedules/{scheduleId}/record
 
-활동 기록을 삭제한다. 요청자가 작성자 본인이 아니면 거부한다.
+일정 그룹의 활성 `LEADER`/`MANAGER`가 활동 기록을 삭제한다.
 
 ### Response 204
 
@@ -108,7 +115,10 @@
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
-| `403` | 요청자가 작성자 본인이 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
+| `404` | 해당 `scheduleId`의 일정이 없음 (`SCHEDULE_NOT_FOUND`) |
+| `403` | 요청자가 일정 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
+| `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
+| `403` | 요청자가 `LEADER`/`MANAGER`가 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
 | `404` | 해당 `scheduleId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
 
 ## GET /api/activity/schedules/{scheduleId}/record
@@ -127,7 +137,7 @@
 
 ## POST /api/activity/records/{activityRecordId}/reviews
 
-활동 기록에 리뷰(코멘트)를 작성한다. 작성자는 인증 토큰에서 가져온다.
+활동 기록이 속한 일정 그룹의 활성 그룹원(역할 무관)이 리뷰(코멘트)를 작성한다. 작성자는 인증 토큰에서 가져온다.
 
 ### Request
 
@@ -161,11 +171,14 @@
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
 | `404` | 해당 `activityRecordId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
+| `404` | 활동 기록이 속한 일정이 없음 (`SCHEDULE_NOT_FOUND`, 정합성이 깨진 예외적 상황) |
+| `403` | 요청자가 일정 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
+| `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
 | `409` | 해당 `(activityRecordId, userId)` 조합의 리뷰가 이미 존재함 (`DUPLICATE_ACTIVITY_REVIEW`) |
 
 ## DELETE /api/activity/records/{activityRecordId}/reviews
 
-요청자 본인이 남긴 리뷰를 삭제한다. `(activityRecordId, userId)` 조합으로 조회하므로 본인 리뷰만 삭제된다.
+활동 기록이 속한 일정 그룹의 활성 그룹원(역할 무관)이 본인이 남긴 리뷰를 삭제한다. `(activityRecordId, userId)` 조합으로 조회하므로 본인 리뷰만 삭제된다.
 
 ### Response 204
 
@@ -176,6 +189,9 @@
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `404` | 해당 `activityRecordId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
+| `403` | 요청자가 일정 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
+| `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
 | `404` | 요청자가 남긴 리뷰가 없음 (`ACTIVITY_REVIEW_NOT_FOUND`) |
 
 ## GET /api/activity/records/{activityRecordId}/reviews
