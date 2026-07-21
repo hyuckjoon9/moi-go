@@ -24,16 +24,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/attendance")
+@RequestMapping("/api/attendance")
 @RequiredArgsConstructor
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
     // TODO: checkedBy가 해당 스케줄 그룹의 LEADER/MANAGER인지 검증 (StudySchedule 연동 후)
+    // TODO: 참석 응답이 study_schedules.response_deadline 이전인지 검증 (StudySchedule 연동 후)
+    // TODO: checkedBy가 해당 스케줄 그룹의 룰을 받아올 때 출석률 조회도 수정 (권한이 있는 사람만 가능하도록?)
 
     /** 참석 여부 응답 등록 */
-    @PostMapping("/schedules/{scheduleId}/answers/insert")
+    @PostMapping("/schedules/{scheduleId}/answers")
     public ResponseEntity<AttendanceAnswerResponse> submitAnswer(
             @PathVariable("scheduleId") Long scheduleId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
@@ -46,7 +48,7 @@ public class AttendanceController {
     }
 
     /** 참석 여부 응답 수정 */
-    @PutMapping("/schedules/{scheduleId}/answers/update")
+    @PutMapping("/schedules/{scheduleId}/answers")
     public ResponseEntity<AttendanceAnswerResponse> changeAnswer(
             @PathVariable("scheduleId") Long scheduleId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
@@ -59,7 +61,7 @@ public class AttendanceController {
     }
 
     /** 참석 여부 응답 삭제 */
-    @DeleteMapping("/schedules/{scheduleId}/answers/delete")
+    @DeleteMapping("/schedules/{scheduleId}/answers")
     public ResponseEntity<Void> deleteAnswer(
             @PathVariable("scheduleId") Long scheduleId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
@@ -69,7 +71,7 @@ public class AttendanceController {
     }
 
     /** 출석 체크 등록 (모집장) */
-    @PostMapping("/schedules/{scheduleId}/records/insert")
+    @PostMapping("/schedules/{scheduleId}/records")
     public ResponseEntity<AttendanceRecordResponse> checkAttendance(
             @PathVariable("scheduleId") Long scheduleId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
@@ -82,7 +84,7 @@ public class AttendanceController {
     }
 
     /** 출석 체크 수정 (모집장) */
-    @PutMapping("/schedules/{scheduleId}/records/update")
+    @PutMapping("/schedules/{scheduleId}/records")
     public ResponseEntity<AttendanceRecordResponse> updateAttendance(
             @PathVariable("scheduleId") Long scheduleId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
@@ -95,7 +97,7 @@ public class AttendanceController {
     }
 
     /** 출석 기록 삭제 */
-    @DeleteMapping("/schedules/{scheduleId}/records/{userId}/delete")
+    @DeleteMapping("/schedules/{scheduleId}/records/{userId}")
     public ResponseEntity<Void> deleteAttendance(
             @PathVariable("scheduleId") Long scheduleId, @PathVariable("userId") Long userId) {
         attendanceService.deleteAttendance(scheduleId, userId);
