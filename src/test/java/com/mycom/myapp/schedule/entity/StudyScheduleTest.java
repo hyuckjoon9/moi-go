@@ -112,4 +112,27 @@ class StudyScheduleTest {
                                         null,
                                         scheduledAt.minusDays(1)));
     }
+
+    @Test
+    void updatesAndRemovesResponseDeadline() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 20, 12, 0);
+        StudySchedule schedule =
+                StudySchedule.create(
+                        group,
+                        1L,
+                        "3주차",
+                        now.plusHours(3),
+                        null,
+                        null,
+                        null,
+                        null,
+                        now.plusHours(1));
+
+        schedule.updateResponseDeadline(now.plusHours(2), now);
+        assertThat(schedule.getResponseDeadline()).isEqualTo(now.plusHours(2));
+        assertThat(schedule.getUpdatedAt()).isEqualTo(now);
+
+        schedule.updateResponseDeadline(null, now.plusMinutes(1));
+        assertThat(schedule.getResponseDeadline()).isNull();
+    }
 }

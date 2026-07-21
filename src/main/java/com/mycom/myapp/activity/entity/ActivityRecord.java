@@ -62,6 +62,9 @@ public class ActivityRecord {
             String assignment,
             String nextPreparation,
             String referenceLinks) {
+        if (scheduleId == null) {
+            throw new IllegalArgumentException("일정 식별자는 필수입니다.");
+        }
         this.scheduleId = scheduleId;
         this.authorId = authorId;
         this.topic = topic;
@@ -86,5 +89,6 @@ public class ActivityRecord {
         this.nextPreparation = nextPreparation;
         this.referenceLinks = referenceLinks;
         this.updatedAt = LocalDateTime.now();
+   
     }
 }

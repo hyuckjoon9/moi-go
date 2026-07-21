@@ -115,6 +115,21 @@ class MemberServiceTest {
         assertError(ErrorCode.WITHDRAWN_MEMBER, () -> memberService.getMe(1L));
     }
 
+    // 프로필 이미지 URL 저장 테스트
+    // 업로드 API에서 생성한 이미지 URL을 users.profile_image_url에 반영하고 MemberResponse로 반환한다.
+    @Test
+    @DisplayName("프로필 이미지 URL을 회원 프로필에 저장한다")
+    void updatesProfileImageUrl() {
+        Member member =
+                Member.create("user@moigo.test", "encoded-password", "기존닉네임", null, null, null);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+
+        MemberResponse response =
+                memberService.updateProfileImage(1L, "/uploads/profile-images/profile.png");
+
+        assertThat(response.profileImageUrl()).isEqualTo("/uploads/profile-images/profile.png");
+    }
+
     private void assertError(
             ErrorCode errorCode, org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
         assertThatThrownBy(call)

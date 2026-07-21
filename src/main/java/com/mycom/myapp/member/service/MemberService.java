@@ -56,6 +56,13 @@ public class MemberService {
         return MemberResponse.from(member);
     }
 
+    @Transactional
+    public MemberResponse updateProfileImage(Long memberId, String profileImageUrl) {
+        Member member = getActiveMember(memberId);
+        member.updateProfile(null, null, null, profileImageUrl);
+        return MemberResponse.from(member);
+    }
+
     public Member getActiveMember(Long memberId) {
         Member member =
                 memberRepository
