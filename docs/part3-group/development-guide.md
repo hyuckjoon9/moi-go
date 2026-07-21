@@ -88,7 +88,7 @@ Part3는 다음 세 테이블과 대응하는 Entity를 소유한다. 세부 컬
 
 - `study_groups.post_id`는 Part2의 `recruitment_posts.id`를 참조한다. 정원 마감 또는 최초 승인 조건은 Part2가 판단하고, Part3는 합의된 호출이나 이벤트를 통해 그룹을 한 번만 생성한다. `post_id` 유니크 제약을 이용해 중복 생성을 막는다.
 - `group_members.user_id`와 `study_schedules.creator_id`는 Part1의 `users.id`를 참조한다. Part3는 사용자 계정 정보를 직접 수정하지 않고 식별자와 필요한 공개 조회 결과만 사용한다.
-- Part4의 출석 데이터와 Part3 외부의 활동 데이터는 `study_schedules.id`를 참조한다. 일정 삭제가 하위 데이터를 연쇄 삭제할 수 있으므로 삭제 API를 구현할 때 담당 파트와 정책을 먼저 합의한다.
+- Part4의 출석 데이터와 Part3 외부의 활동 데이터는 `study_schedules.id`를 참조한다. 미래 일정 삭제 시 참석 응답은 연쇄 삭제하지만, 출석 기록이나 활동 기록이 있으면 이력 보존을 위해 삭제를 거부한다.
 
 ### Part3 비즈니스 불변식
 
@@ -98,7 +98,10 @@ Part3는 다음 세 테이블과 대응하는 Entity를 소유한다. 세부 컬
 - 그룹 역할은 `LEADER`, `MANAGER`, `MEMBER`만 사용한다.
 - 일정 등록 권한은 활성 상태의 `LEADER` 또는 `MANAGER`에게만 부여한다.
 - `response_deadline`이 있으면 `scheduled_at`보다 같거나 이른 값이어야 한다.
-- 그룹 또는 일정 삭제는 외래 키의 `ON DELETE` 동작과 다른 파트 데이터 영향을 확인한 뒤 수행한다.
+- `response_deadline`이 없으면 `scheduled_at`을 참석 응답 마감으로 사용한다.
+- 참석 응답 등록·변경·삭제는 현재 시각이 실질적인 응답 마감보다 이를 때만 허용한다.
+- 미래 일정만 삭제할 수 있고, 출석 기록이나 활동 기록이 있으면 삭제를 거부한다.
+- 일정 삭제와 응답 마감 변경의 세부 계약은 [`schedule-deletion-deadline-design.md`](schedule-deletion-deadline-design.md)를 따른다.
 
 ## 브랜치 전략
 

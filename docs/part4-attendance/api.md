@@ -4,21 +4,24 @@
 
 | 메서드 | 경로 | 인증 | 설명 |
 | --- | --- | --- | --- |
-| `POST` | `/attendance/schedules/{scheduleId}/answers/insert` | 필요 | 참석 여부 응답 등록 |
-| `PUT` | `/attendance/schedules/{scheduleId}/answers/update` | 필요 | 참석 여부 응답 수정 |
-| `DELETE` | `/attendance/schedules/{scheduleId}/answers/delete` | 필요 | 참석 여부 응답 삭제 |
-| `POST` | `/attendance/schedules/{scheduleId}/records/insert` | 필요 (모집장) | 출석 체크 등록 |
-| `PUT` | `/attendance/schedules/{scheduleId}/records/update` | 필요 (모집장) | 출석 체크 수정 |
-| `DELETE` | `/attendance/schedules/{scheduleId}/records/{userId}/delete` | 필요 | 출석 기록 삭제 |
-| `GET` | `/attendance/schedules/{scheduleId}/records/summary` | 필요 (모집장) | 스케줄 출석 현황 요약 조회 |
-| `GET` | `/attendance/users/{userId}/rate` | 필요 | 개인 누적 출석률 조회 |
+| `POST` | `/api/attendance/schedules/{scheduleId}/answers` | 필요 | 참석 여부 응답 등록 |
+| `PUT` | `/api/attendance/schedules/{scheduleId}/answers` | 필요 | 참석 여부 응답 수정 |
+| `DELETE` | `/api/attendance/schedules/{scheduleId}/answers` | 필요 | 참석 여부 응답 삭제 |
+| `POST` | `/api/attendance/schedules/{scheduleId}/records` | 필요 (모집장) | 출석 체크 등록 |
+| `PUT` | `/api/attendance/schedules/{scheduleId}/records` | 필요 (모집장) | 출석 체크 수정 |
+| `DELETE` | `/api/attendance/schedules/{scheduleId}/records/{userId}` | 필요 | 출석 기록 삭제 |
+| `GET` | `/api/attendance/schedules/{scheduleId}/records/summary` | 필요 (모집장) | 스케줄 출석 현황 요약 조회 |
+| `GET` | `/api/attendance/users/{userId}/rate` | 필요 | 개인 누적 출석률 조회 |
 
 ## 구현 상태 메모
 
-- `userId`/`checkedBy`는 더 이상 쿼리 파라미터로 받지 않는다. `@AuthenticationPrincipal AuthenticatedMember`로 로그인한 사용자 id를 서버가 직접 채운다 (Part1 인증 방식과 동일, `Authorization: Bearer {accessToken}` 헤더 필요). 인증 정보가 없으면 `BusinessException(UNAUTHORIZED)`.
+- `userId`/`checkedBy`는 쿼리 파라미터로 받지 않는다. `@AuthenticationPrincipal AuthenticatedMember`로 로그인한 사용자 id를 서버가 직접 채운다 (Part1 인증 방식과 동일, `Authorization: Bearer {accessToken}` 헤더 필요). 인증 정보가 없으면 `401`.
 - `checkedBy`가 실제로 해당 스케줄이 속한 그룹의 `LEADER`/`MANAGER`인지에 대한 권한 검증은 아직 없다. 로그인한 사용자면 누구든 다른 사람의 출석을 체크할 수 있는 상태다. `StudySchedule ↔ StudyGroup` 연결이 생긴 뒤 `GroupMember.role` 기준으로 검증 추가 예정.
+- `DELETE .../records/{userId}`는 인증된 사용자인지 확인만 하고 요청자가 그 기록의 당사자인지, 권한이 있는지는 확인하지 않는다. 로그인만 했으면 다른 사람의 출석 기록을 지울 수 있는 상태다.
+- 참석 응답/출석 체크에 마감 시각(`study_schedules.response_deadline`) 검증이 아직 없다. `StudySchedule` 연동 후 추가 예정.
+- 같은 `scheduleId`/`userId` 조합으로 이미 응답/체크가 있으면 등록(`POST`)은 `409`로 거부한다. 수정은 `PUT`을 쓴다.
+- 대상이 없으면(`PUT`/`DELETE`) `404`를 반환한다.
 - 응답 본문은 Part1(`/api/auth`, `/api/members`)과 달리 `ApiResponse` 공통 래퍼로 감싸지 않고 DTO를 그대로 반환한다. Part1과 포맷을 맞추려면 추후 정리가 필요하다.
-- 서비스단에서 응답/기록을 못 찾으면 `EntityNotFoundException`을 던지는데, `GlobalExceptionHandler`는 `BusinessException`/`MethodArgumentNotValidException`/`IllegalArgumentException`만 처리한다. 즉 현재는 404로 내려가지 않고 처리되지 않은 예외로 500이 발생한다.
 - `AttendanceRecord`/`AttendanceAnswer`의 `scheduleId`, `userId`는 `@ManyToOne` 연관관계가 아니라 순수 FK(`Long`) 컬럼이다. `StudySchedule` 엔티티가 아직 스켈레톤 상태라, 완성되면 `scheduleId`/`userId` 둘 다 한 번에 연관관계로 전환할 예정.
 
 ## Enum
@@ -40,7 +43,7 @@
 | `ABSENT` | 불참 |
 | `UNDECIDED` | 미정 |
 
-## POST /attendance/schedules/{scheduleId}/answers/insert
+## POST /api/attendance/schedules/{scheduleId}/answers
 
 멤버가 스케줄의 참석 여부를 등록한다. 응답하는 사용자는 인증 토큰에서 가져온다.
 
@@ -69,8 +72,9 @@
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `409` | 해당 `scheduleId`/`userId` 조합의 응답이 이미 존재함 (`DUPLICATE_ATTENDANCE_ANSWER`) |
 
-## PUT /attendance/schedules/{scheduleId}/answers/update
+## PUT /api/attendance/schedules/{scheduleId}/answers
 
 기존 참석 여부 응답을 수정한다. (예: `UNDECIDED` → `ATTEND`)
 
@@ -84,16 +88,16 @@
 
 ### Response 200
 
-`POST .../answers/insert`와 같은 형식의 응답을 반환한다.
+`POST .../answers`와 같은 형식의 응답을 반환한다.
 
 ### 주요 오류
 
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
-| 처리되지 않음 (500) | 해당 `scheduleId`/`userId` 조합의 응답이 없음 (`EntityNotFoundException`, 미처리) |
+| `404` | 해당 `scheduleId`/`userId` 조합의 응답이 없음 (`ATTENDANCE_ANSWER_NOT_FOUND`) |
 
-## DELETE /attendance/schedules/{scheduleId}/answers/delete
+## DELETE /api/attendance/schedules/{scheduleId}/answers
 
 참석 여부 응답을 삭제한다. 삭제 대상은 인증 토큰의 사용자 자신이다.
 
@@ -101,7 +105,14 @@
 
 본문 없음.
 
-## POST /attendance/schedules/{scheduleId}/records/insert
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `404` | 해당 `scheduleId`/`userId` 조합의 응답이 없음 (`ATTENDANCE_ANSWER_NOT_FOUND`) |
+
+## POST /api/attendance/schedules/{scheduleId}/records
 
 모집장이 스케줄의 특정 멤버 출석 상태를 체크한다. `checkedBy`는 인증 토큰에서 가져온다 (현재는 로그인한 사용자면 누구나 호출 가능, 모집장 권한 검증은 미구현).
 
@@ -139,35 +150,42 @@
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `409` | 해당 `scheduleId`/`userId` 조합의 출석 기록이 이미 존재함 (`DUPLICATE_ATTENDANCE_RECORD`) |
 
-## PUT /attendance/schedules/{scheduleId}/records/update
+## PUT /api/attendance/schedules/{scheduleId}/records
 
 기존 출석 체크 상태를 수정한다. 수정 시마다 `checkedBy`, `checkedAt`이 갱신된다. `checkedBy`는 인증 토큰에서 가져온다.
 
 ### Request
 
-`POST .../records/insert`와 같은 형식.
+`POST .../records`와 같은 형식.
 
 ### Response 200
 
-`POST .../records/insert`와 같은 형식의 응답을 반환한다.
+`POST .../records`와 같은 형식의 응답을 반환한다.
 
 ### 주요 오류
 
 | 상태 | 조건 |
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
-| 처리되지 않음 (500) | 해당 `scheduleId`/`userId` 조합의 출석 기록이 없음 (`EntityNotFoundException`, 미처리) |
+| `404` | 해당 `scheduleId`/`userId` 조합의 출석 기록이 없음 (`ATTENDANCE_RECORD_NOT_FOUND`) |
 
-## DELETE /attendance/schedules/{scheduleId}/records/{userId}/delete
+## DELETE /api/attendance/schedules/{scheduleId}/records/{userId}
 
-출석 기록을 삭제한다.
+출석 기록을 삭제한다. 요청자가 인증되어 있는지만 확인하고, 그 외 권한 검증은 없다 (위 "구현 상태 메모" 참고).
 
 ### Response 204
 
 본문 없음.
 
-## GET /attendance/schedules/{scheduleId}/records/summary
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `404` | 해당 `scheduleId`/`userId` 조합의 출석 기록이 없음 (`ATTENDANCE_RECORD_NOT_FOUND`) |
+
+## GET /api/attendance/schedules/{scheduleId}/records/summary
 
 모집장이 스케줄의 출석 현황을 상태별 인원 수와 개별 멤버 내역으로 조회한다.
 
@@ -204,7 +222,7 @@
 }
 ```
 
-## GET /attendance/users/{userId}/rate
+## GET /api/attendance/users/{userId}/rate
 
 특정 사용자의 전체 스케줄 기준 누적 출석률을 조회한다.
 
