@@ -11,7 +11,6 @@ import com.mycom.myapp.attendance.repository.AttendanceRecordRepository;
 import com.mycom.myapp.attendance.repository.AttendanceResponseRepository;
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -120,13 +119,13 @@ public class AttendanceService {
     private AttendanceAnswer getAnswer(Long scheduleId, Long userId) {
         return attendanceResponseRepository
                 .findByScheduleIdAndUserId(scheduleId, userId)
-                .orElseThrow(() -> new EntityNotFoundException("참석 여부 응답을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTENDANCE_ANSWER_NOT_FOUND));
     }
 
     /** (scheduleId, userId) 조합의 출석 체크 기록을 찾는다. 없으면 예외. */
     private AttendanceRecord getRecord(Long scheduleId, Long userId) {
         return attendanceRecordRepository
                 .findByScheduleIdAndUserId(scheduleId, userId)
-                .orElseThrow(() -> new EntityNotFoundException("출석 기록을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ATTENDANCE_RECORD_NOT_FOUND));
     }
 }
