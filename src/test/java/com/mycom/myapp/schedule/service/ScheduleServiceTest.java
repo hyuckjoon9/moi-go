@@ -80,7 +80,6 @@ class ScheduleServiceTest {
     @Test
     void rejectsMissingGroup() {
         when(groupRepository.findById(10L)).thenReturn(Optional.empty());
-
         assertError(ErrorCode.GROUP_NOT_FOUND, validRequest());
     }
 
@@ -89,7 +88,6 @@ class ScheduleServiceTest {
         StudyGroup group = activeGroup();
         when(groupRepository.findById(10L)).thenReturn(Optional.of(group));
         when(memberRepository.findByStudyGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
-
         assertError(ErrorCode.GROUP_ACCESS_DENIED, validRequest());
     }
 
@@ -99,7 +97,6 @@ class ScheduleServiceTest {
         GroupMember member = GroupMember.join(group, 1L, GroupRole.LEADER);
         member.withdraw();
         allow(group, member);
-
         assertError(ErrorCode.WITHDRAWN_GROUP_MEMBER, validRequest());
     }
 
@@ -108,7 +105,6 @@ class ScheduleServiceTest {
         StudyGroup group = activeGroup();
         group.end();
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
-
         assertError(ErrorCode.GROUP_ENDED, validRequest());
     }
 
@@ -116,7 +112,6 @@ class ScheduleServiceTest {
     void rejectsActiveMemberWithoutManagementRole() {
         StudyGroup group = activeGroup();
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
-
         assertError(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN, validRequest());
     }
 
@@ -125,7 +120,6 @@ class ScheduleServiceTest {
     void rejectsInvalidScheduleTimes(ScheduleCreateRequest request) {
         StudyGroup group = activeGroup();
         allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
-
         assertError(ErrorCode.INVALID_SCHEDULE_TIME, request);
     }
 
@@ -135,8 +129,8 @@ class ScheduleServiceTest {
         allow(group, GroupMember.join(group, 1L, GroupRole.LEADER));
         when(scheduleRepository.save(any(StudySchedule.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        LocalDateTime scheduledAt = NOW.plusHours(2);
 
+        LocalDateTime scheduledAt = NOW.plusHours(2);
         service.create(10L, 1L, request(scheduledAt, scheduledAt));
 
         verify(scheduleRepository).save(any(StudySchedule.class));
@@ -286,7 +280,6 @@ class ScheduleServiceTest {
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
 
         assertUpdateError(ErrorCode.GROUP_ENDED, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
     }
 
@@ -296,7 +289,6 @@ class ScheduleServiceTest {
         allow(group, GroupMember.join(group, 1L, GroupRole.MEMBER));
 
         assertUpdateError(ErrorCode.SCHEDULE_MANAGEMENT_FORBIDDEN, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
     }
 
@@ -360,7 +352,6 @@ class ScheduleServiceTest {
         when(groupRepository.findById(10L)).thenReturn(Optional.empty());
 
         assertUpdateError(ErrorCode.GROUP_NOT_FOUND, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(memberRepository, scheduleRepository);
     }
 
@@ -371,7 +362,6 @@ class ScheduleServiceTest {
         when(memberRepository.findByStudyGroupIdAndUserId(10L, 1L)).thenReturn(Optional.empty());
 
         assertUpdateError(ErrorCode.GROUP_ACCESS_DENIED, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
     }
 
@@ -383,7 +373,6 @@ class ScheduleServiceTest {
         allow(group, member);
 
         assertUpdateError(ErrorCode.WITHDRAWN_GROUP_MEMBER, updateRequest(NOW.plusHours(3)));
-
         verifyNoInteractions(scheduleRepository);
     }
 

@@ -13,7 +13,10 @@
 | 일정 생성 | `POST` | `/api/groups/{groupId}/schedules` | 필수 |
 | 일정 목록 조회 | `GET` | `/api/groups/{groupId}/schedules` | 필수 |
 | 일정 상세 조회 | `GET` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
+<<<<<<< HEAD
+=======
 | 일정 수정 | `PUT` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
+>>>>>>> refs/remotes/origin/develop
 
 ## 내부 서비스 계약
 
@@ -359,6 +362,8 @@ Authorization: Bearer {accessToken}
 | 일정이 없거나 다른 그룹 소속 | `404 Not Found` | `SCHEDULE_NOT_FOUND` | `일정을 찾을 수 없습니다.` |
 | 지원하지 않는 범위 또는 잘못된 페이지 요청 | `400 Bad Request` | `INVALID_REQUEST` | `잘못된 요청입니다.` |
 | 인증 실패 | `401 Unauthorized` | `UNAUTHORIZED` | `인증이 필요합니다.` |
+<<<<<<< HEAD
+=======
 
 ## 일정 수정
 
@@ -394,3 +399,4 @@ Authorization: Bearer {accessToken}
 | 일정이 없거나 다른 그룹 소속 | `404 Not Found` | `SCHEDULE_NOT_FOUND` | `일정을 찾을 수 없습니다.` |
 | 기존 일정이 이미 시작됨 | `409 Conflict` | `SCHEDULE_UPDATE_NOT_ALLOWED` | `이미 시작된 일정은 수정할 수 없습니다.` |
 | 새 일정 시간 규칙 위반 | `400 Bad Request` | `INVALID_SCHEDULE_TIME` | `일정 또는 응답 마감 시간이 올바르지 않습니다.` |
+>>>>>>> refs/remotes/origin/develop
