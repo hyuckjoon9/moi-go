@@ -1,6 +1,6 @@
 # Part3 다음 세션 컨텍스트
 
-> 마지막 갱신: 2026-07-20
+> 마지막 갱신: 2026-07-21
 >
 > 이 문서는 Part3 작업의 세션 핸드오프 문서다. 다음 세션을 시작하면 먼저 현재 Git 상태를 확인하고, 이 문서의 기록과 실제 저장소가 다르면 실제 저장소를 기준으로 이 문서를 갱신한다.
 > 개인 로컬 기록인 `.local/part3/updates.md`가 있으면 이 문서보다 해당 파일의 최신 작업 기록을 우선한다. `updates.md`는 `.git/info/exclude`로 제외하며 커밋하지 않는다.
@@ -36,15 +36,24 @@ git log -3 --oneline
 
 이 문서를 작성한 시점의 상태다. 다음 세션에서 반드시 다시 확인한다.
 
-- 현재 브랜치: `feature/part3-schedule-update`
-- HEAD: `fce9ac7 test: 일정 수정 통합 흐름 검증`
+- 로컬 브랜치: `feature/part3-schedule-deletion-policy`
+- 브랜치 시작 기준 HEAD와 원격 `develop`: `9fadc2e Merge pull request #19 from hyuckjoon9/feature/attendance`
+- 컨트롤러 바인딩 수정 PR #18은 `develop`에 병합되었다.
+- Part4 출석 기능 PR #19는 `develop`에 병합되었다.
 - 일정 조회 PR #12가 `develop`에 병합되었다.
 - 6단계 일정 조회 API는 완료다.
 - 7단계를 일정 수정과 삭제로 분리했다.
 - 일정 수정은 PUT 전체 교체, 활성 `LEADER`·`MANAGER` 권한으로 구현한다.
-- 일정 삭제와 `responseDeadline` 수정은 파트 간 정책 합의까지 보류한다.
+- 일정 삭제와 `responseDeadline` 변경 정책은 2026-07-21 합의되었고 구현은 아직 시작하지 않았다.
 
-현재 변경 파일은 없다.
+현재 정책 문서 작업 범위는 다음과 같다.
+
+```text
+docs/part3-group/context.md
+docs/part3-group/development-guide.md
+docs/part3-group/erd.md
+docs/part3-group/schedule-deletion-deadline-design.md
+```
 
 ## 완료된 작업
 
@@ -94,6 +103,9 @@ git log -3 --oneline
 - 기존 `responseDeadline`, 등록자, 생성 시각을 보존하는 JPA 통합 테스트를 추가했다.
 - 일정 수정에서 `GROUP_ENDED` 메시지를 일정 관리 공통 메시지로 갱신하고
   `SCHEDULE_UPDATE_NOT_ALLOWED` 오류 코드를 합의된 공통 변경으로 추가했다.
+- 일정 수정 PR #16이 `develop`에 병합되었다.
+- 컨트롤러 바인딩 수정 PR #18이 `develop`에 병합되었다.
+- 일정 삭제와 응답 마감 변경의 파트 간 정책을 확정했다.
 
 ## 확정된 그룹 홈 조회 계약
 
@@ -131,8 +143,10 @@ git log -3 --oneline
 
 - 그룹과 등록자 사용자를 참조한다.
 - `response_deadline`은 NULL이거나 `scheduled_at`보다 같거나 빨라야 한다.
-- 그룹 삭제 시 일정이 연쇄 삭제되고, 일정 삭제 시 출석·활동 데이터도 연쇄 삭제된다.
-- 삭제 API를 구현하기 전에 Part4 및 활동 담당자와 정책 합의가 필요하다.
+- 그룹 삭제 시 일정이 연쇄 삭제된다.
+- 미래 일정 삭제 시 참석 응답은 연쇄 삭제한다.
+- 출석 기록이나 활동 기록이 있으면 일정 삭제를 거부한다.
+- 참석 응답 FK는 `CASCADE`, 출석 기록과 활동 기록 FK는 `RESTRICT`를 사용한다.
 
 ## 확정된 일정 생성 계약
 
@@ -153,13 +167,29 @@ git log -3 --oneline
 - 테스트 우선 작업 순서와 정확한 인터페이스는
   [`schedule-create-implementation-plan.md`](schedule-create-implementation-plan.md)를 따른다.
 
-## 아직 결정하거나 확인해야 할 사항
+## 일정 삭제 및 응답 마감 변경 확정 정책
 
-구현 전에 담당 파트와 합의하거나 API 명세에서 확정해야 한다.
+- `ACTIVE` 그룹의 활성 `LEADER`·`MANAGER`만 미래 일정을 삭제할 수 있다.
+- 과거 또는 시작된 일정은 삭제하지 않는다.
+- 참석 응답만 있으면 FK `CASCADE`로 일정과 함께 삭제한다.
+- 출석 기록이나 활동 기록이 있으면 FK `RESTRICT`와 서비스 정책으로 삭제를 거부한다.
+- 응답 마감 변경은
+  `PATCH /api/groups/{groupId}/schedules/{scheduleId}/response-deadline`로 분리한다.
+- `responseDeadline == null`이면 `scheduledAt`을 실질적인 응답 마감으로 사용한다.
+- 마감 이후 참석 응답 등록·변경·삭제를 모두 금지한다.
+- 마감 단축·연장·제거로 기존 응답을 삭제하거나 무효화하지 않는다.
+- 기존 유효 마감이 지난 뒤 응답을 재개방하지 않는다.
+- 세부 계약은
+  [`schedule-deletion-deadline-design.md`](schedule-deletion-deadline-design.md)를 따른다.
 
-1. 일정 조회 API의 과거·예정 일정 범위와 상세 조회 권한을 확정한다.
-2. 일정 삭제 정책을 Part4·활동 담당자와 합의한다.
-3. `responseDeadline` 수정 정책을 Part4와 합의한다.
+## 구현 전 확인할 계약
+
+정책 결정은 완료되었다. 구현 전에 다음 공개 경계와 적용 순서만 담당 파트와 확인한다.
+
+1. Part4의 출석 기록 존재 조회와 Part3 일정 응답 정책 조회 인터페이스
+2. 활동 영역의 활동 기록 존재 조회 인터페이스
+3. 운영·테스트 DB의 `CASCADE`·`RESTRICT` FK 적용 책임과 병합 순서
+4. 새 공통 오류 코드의 이름, HTTP 상태와 메시지
 
 ## Part3 구현 로드맵
 
@@ -292,9 +322,10 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 완료 조건: 활성 `LEADER`·`MANAGER`만 미래 일정을 수정하고 보존 필드는 변경되지 않는다.
 
-### 7-후속단계: 일정 삭제와 응답 마감 변경 정책
+### 7-후속단계: 일정 삭제와 응답 마감 변경 (정책 완료, 구현 대기)
 
-목표: Part4·활동 담당자와의 합의 후 일정 삭제 및 `responseDeadline` 변경 범위를 별도 브랜치에서 결정한다.
+목표: 확정된 정책에 따라 미래 일정 삭제와 응답 마감 전용 `PATCH`를 구현하고 Part4 응답
+검증과 FK 계약을 연동한다.
 
 ### 8단계: 통합 검증과 문서 마무리
 
@@ -317,22 +348,19 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-다음 작업은 **Task 7 전체 검증을 완료한 뒤 현재 브랜치를 push하고 `develop` 대상 PR을 준비하는 것**이다.
+다음 작업은 **확정된 설계 문서를 검토한 뒤 구현 계획을 작성하는 것**이다.
 
-1. 일정 패키지·전체 테스트, `spotlessCheck`, `git diff --check` 결과를 확인한다.
-2. 현재 브랜치를 원격에 push하고 `develop` 대상 PR을 만든다.
-3. PR에 PUT 전체 교체, 보존 필드, 삭제·응답 마감 수정 보류와 검증 결과를 기록한다.
+1. `schedule-deletion-deadline-design.md`의 정책과 파트 간 공개 계약을 검토한다.
+2. Part4·활동·DB·공통 영역의 변경을 독립적으로 검토할 수 있는 작업으로 분리한다.
+3. Part3 일정 삭제와 응답 마감 `PATCH`의 테스트 우선 구현 계획을 작성한다.
 
 ## 다음 세션용 시작 요청 예시
 
 ```text
-Part3 일정 생성 구현을 이어서 진행해줘. 먼저 AGENTS.md와
+Part3 일정 삭제와 responseDeadline 변경 구현 계획을 작성해줘. 먼저 AGENTS.md와
 docs/part3-group/development-guide.md, context.md, api.md, erd.md,
-schedule-create-design.md를 읽고 현재 Git 상태와 대조해줘. 문서 계약을 기준으로 테스트 우선
-구현 계획을 제시하고, 내 승인을 받은 뒤 구현해줘. Part3의 study·schedule과 대응 테스트 외에는
-합의된 GROUP_ENDED, SCHEDULE_MANAGEMENT_FORBIDDEN, INVALID_SCHEDULE_TIME을
-global/exception/ErrorCode.java에 추가하는 변경만 허용해. 구현 후 관련 테스트, 전체 테스트와
-spotlessCheck를 실행해줘.
+schedule-deletion-deadline-design.md를 읽고 현재 Git 상태와 대조해줘. Part3 구현과 Part4·활동·DB
+계약 작업을 분리하고 테스트 우선 순서로 작성해줘. 계획 승인 전에는 코드를 변경하지 마.
 ```
 
 ## 세션 종료 시 갱신 규칙
