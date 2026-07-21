@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
 import com.mycom.myapp.study.entity.GroupRole;
+import com.mycom.myapp.study.entity.GroupStatus;
 import com.mycom.myapp.study.entity.StudyGroup;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +51,36 @@ class GroupMemberRepositoryTest {
 
         assertThat(groupMemberRepository.findAllByUserIdAndStatus(20L, GroupMemberStatus.ACTIVE))
                 .containsExactly(active);
+    }
+
+    @Test
+    void findsOnlyActiveGroupsForUserInNewestMembershipOrder() {
+        StudyGroup olderGroup = studyGroupRepository.save(StudyGroup.create(10L, "이전 그룹"));
+        StudyGroup newerGroup = studyGroupRepository.save(StudyGroup.create(11L, "최근 그룹"));
+        StudyGroup endedGroup = studyGroupRepository.save(StudyGroup.create(12L, "종료 그룹"));
+        StudyGroup withdrawnGroup = studyGroupRepository.save(StudyGroup.create(13L, "탈퇴 그룹"));
+        endedGroup.end();
+        GroupMember older =
+                groupMemberRepository.save(GroupMember.join(olderGroup, 20L, GroupRole.MEMBER));
+        GroupMember newer =
+                groupMemberRepository.save(GroupMember.join(newerGroup, 20L, GroupRole.LEADER));
+        groupMemberRepository.save(GroupMember.join(endedGroup, 20L, GroupRole.MEMBER));
+        GroupMember withdrawn = GroupMember.join(withdrawnGroup, 20L, GroupRole.MEMBER);
+        withdrawn.withdraw();
+        groupMemberRepository.saveAndFlush(withdrawn);
+        jdbcTemplate.update(
+                "update group_members set joined_at = timestamp '2026-07-01 10:00:00' where id = ?",
+                older.getId());
+        jdbcTemplate.update(
+                "update group_members set joined_at = timestamp '2026-07-02 10:00:00' where id = ?",
+                newer.getId());
+
+        assertThat(
+                        groupMemberRepository
+                                .findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
+                                        20L, GroupMemberStatus.ACTIVE, GroupStatus.ACTIVE))
+                .extracting(member -> member.getStudyGroup().getName())
+                .containsExactly("최근 그룹", "이전 그룹");
     }
 
     @Test

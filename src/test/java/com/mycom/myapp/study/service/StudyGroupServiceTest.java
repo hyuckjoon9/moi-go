@@ -12,6 +12,7 @@ import com.mycom.myapp.study.dto.response.StudyGroupHomeResponse;
 import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
 import com.mycom.myapp.study.entity.GroupRole;
+import com.mycom.myapp.study.entity.GroupStatus;
 import com.mycom.myapp.study.entity.StudyGroup;
 import com.mycom.myapp.study.repository.GroupMemberRepository;
 import com.mycom.myapp.study.repository.StudyGroupRepository;
@@ -93,6 +94,39 @@ class StudyGroupServiceTest {
 
         assertError(ErrorCode.WITHDRAWN_GROUP_MEMBER, () -> service.getHome(10L, 2L));
         verify(groupMemberRepository).findByStudyGroupIdAndUserId(10L, 2L);
+    }
+
+    @Test
+    void returnsActiveGroupsForUserInRepositoryOrder() {
+        StudyGroup group = group(10L, 25L);
+        GroupMember member = member(group, 2L, GroupRole.LEADER, GroupMemberStatus.ACTIVE);
+        when(groupMemberRepository
+                        .findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
+                                2L, GroupMemberStatus.ACTIVE, GroupStatus.ACTIVE))
+                .thenReturn(List.of(member));
+
+        assertThat(service.getMyGroups(2L))
+                .singleElement()
+                .satisfies(
+                        response -> {
+                            assertThat(response.groupId()).isEqualTo(10L);
+                            assertThat(response.postId()).isEqualTo(25L);
+                            assertThat(response.name()).isEqualTo("알고리즘 스터디");
+                            assertThat(response.status()).isEqualTo(GroupStatus.ACTIVE);
+                            assertThat(response.role()).isEqualTo(GroupRole.LEADER);
+                            assertThat(response.joinedAt())
+                                    .isEqualTo(LocalDateTime.of(2026, 7, 1, 10, 0));
+                        });
+    }
+
+    @Test
+    void returnsEmptyMyGroupsWhenUserHasNoActiveGroup() {
+        when(groupMemberRepository
+                        .findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
+                                2L, GroupMemberStatus.ACTIVE, GroupStatus.ACTIVE))
+                .thenReturn(List.of());
+
+        assertThat(service.getMyGroups(2L)).isEmpty();
     }
 
     private StudyGroup group(Long id, Long postId) {

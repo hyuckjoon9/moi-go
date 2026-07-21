@@ -104,7 +104,12 @@ class ScheduleDeletionIntegrationTest {
     void activityRecordPreventsScheduleDeletion() {
         Fixture fixture = saveFutureScheduleWithLeader();
         activityRecordRepository.saveAndFlush(
-                ActivityRecord.forSchedule(fixture.schedule().getId()));
+                ActivityRecord.builder()
+                        .scheduleId(fixture.schedule().getId())
+                        .authorId(1L)
+                        .topic("테스트 주제")
+                        .content("테스트 내용")
+                        .build());
 
         assertDeleteNotAllowed(fixture);
     }
