@@ -23,6 +23,10 @@ public enum ErrorCode {
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다."),
     SCHEDULE_MANAGEMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "일정을 관리할 권한이 없습니다."),
     SCHEDULE_UPDATE_NOT_ALLOWED(HttpStatus.CONFLICT, "이미 시작된 일정은 수정할 수 없습니다."),
+    SCHEDULE_DELETE_NOT_ALLOWED(HttpStatus.CONFLICT, "출석 또는 활동 이력이 있거나 이미 시작된 일정은 삭제할 수 없습니다."),
+    SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED(
+            HttpStatus.CONFLICT, "마감되었거나 이미 시작된 일정의 응답 마감은 변경할 수 없습니다."),
+    ATTENDANCE_RESPONSE_CLOSED(HttpStatus.CONFLICT, "참석 응답 마감 시간이 지났습니다."),
     INVALID_SCHEDULE_TIME(HttpStatus.BAD_REQUEST, "일정 또는 응답 마감 시간이 올바르지 않습니다."),
     RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다."),
     DUPLICATE_APPLICATION(HttpStatus.CONFLICT, "이미 지원한 모집글입니다."),

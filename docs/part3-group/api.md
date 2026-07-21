@@ -13,10 +13,9 @@
 | 일정 생성 | `POST` | `/api/groups/{groupId}/schedules` | 필수 |
 | 일정 목록 조회 | `GET` | `/api/groups/{groupId}/schedules` | 필수 |
 | 일정 상세 조회 | `GET` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
-<<<<<<< HEAD
-=======
 | 일정 수정 | `PUT` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
->>>>>>> refs/remotes/origin/develop
+| 응답 마감 변경 | `PATCH` | `/api/groups/{groupId}/schedules/{scheduleId}/response-deadline` | 필수 |
+| 일정 삭제 | `DELETE` | `/api/groups/{groupId}/schedules/{scheduleId}` | 필수 |
 
 ## 내부 서비스 계약
 
@@ -362,8 +361,6 @@ Authorization: Bearer {accessToken}
 | 일정이 없거나 다른 그룹 소속 | `404 Not Found` | `SCHEDULE_NOT_FOUND` | `일정을 찾을 수 없습니다.` |
 | 지원하지 않는 범위 또는 잘못된 페이지 요청 | `400 Bad Request` | `INVALID_REQUEST` | `잘못된 요청입니다.` |
 | 인증 실패 | `401 Unauthorized` | `UNAUTHORIZED` | `인증이 필요합니다.` |
-<<<<<<< HEAD
-=======
 
 ## 일정 수정
 
@@ -372,7 +369,7 @@ Authorization: Bearer {accessToken}
 `PUT /api/groups/{groupId}/schedules/{scheduleId}`는 수정 가능한 일정 필드 전체를 교체한다.
 요청 필드는 `title`, `scheduledAt`, `location`, `onlineLink`, `content`, `materials`다.
 `title`과 `scheduledAt`은 필수이고 문자열 정규화·길이는 일정 생성과 같다.
-`responseDeadline`은 Part4와 변경 정책을 합의할 때까지 수정 대상에서 제외한다.
+`responseDeadline`은 수정 대상에서 제외하며 전용 PATCH API로만 변경한다.
 
 ### 권한과 시간 규칙
 
@@ -399,4 +396,37 @@ Authorization: Bearer {accessToken}
 | 일정이 없거나 다른 그룹 소속 | `404 Not Found` | `SCHEDULE_NOT_FOUND` | `일정을 찾을 수 없습니다.` |
 | 기존 일정이 이미 시작됨 | `409 Conflict` | `SCHEDULE_UPDATE_NOT_ALLOWED` | `이미 시작된 일정은 수정할 수 없습니다.` |
 | 새 일정 시간 규칙 위반 | `400 Bad Request` | `INVALID_SCHEDULE_TIME` | `일정 또는 응답 마감 시간이 올바르지 않습니다.` |
->>>>>>> refs/remotes/origin/develop
+
+## 응답 마감 변경
+
+`PATCH /api/groups/{groupId}/schedules/{scheduleId}/response-deadline`는 `responseDeadline` 속성을
+반드시 포함한 요청으로 응답 마감을 설정·변경·제거한다. 명시적 `null`은 마감 제거를 뜻하며,
+속성 누락은 잘못된 요청이다. 성공 시 `200 OK`와 `ApiResponse<ScheduleResponse>`를 반환한다.
+
+- 활성 `LEADER`·`MANAGER`만 변경할 수 있다.
+- 시작 전이고 현재 유효 마감 전인 일정만 변경할 수 있다.
+- 새 마감은 현재보다 미래이고 일정 시각 이하이어야 한다.
+- 기존 유효 마감이 지난 뒤에는 마감을 연장하거나 제거해 응답을 재개방할 수 없다.
+
+| 상황 | HTTP 상태 | 오류 코드 |
+| --- | --- | --- |
+| 속성 누락 | `400 Bad Request` | `INVALID_REQUEST` |
+| 새 마감 시간 규칙 위반 | `400 Bad Request` | `INVALID_SCHEDULE_TIME` |
+| 시작된 일정 또는 현재 마감 이후 변경 | `409 Conflict` | `SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED` |
+
+그룹·그룹원·역할·일정 오류는 일정 수정 API와 동일한 계약을 따른다.
+
+## 일정 삭제
+
+`DELETE /api/groups/{groupId}/schedules/{scheduleId}`는 성공 시 `204 No Content`를 반환한다.
+
+- 활성 `LEADER`·`MANAGER`만 미래 일정을 삭제할 수 있다.
+- 참석 응답만 있으면 함께 삭제한다.
+- 출석 기록 또는 활동 기록이 있으면 삭제를 거부한다.
+
+| 상황 | HTTP 상태 | 오류 코드 |
+| --- | --- | --- |
+| 시작됐거나 과거 일정 | `409 Conflict` | `SCHEDULE_DELETE_NOT_ALLOWED` |
+| 출석·활동 기록 존재 또는 FK 경합 | `409 Conflict` | `SCHEDULE_DELETE_NOT_ALLOWED` |
+
+그룹·그룹원·역할·일정 오류는 일정 수정 API와 동일한 계약을 따른다.
