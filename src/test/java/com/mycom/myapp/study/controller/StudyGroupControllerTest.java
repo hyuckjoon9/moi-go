@@ -11,6 +11,7 @@ import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.global.response.ApiResponse;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.member.entity.MemberRole;
+import com.mycom.myapp.study.dto.response.MyStudyGroupResponse;
 import com.mycom.myapp.study.dto.response.StudyGroupHomeResponse;
 import com.mycom.myapp.study.entity.GroupRole;
 import com.mycom.myapp.study.entity.GroupStatus;
@@ -51,6 +52,39 @@ class StudyGroupControllerTest {
     @Test
     void rejectsMissingAuthenticatedMember() {
         assertThatThrownBy(() -> controller.getHome(10L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
+    @Test
+    void returnsMyActiveGroupsForAuthenticatedMember() {
+        List<MyStudyGroupResponse> groups =
+                List.of(
+                        new MyStudyGroupResponse(
+                                10L,
+                                25L,
+                                "알고리즘 스터디",
+                                GroupStatus.ACTIVE,
+                                GroupRole.LEADER,
+                                LocalDateTime.of(2026, 7, 1, 10, 0)));
+        when(studyGroupService.getMyGroups(2L)).thenReturn(groups);
+
+        ApiResponse<List<MyStudyGroupResponse>> response =
+                controller.getMyGroups(
+                        new AuthenticatedMember(2L, "member@example.com", MemberRole.USER));
+
+        assertThat(response.success()).isTrue();
+        assertThat(response.data()).isEqualTo(groups);
+        assertThat(response.message()).isNull();
+        verify(studyGroupService).getMyGroups(2L);
+    }
+
+    @Test
+    void rejectsMissingAuthenticatedMemberForMyGroups() {
+        assertThatThrownBy(() -> controller.getMyGroups(null))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception ->
