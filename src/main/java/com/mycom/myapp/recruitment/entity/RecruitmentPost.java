@@ -15,10 +15,13 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "recruitment_posts")
@@ -55,7 +58,6 @@ public class RecruitmentPost extends BaseTimeEntity {
     private String location;
     private String onlineLink;
     private String meetingDay;
-
     private Integer capacity;
     private LocalDate recruitmentDeadline;
     private String expectedDuration;
@@ -67,6 +69,14 @@ public class RecruitmentPost extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RecruitmentStatus status;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     @Builder
     public RecruitmentPost(
