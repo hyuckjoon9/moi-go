@@ -1,0 +1,205 @@
+# 활동 기록·리뷰 API
+
+## 엔드포인트 목록
+
+| 메서드 | 경로 | 인증 | 설명 |
+| --- | --- | --- | --- |
+| `POST` | `/api/activity/schedules/{scheduleId}/record` | 필요 | 활동 기록 등록 |
+| `PUT` | `/api/activity/schedules/{scheduleId}/record` | 필요 (작성자 본인) | 활동 기록 수정 |
+| `DELETE` | `/api/activity/schedules/{scheduleId}/record` | 필요 (작성자 본인) | 활동 기록 삭제 |
+| `GET` | `/api/activity/schedules/{scheduleId}/record` | 불필요 | 활동 기록 조회 |
+| `POST` | `/api/activity/records/{activityRecordId}/reviews` | 필요 | 활동 기록 리뷰 작성 |
+| `DELETE` | `/api/activity/records/{activityRecordId}/reviews` | 필요 (작성자 본인) | 리뷰 삭제 |
+| `GET` | `/api/activity/records/{activityRecordId}/reviews` | 불필요 | 리뷰 목록 조회 |
+
+## 구현 상태 메모
+
+- `authorId`/`userId`는 쿼리 파라미터로 받지 않는다. `@AuthenticationPrincipal AuthenticatedMember`로 로그인한 사용자 id를 서버가 직접 채운다 (attendance와 동일한 방식, `Authorization: Bearer {accessToken}` 헤더 필요). 인증 정보가 없으면 `401`.
+- 활동 기록 수정·삭제는 서비스에서 `authorId` 일치 여부를 자체적으로 검증한다(`ACTIVITY_RECORD_ACCESS_DENIED`). 다만 `authorId`가 실제로 해당 일정 그룹의 활성 `LEADER`/`MANAGER`인지에 대한 검증은 아직 없다. 로그인한 사용자면 누구든 등록을 시도할 수 있는 상태다. `StudySchedule ↔ StudyGroup` 연결 후 추가 예정.
+- 리뷰 작성·삭제도 마찬가지로, 요청자가 해당 일정 그룹의 활성 멤버인지 검증은 아직 없다.
+- 같은 `scheduleId`로 이미 활동 기록이 있으면 등록(`POST`)은 `409`로 거부한다(`DUPLICATE_ACTIVITY_RECORD`). 수정은 `PUT`을 쓴다.
+- 같은 `(activityRecordId, userId)` 조합으로 이미 리뷰가 있으면 등록은 `409`로 거부한다(`DUPLICATE_ACTIVITY_REVIEW`).
+- 리뷰는 수정 API가 없다. `activity_reviews` 테이블에 `updated_at` 컬럼이 없어 생성 후 불변으로 설계했다. 수정이 필요하면 삭제 후 재작성한다.
+- 동시에 같은 요청이 중복 제출되는 경우(더블클릭 등) DB 유니크 제약 위반이 정제되지 않은 `500` 응답으로 노출될 수 있다. 아직 처리하지 않았고 별도로 논의 중이다.
+- 응답 본문은 Part1(`/api/auth`, `/api/members`)과 달리 `ApiResponse` 공통 래퍼로 감싸지 않고 DTO를 그대로 반환한다.
+- `ActivityRecord`/`ActivityReview`의 `scheduleId`, `authorId`, `activityRecordId`, `userId`는 `@ManyToOne` 연관관계가 아니라 순수 FK(`Long`) 컬럼이다.
+- `activity_records.schedule_id` FK는 `study_schedules`에 대해 `ON DELETE RESTRICT`다. 출석 기록과 동일하게, 활동 기록이 남아있는 일정은 삭제할 수 없다 (`docs/part4-attendance/agreement.md` 참고).
+
+## POST /api/activity/schedules/{scheduleId}/record
+
+일정에 활동 기록을 처음 등록한다. 작성자는 인증 토큰에서 가져온다.
+
+### Request
+
+```json
+{
+  "topic": "1주차 스터디",
+  "content": "React 기초 학습",
+  "assignment": "다음 주까지 컴포넌트 실습",
+  "nextPreparation": "Hooks 예습",
+  "referenceLinks": "https://example.com/docs"
+}
+```
+
+### Request 필드
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `topic` | `String` | 예 (최대 100자) | 활동 주제 |
+| `content` | `String` | 예 | 활동 내용 |
+| `assignment` | `String` | 아니오 | 과제 |
+| `nextPreparation` | `String` | 아니오 | 다음 활동 준비물 |
+| `referenceLinks` | `String` | 아니오 | 참고 링크 |
+
+### Response 201
+
+```json
+{
+  "id": 1,
+  "scheduleId": 10,
+  "authorId": 1,
+  "topic": "1주차 스터디",
+  "content": "React 기초 학습",
+  "assignment": "다음 주까지 컴포넌트 실습",
+  "nextPreparation": "Hooks 예습",
+  "referenceLinks": "https://example.com/docs",
+  "createdAt": "2026-07-21T09:00:00",
+  "updatedAt": "2026-07-21T09:00:00"
+}
+```
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `409` | 해당 `scheduleId`의 활동 기록이 이미 존재함 (`DUPLICATE_ACTIVITY_RECORD`) |
+
+## PUT /api/activity/schedules/{scheduleId}/record
+
+기존 활동 기록을 수정한다. 요청자가 작성자 본인이 아니면 거부한다.
+
+### Request
+
+`POST .../record`와 같은 형식.
+
+### Response 200
+
+`POST .../record`와 같은 형식의 응답을 반환한다. `updatedAt`이 갱신된다.
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `403` | 요청자가 작성자 본인이 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
+| `404` | 해당 `scheduleId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
+
+## DELETE /api/activity/schedules/{scheduleId}/record
+
+활동 기록을 삭제한다. 요청자가 작성자 본인이 아니면 거부한다.
+
+### Response 204
+
+본문 없음.
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `403` | 요청자가 작성자 본인이 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
+| `404` | 해당 `scheduleId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
+
+## GET /api/activity/schedules/{scheduleId}/record
+
+일정의 활동 기록을 조회한다.
+
+### Response 200
+
+`POST .../record`와 같은 형식의 응답을 반환한다.
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `404` | 해당 `scheduleId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
+
+## POST /api/activity/records/{activityRecordId}/reviews
+
+활동 기록에 리뷰(코멘트)를 작성한다. 작성자는 인증 토큰에서 가져온다.
+
+### Request
+
+```json
+{
+  "comment": "정리가 잘 되어 있어서 좋았어요"
+}
+```
+
+### Request 필드
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `comment` | `String` | 예 (최대 300자) | 리뷰 내용 |
+
+### Response 201
+
+```json
+{
+  "id": 1,
+  "activityRecordId": 1,
+  "userId": 5,
+  "comment": "정리가 잘 되어 있어서 좋았어요",
+  "createdAt": "2026-07-21T09:10:00"
+}
+```
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `404` | 해당 `activityRecordId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
+| `409` | 해당 `(activityRecordId, userId)` 조합의 리뷰가 이미 존재함 (`DUPLICATE_ACTIVITY_REVIEW`) |
+
+## DELETE /api/activity/records/{activityRecordId}/reviews
+
+요청자 본인이 남긴 리뷰를 삭제한다. `(activityRecordId, userId)` 조합으로 조회하므로 본인 리뷰만 삭제된다.
+
+### Response 204
+
+본문 없음.
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `404` | 요청자가 남긴 리뷰가 없음 (`ACTIVITY_REVIEW_NOT_FOUND`) |
+
+## GET /api/activity/records/{activityRecordId}/reviews
+
+활동 기록에 달린 리뷰 목록을 조회한다.
+
+### Response 200
+
+```json
+[
+  {
+    "id": 1,
+    "activityRecordId": 1,
+    "userId": 5,
+    "comment": "정리가 잘 되어 있어서 좋았어요",
+    "createdAt": "2026-07-21T09:10:00"
+  }
+]
+```
+
+기록은 있는데 리뷰가 없으면 빈 배열을 반환한다.
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `404` | 해당 `activityRecordId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |

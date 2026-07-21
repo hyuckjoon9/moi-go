@@ -2,7 +2,7 @@
   const $ = (selector) => document.querySelector(selector);
   const page = document.body.dataset.page;
   const protectedPage = document.body.dataset.protected === "true";
-  const recruitmentState = { page: 0, size: 10, totalPages: 1 };
+  const recruitmentState = { page: 0, size: 10, totalPages: 1, status: "ALL" };
   let toastTimer;
 
   function formData(form) { return Object.fromEntries(new FormData(form).entries()); }
@@ -77,12 +77,16 @@
   function memberImageSource(member) {
     return member?.profileImageUrl || localStorage.getItem("memberProfileImageUrl") || localStorage.getItem("memberProfilePreview") || "";
   }
+  function displayImageSource(src) {
+    if (!src || src.startsWith("data:") || src.includes("?")) return src;
+    return src.startsWith("/uploads/") ? `${src}?v=${Date.now()}` : src;
+  }
   function renderAvatar(selector, member) {
     const target = $(selector);
     if (!target) return;
     const src = memberImageSource(member);
     if (src) {
-      target.innerHTML = `<img src="${escapeHtml(src)}" alt="프로필 사진" />`;
+      target.innerHTML = `<img src="${escapeHtml(displayImageSource(src))}" alt="프로필 사진" />`;
       target.classList.add("has-image");
     } else {
       target.textContent = memberInitial(member);
@@ -114,7 +118,7 @@
       return;
     }
     const src = memberImageSource(member);
-    avatar.innerHTML = src ? `<img src="${escapeHtml(src)}" alt="프로필 사진" />` : `<span>${escapeHtml(memberInitial(member))}</span>`;
+    avatar.innerHTML = src ? `<img src="${escapeHtml(displayImageSource(src))}" alt="프로필 사진" />` : `<span>${escapeHtml(memberInitial(member))}</span>`;
   }
   function updateMemberImagePreview(value) {
     renderAvatar("#profileImagePreview", { profileImageUrl: value || localStorage.getItem("memberProfilePreview"), nickname: $("#profileNickname")?.textContent });
@@ -187,12 +191,27 @@
 
   function formatDate(value) { return value ? String(value).slice(0, 10) : "-"; }
   function getPageContent(pageData) { return Array.isArray(pageData) ? pageData : (pageData?.content || []); }
+  function statusLabel(status) {
+    const value = String(status || "RECRUITING").toUpperCase();
+    if (["RECRUITING", "ACTIVE"].includes(value)) return "모집 중";
+    if (["CLOSED", "ENDED"].includes(value)) return "모집 종료";
+    return "상태 미정";
+  }
+  function statusGroup(status) {
+    const value = String(status || "RECRUITING").toUpperCase();
+    return ["RECRUITING", "ACTIVE"].includes(value) ? "OPEN" : "CLOSED";
+  }
+  function meetingTypeLabel(value) {
+    const labels = { ONLINE: "온라인", OFFLINE: "오프라인", HYBRID: "온·오프라인 병행" };
+    return labels[String(value || "").toUpperCase()] || value || "미정";
+  }
   function updateRecruitmentUrl(pageNo) {
     const params = new URLSearchParams(window.location.search);
     params.delete("id");
     if (pageNo > 0) params.set("page", String(pageNo)); else params.delete("page");
     const category = $("#recruitmentCategory")?.value.trim();
     if (category) params.set("category", category); else params.delete("category");
+    if (recruitmentState.status !== "ALL") params.set("status", recruitmentState.status); else params.delete("status");
     const query = params.toString();
     window.history.replaceState(null, "", `/recruitments.html${query ? `?${query}` : ""}`);
   }
@@ -207,14 +226,14 @@
     hidePanel("#recruitmentDetailSection");
     hidePanel("#backToRecruitmentList");
     if ($("#recruitmentPageTitle")) $("#recruitmentPageTitle").textContent = "모집글";
-    if ($("#recruitmentPageDescription")) $("#recruitmentPageDescription").textContent = "최신 모집글을 확인하고 스터디 참여 흐름을 시작합니다.";
+    if ($("#recruitmentPageDescription")) $("#recruitmentPageDescription").textContent = "스터디 모집글을 확인하고 참여할 그룹을 찾아보세요.";
   }
   function showRecruitmentDetailMode() {
     hidePanel("#recruitmentListSection");
     showPanel("#recruitmentDetailSection");
     showPanel("#backToRecruitmentList");
     if ($("#recruitmentPageTitle")) $("#recruitmentPageTitle").textContent = "모집글 상세";
-    if ($("#recruitmentPageDescription")) $("#recruitmentPageDescription").textContent = "선택한 모집글의 정보를 확인합니다.";
+    if ($("#recruitmentPageDescription")) $("#recruitmentPageDescription").textContent = "스터디 소개와 운영 방식을 확인합니다.";
   }
   function renderRecruitmentPagination(pageData) {
     const target = $("#recruitmentPagination");
@@ -228,36 +247,55 @@
       <button class="button ghost small" type="button" data-page="${Math.min(totalPages - 1, current + 1)}" ${current >= totalPages - 1 ? "disabled" : ""}>다음</button>`;
     target.querySelectorAll("[data-page]").forEach((button) => button.addEventListener("click", () => loadRecruitments(Number(button.dataset.page))));
   }
+  function renderRecruitmentRow(item) {
+    const label = statusLabel(item.status);
+    const group = statusGroup(item.status).toLowerCase();
+    return `
+      <a class="entity-card recruitment-row" href="/recruitments.html?id=${encodeURIComponent(item.id)}">
+        <div class="recruitment-row-main">
+          <div class="recruitment-row-meta"><span class="badge status-${group}">${escapeHtml(label)}</span><span>${escapeHtml(item.category || "카테고리 없음")}</span><span>글 번호 ${escapeHtml(item.id)}</span></div>
+          <strong>${escapeHtml(item.title)}</strong>
+          <p>${escapeHtml(item.description || item.goal || "상세 내용을 확인해보세요.")}</p>
+        </div>
+        <span class="row-arrow">상세 보기</span>
+      </a>`;
+  }
   async function loadRecruitments(pageNo = recruitmentState.page) {
     recruitmentState.page = Math.max(0, pageNo || 0);
     showRecruitmentListMode();
     updateRecruitmentUrl(recruitmentState.page);
     const pageData = await run(() => window.moiApi.request(`/api/recruitment-posts?${buildRecruitmentQuery()}`), null);
     const items = getPageContent(pageData);
-    renderCards("#recruitmentList", items, "표시할 모집글이 없습니다.", (item) => `
-      <a class="entity-card recruitment-row" href="/recruitments.html?id=${encodeURIComponent(item.id)}">
-        <div class="recruitment-row-main"><span class="badge">${escapeHtml(item.status || "RECRUITING")}</span><strong>${escapeHtml(item.title)}</strong><div class="meta">${escapeHtml(item.category || "카테고리 없음")} · 모집글 #${escapeHtml(item.id)}</div></div>
-        <span class="row-arrow">상세 보기</span>
-      </a>`);
+    const visibleItems = recruitmentState.status === "ALL" ? items : items.filter((item) => statusGroup(item.status) === recruitmentState.status);
+    renderCards("#recruitmentList", visibleItems, "표시할 모집글이 없습니다.", renderRecruitmentRow);
     renderRecruitmentPagination(pageData);
   }
   function detailItem(label, value) {
     if (value === undefined || value === null || value === "") return "";
     return `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
   }
+  function detailTextSection(label, value) {
+    if (!value) return "";
+    return `<section class="detail-text-section"><h3>${escapeHtml(label)}</h3><p>${escapeHtml(value)}</p></section>`;
+  }
   async function loadRecruitmentDetail(id, showToast = false) {
     showRecruitmentDetailMode();
     const detail = await run(() => window.moiApi.request(`/api/recruitment-posts/${id}`), showToast ? "모집글 상세를 조회했습니다." : null);
-    const panel = $("#recruitmentDetailPanel");
     const view = $("#recruitmentDetailView");
-    if (!panel || !view) return;
-    panel.querySelector("h2").textContent = detail.title || "모집글 상세";
-    panel.querySelector(".muted").textContent = `${detail.category || "카테고리 없음"} · ${detail.status || "상태 미정"}`;
-    view.innerHTML = `<dl class="info-list recruitment-detail-list">
-      ${detailItem("모집글 ID", detail.id)}${detailItem("카테고리", detail.category)}${detailItem("상태", detail.status)}${detailItem("모임 방식", detail.meetingType)}${detailItem("활동 지역", detail.location)}${detailItem("온라인 링크", detail.onlineLink)}${detailItem("정기 모임 요일", detail.meetingDay)}${detailItem("모집 인원", detail.capacity)}${detailItem("모집 마감일", formatDate(detail.recruitmentDeadline))}${detailItem("예상 활동 기간", detail.expectedDuration)}${detailItem("소개", detail.description)}${detailItem("목표", detail.goal)}${detailItem("진행 방식", detail.method)}${detailItem("참가 조건", detail.conditions)}
-      </dl>${detail.description ? "" : `<p class="helper-text">현재 백엔드 응답 DTO가 id, title, category, status만 반환해서 상세 설명 필드는 아직 표시되지 않습니다.</p>`}`;
+    if (!view) return;
+    view.innerHTML = `
+      <header class="board-detail-header">
+        <div class="recruitment-row-meta"><span class="badge status-${statusGroup(detail.status).toLowerCase()}">${escapeHtml(statusLabel(detail.status))}</span><span>${escapeHtml(detail.category || "카테고리 없음")}</span><span>글 번호 ${escapeHtml(detail.id)}</span></div>
+        <h2>${escapeHtml(detail.title || "모집글 상세")}</h2>
+      </header>
+      <dl class="info-list recruitment-detail-list board-meta-list">
+        ${detailItem("모임 방식", meetingTypeLabel(detail.meetingType))}${detailItem("활동 지역", detail.location)}${detailItem("온라인 링크", detail.onlineLink)}${detailItem("정기 모임 요일", detail.meetingDay)}${detailItem("모집 인원", detail.capacity ? `${detail.capacity}명` : "")}${detailItem("모집 마감일", formatDate(detail.recruitmentDeadline))}${detailItem("예상 활동 기간", detail.expectedDuration)}
+      </dl>
+      <div class="board-body">
+        ${detailTextSection("소개", detail.description)}${detailTextSection("목표", detail.goal)}${detailTextSection("진행 방식", detail.method)}${detailTextSection("참가 조건", detail.conditions)}
+      </div>
+      <div class="detail-actions"><a class="button ghost" href="/recruitments.html">목록으로</a><button class="button" type="button">참가 신청</button></div>`;
   }
-
   function openMemberEditModal() { showPanel("#memberEditBackdrop"); showPanel("#memberEditPanel"); document.body.classList.add("modal-open"); setTimeout(() => $("#updateMemberForm input[name='nickname']")?.focus(), 0); }
   function closeMemberEditModal() { hidePanel("#memberEditBackdrop"); hidePanel("#memberEditPanel"); document.body.classList.remove("modal-open"); }
   function openRecruitmentCreateModal() { showPanel("#recruitmentCreateBackdrop"); showPanel("#recruitmentCreatePanel"); document.body.classList.add("modal-open"); }
@@ -290,30 +328,31 @@
       details.innerHTML = `<div><span>자기소개</span><strong>${escapeHtml(member.bio || "등록된 자기소개가 없습니다.")}</strong></div><div><span>관심사</span><strong>${escapeHtml(member.interests || "등록된 관심사가 없습니다.")}</strong></div>`;
     }
   }
-  function readSavedGroups() { try { return JSON.parse(localStorage.getItem("myGroups") || "[]"); } catch (_) { return []; } }
-  function writeSavedGroups(groups) { localStorage.setItem("myGroups", JSON.stringify(groups)); }
-  function saveMyGroup(group) {
-    if (!group?.groupId) return;
-    const groups = readSavedGroups().filter((item) => String(item.groupId) !== String(group.groupId));
-    groups.unshift({ groupId: group.groupId, name: group.name || `그룹 ${group.groupId}`, postId: group.postId || null, savedAt: new Date().toISOString() });
-    writeSavedGroups(groups.slice(0, 12));
-  }
-  function renderMyGroups() {
-    const target = $("#myGroupList");
+  function renderGroupSection(targetSelector, countSelector, items, emptyText, renderer) {
+    const target = $(targetSelector);
+    const count = $(countSelector);
+    if (count) count.textContent = String(items?.length || 0);
     if (!target) return;
-    const groups = readSavedGroups();
-    if (!groups.length) {
-      target.innerHTML = `<div class="entity-card meta">아직 표시할 그룹이 없습니다. 그룹 홈에서 그룹을 조회하거나 아래에서 그룹 ID를 추가하세요.</div>`;
-      return;
-    }
-    target.innerHTML = groups.map((group) => `<a class="entity-card my-group-link" href="/group.html?groupId=${encodeURIComponent(group.groupId)}"><strong>${escapeHtml(group.name || `그룹 ${group.groupId}`)}</strong><div class="meta">그룹 ID ${escapeHtml(group.groupId)}${group.postId ? ` · 모집글 ID ${escapeHtml(group.postId)}` : ""}</div></a>`).join("");
+    renderCards(targetSelector, items || [], emptyText, renderer);
   }
-  async function addMyGroupById(groupId) {
-    const group = await run(() => window.moiApi.request(`/api/groups/${groupId}`), "내 그룹에 추가했습니다.");
-    saveMyGroup(group);
-    renderMyGroups();
+  function renderMyGroupLink(group) {
+    return `<a class="entity-card my-group-link" href="/group.html?groupId=${encodeURIComponent(group.groupId)}">
+      <strong>${escapeHtml(group.name || `그룹 ${group.groupId}`)}</strong>
+      <div class="meta">${escapeHtml(group.roleLabel || "참여 중")} · ${escapeHtml(group.statusLabel || "운영 중")}</div>
+    </a>`;
   }
-  function populateMemberForm(member) {
+  function renderPendingApplication(application) {
+    return `<a class="entity-card my-group-link pending-group-link" href="/recruitments.html?id=${encodeURIComponent(application.postId)}">
+      <strong>${escapeHtml(application.postTitle || `모집글 ${application.postId}`)}</strong>
+      <div class="meta">${escapeHtml(application.category || "카테고리 없음")} · 승인 대기</div>
+    </a>`;
+  }
+  async function loadMyGroups() {
+    // TODO: Part2/Part3 API가 준비되면 아래 세 목록을 실제 응답으로 채운다.
+    renderGroupSection("#operatingGroupList", "#operatingGroupCount", [], "운영 중인 그룹 조회 API가 준비되면 자동으로 표시됩니다.", renderMyGroupLink);
+    renderGroupSection("#pendingGroupList", "#pendingGroupCount", [], "신청 중인 그룹 조회 API가 준비되면 자동으로 표시됩니다.", renderPendingApplication);
+    renderGroupSection("#memberGroupList", "#memberGroupCount", [], "팀원으로 활동 중인 그룹 조회 API가 준비되면 자동으로 표시됩니다.", renderMyGroupLink);
+  }  function populateMemberForm(member) {
     const form = $("#updateMemberForm");
     setField(form, "nickname", member.nickname);
     setField(form, "bio", member.bio);
@@ -331,7 +370,7 @@
   }
   function bindMypage() {
     loadMyProfile().catch(() => {});
-    renderMyGroups();
+    loadMyGroups().catch(() => {});
     $("#openEditMemberButton")?.addEventListener("click", openMemberEditModal);
     $("#closeEditMemberButton")?.addEventListener("click", closeMemberEditModal);
     $("#memberEditBackdrop")?.addEventListener("click", closeMemberEditModal);
@@ -347,17 +386,12 @@
       };
       reader.readAsDataURL(file);
     });
-    $("#addMyGroupForm")?.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const groupId = formData(event.currentTarget).groupId;
-      if (!groupId) return;
-      await addMyGroupById(groupId);
-      event.currentTarget.reset();
-    });
     $("#updateMemberForm")?.addEventListener("submit", async (event) => {
       event.preventDefault();
-      await uploadSelectedProfileImage();
-      const member = await run(() => window.moiApi.request("/api/members/me", { method: "PATCH", body: window.moiApi.toJsonBody(compact(formData(event.currentTarget))) }), "내 정보를 수정했습니다.");
+      const form = event.currentTarget;
+      const uploadedMember = await uploadSelectedProfileImage();
+      const member = await run(() => window.moiApi.request("/api/members/me", { method: "PATCH", body: window.moiApi.toJsonBody(compact(formData(form))) }), "내 정보를 수정했습니다.");
+      if (!member.profileImageUrl && uploadedMember?.profileImageUrl) member.profileImageUrl = uploadedMember.profileImageUrl;
       cacheMemberIdentity(member);
       setHeaderGreeting(member);
       renderMemberProfile(member);
@@ -371,6 +405,16 @@
     const params = new URLSearchParams(window.location.search);
     const pageParam = Number(params.get("page") || 0);
     const id = params.get("id");
+    const statusParam = params.get("status");
+    if (["ALL", "OPEN", "CLOSED"].includes(statusParam)) recruitmentState.status = statusParam;
+    document.querySelectorAll("[data-recruitment-status]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.recruitmentStatus === recruitmentState.status);
+      button.addEventListener("click", () => {
+        recruitmentState.status = button.dataset.recruitmentStatus;
+        document.querySelectorAll("[data-recruitment-status]").forEach((item) => item.classList.toggle("active", item === button));
+        loadRecruitments(0).catch(() => {});
+      });
+    });
     if ($("#recruitmentCategory") && params.get("category")) $("#recruitmentCategory").value = params.get("category");
     $("#recruitmentCategory")?.addEventListener("change", () => loadRecruitments(0));
     $("#recruitmentCategory")?.addEventListener("keydown", (event) => { if (event.key === "Enter") loadRecruitments(0); });
@@ -382,7 +426,7 @@
       event.preventDefault();
       const payload = compact(formData(event.currentTarget));
       payload.capacity = asNumber(payload.capacity);
-      await run(() => window.moiApi.request("/api/recruitment-posts", { method: "POST", body: window.moiApi.toJsonBody(payload) }), "모집글을 작성했습니다.");
+      await run(() => window.moiApi.request("/api/recruitment-posts", { method: "POST", body: window.moiApi.toJsonBody(payload) }), "모집글을 등록했습니다.");
       closeRecruitmentCreateModal();
       event.currentTarget.reset();
       await loadRecruitments(0);
@@ -390,7 +434,6 @@
     if (id) loadRecruitmentDetail(id).catch(() => {});
     else loadRecruitments(pageParam).catch(() => {});
   }
-
   function currentGroupId() { return $("#groupIdInput")?.value || $("#scheduleGroupId")?.value; }
   function renderGroup(group) {
     if ($("#groupTitle")) $("#groupTitle").textContent = group.name || "그룹 홈";
@@ -406,7 +449,6 @@
   async function loadCurrentGroup() {
     const group = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}`), "그룹 홈을 조회했습니다.");
     renderGroup(group);
-    saveMyGroup(group);
     await loadGroupSchedules().catch(() => {});
   }
   function bindGroup() {
