@@ -115,16 +115,16 @@ public class JoinApplicationService {
     @Transactional
     public Long confirmGroup(Long postId, Long leaderId) {
         RecruitmentPost post = getPostAsLeader(postId, leaderId);
-
         List<Long> approvedUserIds =
                 joinApplicationRepository.findByPostId(postId).stream()
                         .filter(app -> app.getStatus() == ApplicationStatus.APPROVED)
                         .map(app -> app.getApplicant().getId())
                         .toList();
-
         CreateStudyGroupCommand command =
                 new CreateStudyGroupCommand(postId, post.getTitle(), leaderId, approvedUserIds);
-        return studyGroupCreationService.create(command);
+        Long groupId = studyGroupCreationService.create(command);
+        post.activate();
+        return groupId;
     }
 
     private RecruitmentPost getPostAsLeader(Long postId, Long leaderId) {
