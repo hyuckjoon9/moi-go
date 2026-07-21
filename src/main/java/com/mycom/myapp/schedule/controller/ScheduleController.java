@@ -35,7 +35,7 @@ public class ScheduleController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<ScheduleResponse>> create(
-            @PathVariable Long groupId,
+            @PathVariable("groupId") Long groupId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody ScheduleCreateRequest request) {
         Long memberId = requireAuthenticatedMemberId(authenticatedMember);
@@ -45,11 +45,11 @@ public class ScheduleController {
 
     @GetMapping
     public ApiResponse<SchedulePageResponse> getSchedules(
-            @PathVariable Long groupId,
+            @PathVariable("groupId") Long groupId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
-            @RequestParam(defaultValue = "upcoming") String scope,
-            @RequestParam(defaultValue = "0") String page,
-            @RequestParam(defaultValue = "20") String size) {
+            @RequestParam(value = "scope", defaultValue = "upcoming") String scope,
+            @RequestParam(value = "page", defaultValue = "0") String page,
+            @RequestParam(value = "size", defaultValue = "20") String size) {
         Long memberId = requireAuthenticatedMemberId(authenticatedMember);
         ScheduleQueryRequest query = ScheduleQueryRequest.from(scope, page, size);
         return ApiResponse.success(
@@ -59,8 +59,8 @@ public class ScheduleController {
 
     @GetMapping("/{scheduleId}")
     public ApiResponse<ScheduleResponse> getSchedule(
-            @PathVariable Long groupId,
-            @PathVariable Long scheduleId,
+            @PathVariable("groupId") Long groupId,
+            @PathVariable("scheduleId") Long scheduleId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
         Long memberId = requireAuthenticatedMemberId(authenticatedMember);
         return ApiResponse.success(scheduleService.getSchedule(groupId, memberId, scheduleId));
@@ -68,8 +68,8 @@ public class ScheduleController {
 
     @PutMapping("/{scheduleId}")
     public ApiResponse<ScheduleResponse> update(
-            @PathVariable Long groupId,
-            @PathVariable Long scheduleId,
+            @PathVariable("groupId") Long groupId,
+            @PathVariable("scheduleId") Long scheduleId,
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody ScheduleUpdateRequest request) {
         Long memberId = requireAuthenticatedMemberId(authenticatedMember);

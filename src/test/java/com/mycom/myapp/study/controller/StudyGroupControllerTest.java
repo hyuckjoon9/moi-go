@@ -18,6 +18,7 @@ import com.mycom.myapp.study.service.StudyGroupService;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.PathVariable;
 
 class StudyGroupControllerTest {
 
@@ -55,5 +56,16 @@ class StudyGroupControllerTest {
                         exception ->
                                 assertThat(exception.getErrorCode())
                                         .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
+    @Test
+    void explicitlyNamesGroupIdPathVariable() throws NoSuchMethodException {
+        PathVariable pathVariable =
+                StudyGroupController.class
+                        .getDeclaredMethod("getHome", Long.class, AuthenticatedMember.class)
+                        .getParameters()[0]
+                        .getAnnotation(PathVariable.class);
+
+        assertThat(pathVariable.value()).isEqualTo("groupId");
     }
 }
