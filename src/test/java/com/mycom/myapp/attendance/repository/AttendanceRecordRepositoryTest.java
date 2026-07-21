@@ -36,6 +36,14 @@ class AttendanceRecordRepositoryTest {
     }
 
     @Test
+    void reportsWhetherScheduleHasAttendanceRecords() {
+        save(10L, 20L, AttendanceStatus.PRESENT, 1L);
+
+        assertThat(attendanceRecordRepository.existsByScheduleId(10L)).isTrue();
+        assertThat(attendanceRecordRepository.existsByScheduleId(99L)).isFalse();
+    }
+
+    @Test
     void countsByUserIdAndStatus() {
         save(10L, 20L, AttendanceStatus.PRESENT, 1L);
         save(11L, 20L, AttendanceStatus.PRESENT, 1L);

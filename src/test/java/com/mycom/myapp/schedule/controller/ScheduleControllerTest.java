@@ -9,10 +9,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -319,6 +321,15 @@ class ScheduleControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
         verifyNoInteractions(scheduleService);
+    }
+
+    @Test
+    void deletesScheduleWithoutResponseBody() throws Exception {
+        mockMvc.perform(delete("/api/groups/{groupId}/schedules/{scheduleId}", 10L, 100L))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        verify(scheduleService).delete(10L, principal.id(), 100L);
     }
 
     private static Stream<ErrorCode> businessErrors() {

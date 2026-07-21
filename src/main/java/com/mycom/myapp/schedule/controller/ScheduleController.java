@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -87,6 +88,16 @@ public class ScheduleController {
         Long memberId = requireAuthenticatedMemberId(authenticatedMember);
         return ApiResponse.success(
                 scheduleService.updateResponseDeadline(groupId, memberId, scheduleId, request));
+    }
+
+    @DeleteMapping("/{scheduleId}")
+    public ResponseEntity<Void> delete(
+            @PathVariable("groupId") Long groupId,
+            @PathVariable("scheduleId") Long scheduleId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+        Long memberId = requireAuthenticatedMemberId(authenticatedMember);
+        scheduleService.delete(groupId, memberId, scheduleId);
+        return ResponseEntity.noContent().build();
     }
 
     private Long requireAuthenticatedMemberId(AuthenticatedMember authenticatedMember) {

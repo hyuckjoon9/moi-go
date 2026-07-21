@@ -10,6 +10,8 @@ import com.mycom.myapp.schedule.dto.response.SchedulePageResponse;
 import com.mycom.myapp.schedule.dto.response.ScheduleResponse;
 import com.mycom.myapp.schedule.entity.StudySchedule;
 import com.mycom.myapp.schedule.repository.StudyScheduleRepository;
+import com.mycom.myapp.schedule.service.port.ActivityRecordLookup;
+import com.mycom.myapp.schedule.service.port.AttendanceRecordLookup;
 import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
 import com.mycom.myapp.study.entity.GroupRole;
@@ -20,6 +22,7 @@ import com.mycom.myapp.study.repository.StudyGroupRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -31,16 +34,22 @@ public class ScheduleService {
     private final StudyGroupRepository groupRepository;
     private final GroupMemberRepository memberRepository;
     private final StudyScheduleRepository scheduleRepository;
+    private final AttendanceRecordLookup attendanceRecordLookup;
+    private final ActivityRecordLookup activityRecordLookup;
     private final Clock clock;
 
     public ScheduleService(
             StudyGroupRepository groupRepository,
             GroupMemberRepository memberRepository,
             StudyScheduleRepository scheduleRepository,
+            AttendanceRecordLookup attendanceRecordLookup,
+            ActivityRecordLookup activityRecordLookup,
             @Qualifier("scheduleClock") Clock clock) {
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.scheduleRepository = scheduleRepository;
+        this.attendanceRecordLookup = attendanceRecordLookup;
+        this.activityRecordLookup = activityRecordLookup;
         this.clock = clock;
     }
 
@@ -130,6 +139,31 @@ public class ScheduleService {
         }
         schedule.updateResponseDeadline(newDeadline, now);
         return ScheduleResponse.from(schedule);
+    }
+
+    @Transactional
+    public void delete(Long groupId, Long memberId, Long scheduleId) {
+        StudyGroup group = getGroup(groupId);
+        GroupMember member = getActiveMember(groupId, memberId);
+        validateScheduleManagement(group, member);
+        StudySchedule schedule =
+                scheduleRepository
+                        .findByIdAndStudyGroupId(scheduleId, groupId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!schedule.getScheduledAt().isAfter(now)) {
+            throw new BusinessException(ErrorCode.SCHEDULE_DELETE_NOT_ALLOWED);
+        }
+        if (attendanceRecordLookup.existsByScheduleId(scheduleId)
+                || activityRecordLookup.existsByScheduleId(scheduleId)) {
+            throw new BusinessException(ErrorCode.SCHEDULE_DELETE_NOT_ALLOWED);
+        }
+        try {
+            scheduleRepository.delete(schedule);
+            scheduleRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new BusinessException(ErrorCode.SCHEDULE_DELETE_NOT_ALLOWED);
+        }
     }
 
     @Transactional(readOnly = true)

@@ -44,7 +44,7 @@ git log -3 --oneline
 - 6단계 일정 조회 API는 완료다.
 - 7단계를 일정 수정과 삭제로 분리했다.
 - 일정 수정은 PUT 전체 교체, 활성 `LEADER`·`MANAGER` 권한으로 구현한다.
-- 일정 삭제와 `responseDeadline` 변경 정책은 2026-07-21 합의되었고, 응답 마감 PATCH 구현은 완료했다.
+- 일정 삭제와 `responseDeadline` 변경 정책은 2026-07-21 합의되었고, 응답 마감 PATCH와 미래 일정 삭제 구현은 완료했다.
 
 현재 정책 문서 작업 범위는 다음과 같다.
 
@@ -109,6 +109,8 @@ docs/part3-group/schedule-deletion-deadline-implementation-plan.md
 - 일정 삭제와 응답 마감 변경의 파트 간 정책을 확정했다.
 - `ScheduleAttendancePolicy`와 Part4용 읽기 포트, 출석·활동 기록 존재 조회 포트를 추가했다.
 - `PATCH /api/groups/{groupId}/schedules/{scheduleId}/response-deadline`와 관련 DTO·도메인·서비스·컨트롤러·통합 테스트를 구현했다.
+- `DELETE /api/groups/{groupId}/schedules/{scheduleId}`와 출석·활동 기록 존재 조회 어댑터를 구현했다.
+- H2 FK 계약으로 참석 응답 CASCADE와 출석·활동 기록 RESTRICT를 통합 검증했다.
 - 일정 패키지 전체 테스트를 통과했다.
 
 ## 확정된 그룹 홈 조회 계약
@@ -352,11 +354,11 @@ API 문서는 기능을 구현할 때 같은 브랜치에서 바로 갱신하기
 
 ## 바로 다음 작업
 
-다음 작업은 **Part4·활동 어댑터 계약을 반영한 뒤 일정 삭제 유스케이스를 구현하는 것**이다.
+다음 작업은 **Part4가 일정 정책 조회를 사용해 참석 응답 마감을 적용하도록 연동하는 것**이다.
 
-1. Part4의 출석 기록 조회와 활동 기록 조회 어댑터를 각 담당 영역에서 적용한다.
-2. 일정 삭제 서비스·컨트롤러를 테스트 우선으로 구현한다.
-3. FK 통합 검증과 API·세션 문서를 구현 결과에 맞춰 갱신한다.
+1. Part4의 참석 응답 등록·변경·삭제에 `ScheduleAttendancePolicyReader` 기반 마감 검증을 적용한다.
+2. 운영 DB에 FK DDL을 적용하기 전 `schedule-fk-verification.sql`로 정책을 확인한다.
+3. Part3·Part4·활동 패키지와 전체 테스트를 실행한 뒤 PR을 준비한다.
 
 ## 다음 세션용 시작 요청 예시
 
