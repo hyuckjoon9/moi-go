@@ -152,6 +152,17 @@ public class StudySchedule {
         this.updatedAt = modifiedAt;
     }
 
+    public void updateResponseDeadline(LocalDateTime responseDeadline, LocalDateTime modifiedAt) {
+        if (modifiedAt == null) {
+            throw new IllegalArgumentException("일정 수정 시각은 필수입니다.");
+        }
+        if (responseDeadline != null && responseDeadline.isAfter(scheduledAt)) {
+            throw new IllegalArgumentException("응답 마감 시간은 일정 시간보다 늦을 수 없습니다.");
+        }
+        this.responseDeadline = responseDeadline;
+        this.updatedAt = modifiedAt;
+    }
+
     public Long getId() {
         return id;
     }
