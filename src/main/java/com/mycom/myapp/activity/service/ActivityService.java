@@ -109,6 +109,9 @@ public class ActivityService {
 
     /** 활동 기록에 달린 리뷰 목록을 조회한다. */
     public List<ActivityReviewResponse> getReviews(Long activityRecordId) {
+        if (!activityRecordRepository.existsById(activityRecordId)) {
+            throw new BusinessException(ErrorCode.ACTIVITY_RECORD_NOT_FOUND);
+        }
         return activityReviewRepository.findByActivityRecordId(activityRecordId).stream()
                 .map(ActivityReviewResponse::of)
                 .toList();

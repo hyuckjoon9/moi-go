@@ -265,6 +265,18 @@ class ActivityServiceTest {
     }
 
     @Test
+    void getReviewsThrowsWhenRecordNotFound() {
+        given(activityRecordRepository.existsById(100L)).willReturn(false);
+
+        assertThatThrownBy(() -> activityService.getReviews(100L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ACTIVITY_RECORD_NOT_FOUND));
+    }
+
+    @Test
     void getReviewsReturnsMappedResponses() {
         List<ActivityReview> reviews =
                 List.of(
@@ -278,6 +290,7 @@ class ActivityServiceTest {
                                 .userId(21L)
                                 .comment("유익했습니다")
                                 .build());
+        given(activityRecordRepository.existsById(100L)).willReturn(true);
         given(activityReviewRepository.findByActivityRecordId(100L)).willReturn(reviews);
 
         List<ActivityReviewResponse> result = activityService.getReviews(100L);
