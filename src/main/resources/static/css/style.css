@@ -1037,3 +1037,196 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 }
+/* recruitment board refinements */
+.recruitment-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.segmented-control {
+  display: inline-flex;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.segmented-control button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.segmented-control button.active {
+  background: var(--surface);
+  color: var(--primary-dark);
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.08);
+}
+
+.recruitment-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.badge.status-open {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge.status-closed {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.recruitment-row-main p {
+  max-width: 900px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-detail-panel {
+  width: min(1040px, 100%);
+  padding: 0;
+  overflow: hidden;
+}
+
+.board-detail-header {
+  display: grid;
+  gap: 14px;
+  padding: 30px 32px 24px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(15, 118, 110, 0.06));
+}
+
+.board-detail-header h2 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.board-meta-list {
+  padding: 24px 32px 0;
+}
+
+.board-body {
+  display: grid;
+  gap: 16px;
+  padding: 22px 32px 32px;
+}
+
+.detail-text-section {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.detail-text-section h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.detail-text-section p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 32px 30px;
+}
+
+.recruitment-create-panel {
+  width: min(760px, calc(100% - 32px));
+}
+
+@media (max-width: 720px) {
+  .recruitment-controls,
+  .segmented-control,
+  .detail-actions {
+    width: 100%;
+  }
+
+  .segmented-control button {
+    flex: 1;
+  }
+
+  .board-detail-header,
+  .board-meta-list,
+  .board-body,
+  .detail-actions {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+/* my page grouped study lists */
+.grouped-my-groups-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.my-group-section {
+  display: grid;
+  gap: 10px;
+}
+
+.group-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.group-section-title h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.group-section-title span {
+  display: inline-grid;
+  min-width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.my-group-section .card-list {
+  gap: 8px;
+}
+
+.my-group-link {
+  padding: 14px 16px;
+}
+
+.pending-group-link {
+  border-style: dashed;
+}

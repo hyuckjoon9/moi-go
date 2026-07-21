@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>내 정보 - Moi-Go</title>
-    <link rel="stylesheet" href="/css/style.css?v=20260721-profile-upload" />
+    <link rel="stylesheet" href="/css/style.css?v=20260721-my-groups" />
   </head>
   <body data-page="mypage" data-protected="true">
     <header class="app-header">
@@ -33,19 +33,28 @@
           <button id="openEditMemberButton" class="button" type="button">프로필 수정</button>
         </article>
 
-        <article class="panel my-groups-panel">
+        <article class="panel my-groups-panel grouped-my-groups-panel">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">My groups</p>
               <h2>내 그룹</h2>
             </div>
           </div>
-          <div id="myGroupList" class="card-list selectable-list"></div>
-          <form id="addMyGroupForm" class="inline-add-form">
-            <label>그룹 ID로 추가<input name="groupId" type="number" min="1" placeholder="예: 1" /></label>
-            <button class="button secondary" type="submit">추가</button>
-          </form>
-          <p class="helper-text">그룹 홈에서 조회한 그룹도 여기에 자동으로 저장됩니다.</p>
+
+          <section class="my-group-section">
+            <div class="group-section-title"><h3>운영 중인 그룹</h3><span id="operatingGroupCount">0</span></div>
+            <div id="operatingGroupList" class="card-list selectable-list"></div>
+          </section>
+
+          <section class="my-group-section">
+            <div class="group-section-title"><h3>신청 중인 그룹</h3><span id="pendingGroupCount">0</span></div>
+            <div id="pendingGroupList" class="card-list selectable-list"></div>
+          </section>
+
+          <section class="my-group-section">
+            <div class="group-section-title"><h3>팀원으로 활동 중인 그룹</h3><span id="memberGroupCount">0</span></div>
+            <div id="memberGroupList" class="card-list selectable-list"></div>
+          </section>
         </article>
 
         <div id="memberEditBackdrop" class="modal-backdrop hidden"></div>
@@ -58,7 +67,7 @@
             <label>닉네임<input name="nickname" /></label>
             <label>자기소개<textarea name="bio"></textarea></label>
             <label>관심사<input name="interests" /></label>
-                        <div class="profile-image-editor">
+            <div class="profile-image-editor">
               <input name="profileImageUrl" id="profileImageUrlInput" type="hidden" />
               <label>프로필 사진<input id="profileImageFileInput" type="file" accept="image/*" /></label>
               <div class="profile-image-preview"><div id="profileImagePreview" class="profile-avatar preview-avatar">M</div></div>
@@ -68,8 +77,8 @@
         </article>
       </section>
     </main>
-    <script src="/js/api.js?v=20260721-profile-upload"></script>
-    <script src="/js/auth.js?v=20260721-profile-upload"></script>
-    <script src="/js/app.js?v=20260721-profile-upload"></script>
+    <script src="/js/api.js?v=20260721-my-groups"></script>
+    <script src="/js/auth.js?v=20260721-my-groups"></script>
+    <script src="/js/app.js?v=20260721-my-groups"></script>
   </body>
 </html>
