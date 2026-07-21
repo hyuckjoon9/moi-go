@@ -32,6 +32,7 @@ class JoinApplicationControllerTest {
                         1L,
                         10L,
                         2L,
+                        "지원자닉네임",
                         "지원동기",
                         "경험",
                         "주말 가능",
