@@ -1,6 +1,6 @@
 # Part3 작업 컨텍스트
 
-> 기준: 2026-07-22, `develop`의 `afdd402`
+> 기준: 2026-07-22, `develop`의 `db9161c`
 >
 > 실제 Git 상태가 이 문서와 다르면 저장소를 우선한다. 개인 기록인 `.local/part3/updates.md`가 있으면 최신 항목만 참고하되 오래된 브랜치 기록은 무시한다.
 
@@ -25,6 +25,7 @@ git log -3 --oneline
 - 그룹 영속성·생성·홈 조회와 일정 생성·조회·수정·응답 마감 변경·삭제가 `develop`에 반영됐다.
 - 일정 삭제는 참석 응답 `CASCADE`, 출석·활동 기록 `RESTRICT` 및 서비스 사전 검사로 보호한다.
 - Part3는 `ScheduleAttendancePolicyReader`를 제공하지만 Part4 참석 응답 서비스는 아직 이를 사용하지 않는다.
+- Part3는 `StudyGroupAttendanceRatePolicyReader`를 제공한다. 활성 그룹의 활성 `LEADER` 또는 `MANAGER`만 `canViewAllAttendanceRates=true`를 받으며, Part4는 이 결과로 그룹 전체 출석률 조회를 제한한다.
 
 ## 구현 완료 계약
 
@@ -60,6 +61,8 @@ Part4 참석 응답 등록·변경·삭제에 Part3 일정 정책을 적용한�
 4. Part3·Part4·활동 관련 테스트, 전체 테스트와 `spotlessCheck`를 실행한다.
 
 이 작업은 Part4 소유 코드를 수정하므로 `development-guide.md`의 협업 원칙에 따라 담당자 리뷰와 변경 이유를 PR에 명시한다.
+
+Part4 출석률 조회는 개인 조회를 인증 사용자 본인으로 제한하고, 그룹 전체 조회는 `groupId` 범위의 집계와 `StudyGroupAttendanceRatePolicyReader` 권한 확인을 함께 적용한다.
 
 ## 세션 종료 시 갱신
 
