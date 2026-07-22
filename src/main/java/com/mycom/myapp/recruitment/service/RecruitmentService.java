@@ -10,6 +10,9 @@ import com.mycom.myapp.recruitment.dto.response.RecruitmentResponse;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
+import com.mycom.myapp.study.service.CreateStudyGroupCommand;
+import com.mycom.myapp.study.service.port.StudyGroupProvisioningPort;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +25,7 @@ public class RecruitmentService {
 
     private final RecruitmentRepository recruitmentRepository;
     private final MemberRepository memberRepository;
+    private final StudyGroupProvisioningPort studyGroupProvisioningPort;
 
     @Transactional
     public RecruitmentResponse create(Long leaderId, RecruitmentCreateRequest request) {
@@ -31,25 +35,29 @@ public class RecruitmentService {
                         .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         RecruitmentPost post =
-                RecruitmentPost.builder()
-                        .leader(leader)
-                        .title(request.title())
-                        .category(request.category())
-                        .description(request.description())
-                        .goal(request.goal())
-                        .method(request.method())
-                        .meetingType(request.meetingType())
-                        .location(request.location())
-                        .onlineLink(request.onlineLink())
-                        .meetingDay(request.meetingDay())
-                        .capacity(request.capacity())
-                        .recruitmentDeadline(request.recruitmentDeadline())
-                        .expectedDuration(request.expectedDuration())
-                        .conditions(request.conditions())
-                        .status(RecruitmentStatus.RECRUITING)
-                        .build();
+                recruitmentRepository.save(
+                        RecruitmentPost.builder()
+                                .leader(leader)
+                                .title(request.title())
+                                .category(request.category())
+                                .description(request.description())
+                                .goal(request.goal())
+                                .method(request.method())
+                                .meetingType(request.meetingType())
+                                .location(request.location())
+                                .onlineLink(request.onlineLink())
+                                .meetingDay(request.meetingDay())
+                                .capacity(request.capacity())
+                                .recruitmentDeadline(request.recruitmentDeadline())
+                                .expectedDuration(request.expectedDuration())
+                                .conditions(request.conditions())
+                                .status(RecruitmentStatus.RECRUITING)
+                                .build());
 
-        return RecruitmentResponse.from(recruitmentRepository.save(post));
+        studyGroupProvisioningPort.createGroup(
+                new CreateStudyGroupCommand(post.getId(), post.getTitle(), leaderId, List.of()));
+
+        return RecruitmentResponse.from(post);
     }
 
     public Page<RecruitmentResponse> getList(String category, Pageable pageable) {
@@ -106,6 +114,7 @@ public class RecruitmentService {
     public RecruitmentResponse end(Long postId, Long requesterId) {
         RecruitmentPost post = getPostAsLeader(postId, requesterId);
         post.end();
+        studyGroupProvisioningPort.endGroup(postId);
         return RecruitmentResponse.from(post);
     }
 

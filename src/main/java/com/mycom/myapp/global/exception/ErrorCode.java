@@ -22,6 +22,7 @@ public enum ErrorCode {
     ATTENDANCE_MANAGEMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "출석을 관리할 권한이 없습니다."),
     ATTENDANCE_RATE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "본인의 출석률만 조회할 수 있습니다."),
     GROUP_ENDED(HttpStatus.CONFLICT, "종료된 그룹에서는 일정을 관리할 수 없습니다."),
+    GROUP_MEMBER_ADD_NOT_ALLOWED(HttpStatus.CONFLICT, "종료된 그룹에는 새 그룹원을 추가할 수 없습니다."),
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다."),
     SCHEDULE_MANAGEMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "일정을 관리할 권한이 없습니다."),
     SCHEDULE_UPDATE_NOT_ALLOWED(HttpStatus.CONFLICT, "이미 시작된 일정은 수정할 수 없습니다."),

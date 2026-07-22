@@ -9,7 +9,7 @@ Part2의 모집 결과로 그룹과 초기 그룹원을 한 번만 생성한다.
 `StudyGroupProvisioningPort`는 Part2가 게시·승인·취소 흐름에서 사용할 공개 내부 계약이다.
 
 - `createGroup(CreateStudyGroupCommand)`: 그룹과 모집장 `LEADER`만 생성하며, 같은 `postId`는 기존 ID만 반환한다.
-- `addMember(AddStudyGroupMemberCommand)`: 활성 그룹에 `MEMBER`를 추가한다. 활성 멤버는 멱등 성공이고, 없는 그룹·종료 그룹·탈퇴 이력은 각각 `GROUP_NOT_FOUND`, `GROUP_ENDED`, `WITHDRAWN_GROUP_MEMBER`로 거부한다.
+- `addMember(AddStudyGroupMemberCommand)`: 활성 그룹에 `MEMBER`를 추가한다. 활성 멤버는 멱등 성공이고, 없는 그룹·종료 그룹·탈퇴 이력은 각각 `GROUP_NOT_FOUND`, `GROUP_MEMBER_ADD_NOT_ALLOWED`, `WITHDRAWN_GROUP_MEMBER`로 거부한다.
 - `endGroup(Long postId)`: 그룹을 `ENDED`로 전환하며 재호출은 멱등 성공이다.
 
 세 메서드는 `REQUIRED` 트랜잭션으로 Part2 트랜잭션에 참여한다. 기존 일괄 `confirmGroup()` 흐름은 Part2가 게시·승인·취소 호출을 함께 전환하는 별도 작업에서 대체한다.

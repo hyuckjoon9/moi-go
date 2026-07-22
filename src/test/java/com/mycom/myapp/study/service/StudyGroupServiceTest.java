@@ -97,33 +97,26 @@ class StudyGroupServiceTest {
     }
 
     @Test
-    void returnsActiveGroupsForUserInRepositoryOrder() {
+    void returnsActiveAndEndedGroupsForUserInRepositoryOrder() {
         StudyGroup group = group(10L, 25L);
+        StudyGroup endedGroup = group(11L, 26L);
+        endedGroup.end();
         GroupMember member = member(group, 2L, GroupRole.LEADER, GroupMemberStatus.ACTIVE);
-        when(groupMemberRepository
-                        .findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
-                                2L, GroupMemberStatus.ACTIVE, GroupStatus.ACTIVE))
-                .thenReturn(List.of(member));
+        GroupMember endedMember =
+                member(endedGroup, 2L, GroupRole.MEMBER, GroupMemberStatus.ACTIVE);
+        when(groupMemberRepository.findAllByUserIdAndStatusOrderByJoinedAtDescIdDesc(
+                        2L, GroupMemberStatus.ACTIVE))
+                .thenReturn(List.of(endedMember, member));
 
         assertThat(service.getMyGroups(2L))
-                .singleElement()
-                .satisfies(
-                        response -> {
-                            assertThat(response.groupId()).isEqualTo(10L);
-                            assertThat(response.postId()).isEqualTo(25L);
-                            assertThat(response.name()).isEqualTo("알고리즘 스터디");
-                            assertThat(response.status()).isEqualTo(GroupStatus.ACTIVE);
-                            assertThat(response.role()).isEqualTo(GroupRole.LEADER);
-                            assertThat(response.joinedAt())
-                                    .isEqualTo(LocalDateTime.of(2026, 7, 1, 10, 0));
-                        });
+                .extracting(response -> response.status())
+                .containsExactly(GroupStatus.ENDED, GroupStatus.ACTIVE);
     }
 
     @Test
-    void returnsEmptyMyGroupsWhenUserHasNoActiveGroup() {
-        when(groupMemberRepository
-                        .findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
-                                2L, GroupMemberStatus.ACTIVE, GroupStatus.ACTIVE))
+    void returnsEmptyMyGroupsWhenUserHasNoActiveMembership() {
+        when(groupMemberRepository.findAllByUserIdAndStatusOrderByJoinedAtDescIdDesc(
+                        2L, GroupMemberStatus.ACTIVE))
                 .thenReturn(List.of());
 
         assertThat(service.getMyGroups(2L)).isEmpty();

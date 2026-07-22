@@ -2,15 +2,20 @@ package com.mycom.myapp.recruitment.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.member.entity.Member;
 import com.mycom.myapp.member.repository.MemberRepository;
+import com.mycom.myapp.recruitment.dto.request.RecruitmentCreateRequest;
 import com.mycom.myapp.recruitment.dto.request.RecruitmentUpdateRequest;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
+import com.mycom.myapp.study.service.CreateStudyGroupCommand;
+import com.mycom.myapp.study.service.port.StudyGroupProvisioningPort;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,8 +30,46 @@ class RecruitmentServiceTest {
 
     @Mock private RecruitmentRepository recruitmentRepository;
     @Mock private MemberRepository memberRepository;
+    @Mock private StudyGroupProvisioningPort studyGroupProvisioningPort;
 
     @InjectMocks private RecruitmentService recruitmentService;
+
+    @Test
+    @DisplayName("모집글을 작성하면 그룹 생성도 함께 요청한다")
+    void create_success() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+
+        RecruitmentCreateRequest request =
+                new RecruitmentCreateRequest(
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        java.time.LocalDate.now().plusDays(7),
+                        "8주",
+                        "조건");
+
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(leader));
+        when(recruitmentRepository.save(any(RecruitmentPost.class)))
+                .thenAnswer(
+                        invocation -> {
+                            RecruitmentPost saved = invocation.getArgument(0);
+                            ReflectionTestUtils.setField(saved, "id", 10L); // [추가] 실제 DB처럼 id를 채워줌
+                            return saved;
+                        });
+
+        var response = recruitmentService.create(1L, request);
+
+        assertThat(response.title()).isEqualTo("제목");
+        verify(studyGroupProvisioningPort).createGroup(any(CreateStudyGroupCommand.class));
+    }
 
     @Test
     @DisplayName("리더가 모집글을 수정하면 반영된다")
@@ -73,6 +116,7 @@ class RecruitmentServiceTest {
         RecruitmentPost post =
                 RecruitmentPost.builder()
                         .leader(leader)
+                        .capacity(5)
                         .status(RecruitmentStatus.RECRUITING)
                         .build();
 
@@ -114,7 +158,7 @@ class RecruitmentServiceTest {
 
         recruitmentService.delete(1L, 1L);
 
-        org.mockito.Mockito.verify(recruitmentRepository).delete(post);
+        verify(recruitmentRepository).delete(post);
     }
 
     @Test
@@ -138,7 +182,7 @@ class RecruitmentServiceTest {
     }
 
     @Test
-    @DisplayName("리더가 스터디를 종료하면 상태가 ENDED로 바뀐다")
+    @DisplayName("리더가 스터디를 종료하면 상태가 ENDED로 바뀌고 그룹도 종료 요청한다")
     void end_success() {
         Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
         ReflectionTestUtils.setField(leader, "id", 1L);
@@ -155,5 +199,6 @@ class RecruitmentServiceTest {
         var response = recruitmentService.end(1L, 1L);
 
         assertThat(response.status()).isEqualTo("ENDED");
+        verify(studyGroupProvisioningPort).endGroup(1L);
     }
 }

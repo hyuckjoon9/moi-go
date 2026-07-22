@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
 import com.mycom.myapp.study.entity.GroupRole;
-import com.mycom.myapp.study.entity.GroupStatus;
 import com.mycom.myapp.study.entity.StudyGroup;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +53,7 @@ class GroupMemberRepositoryTest {
     }
 
     @Test
-    void findsOnlyActiveGroupsForUserInNewestMembershipOrder() {
+    void findsActiveAndEndedGroupsForActiveUserInNewestMembershipOrder() {
         StudyGroup olderGroup = studyGroupRepository.save(StudyGroup.create(10L, "이전 그룹"));
         StudyGroup newerGroup = studyGroupRepository.save(StudyGroup.create(11L, "최근 그룹"));
         StudyGroup endedGroup = studyGroupRepository.save(StudyGroup.create(12L, "종료 그룹"));
@@ -74,13 +73,15 @@ class GroupMemberRepositoryTest {
         jdbcTemplate.update(
                 "update group_members set joined_at = timestamp '2026-07-02 10:00:00' where id = ?",
                 newer.getId());
+        jdbcTemplate.update(
+                "update group_members set joined_at = timestamp '2026-06-30 10:00:00' where group_id = ?",
+                endedGroup.getId());
 
         assertThat(
-                        groupMemberRepository
-                                .findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
-                                        20L, GroupMemberStatus.ACTIVE, GroupStatus.ACTIVE))
+                        groupMemberRepository.findAllByUserIdAndStatusOrderByJoinedAtDescIdDesc(
+                                20L, GroupMemberStatus.ACTIVE))
                 .extracting(member -> member.getStudyGroup().getName())
-                .containsExactly("최근 그룹", "이전 그룹");
+                .containsExactly("최근 그룹", "이전 그룹", "종료 그룹");
     }
 
     @Test
