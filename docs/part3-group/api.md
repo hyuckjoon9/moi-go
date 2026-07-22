@@ -31,6 +31,7 @@
 
 | 기능 | 메서드 | 경로 | 성공 |
 | --- | --- | --- | --- |
+| 내 그룹 목록 조회 | `GET` | `/groups/me` | `200` |
 | 그룹 홈 조회 | `GET` | `/groups/{groupId}` | `200` |
 | 일정 생성 | `POST` | `/groups/{groupId}/schedules` | `201` |
 | 일정 목록 조회 | `GET` | `/groups/{groupId}/schedules` | `200` |
@@ -38,6 +39,42 @@
 | 일정 수정 | `PUT` | `/groups/{groupId}/schedules/{scheduleId}` | `200` |
 | 응답 마감 변경 | `PATCH` | `/groups/{groupId}/schedules/{scheduleId}/response-deadline` | `200` |
 | 일정 삭제 | `DELETE` | `/groups/{groupId}/schedules/{scheduleId}` | `204` |
+
+## 내 그룹 목록 조회
+
+`GET /api/groups/me`
+
+로그인 사용자가 활성 그룹원으로 속한 활성 그룹만 반환한다. 목록은 `joinedAt` 내림차순이며, 가입 시각이 같으면 그룹원 ID 내림차순이다.
+
+### 성공 응답 — 200
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "groupId": 10,
+      "postId": 101,
+      "name": "모이고 스프링 스터디",
+      "status": "ACTIVE",
+      "role": "LEADER",
+      "joinedAt": "2026-07-01T10:00:00"
+    }
+  ],
+  "message": null
+}
+```
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `groupId` | number | 그룹 ID |
+| `postId` | number | 연결된 모집글 ID |
+| `name` | string | 그룹 이름 |
+| `status` | `ACTIVE` | 이 API는 활성 그룹만 반환 |
+| `role` | `LEADER` \| `MANAGER` \| `MEMBER` | 호출자의 활성 그룹원 역할 |
+| `joinedAt` | string(date-time) | 호출자의 그룹 가입 시각 |
+
+그룹이 없으면 `data`는 빈 배열이다. 프론트엔드는 `LEADER`, `MANAGER`를 운영 그룹으로, `MEMBER`를 참여 그룹으로 표시할 수 있다.
 
 ## 그룹 홈 조회
 

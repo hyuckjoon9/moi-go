@@ -2,7 +2,8 @@
   const $ = (selector) => document.querySelector(selector);
   const page = document.body.dataset.page;
   const protectedPage = document.body.dataset.protected === "true";
-  const recruitmentState = { page: 0, size: 10, totalPages: 1, status: "ALL" };
+  const recruitmentState = { page: 0, size: 10, totalPages: 1, status: "ALL", searchType: "category", items: [], pageData: null };
+  const myGroupState = { groups: [], loaded: false };
   let toastTimer;
 
   function formData(form) { return Object.fromEntries(new FormData(form).entries()); }
@@ -94,8 +95,37 @@
     }
   }
   function cacheMemberIdentity(member) {
+    if (member?.id) localStorage.setItem("memberId", String(member.id));
     if (member?.nickname) localStorage.setItem("memberNickname", member.nickname);
     if (member?.profileImageUrl) localStorage.setItem("memberProfileImageUrl", member.profileImageUrl);
+  }
+  function currentMemberId() {
+    const value = localStorage.getItem("memberId");
+    return value ? Number(value) : null;
+  }
+  function ownRecruitmentIds() {
+    try { return JSON.parse(localStorage.getItem("ownRecruitmentIds") || "[]"); }
+    catch (_) { return []; }
+  }
+  function markRecruitmentAsOwn(id) {
+    if (!id) return;
+    const ids = new Set(ownRecruitmentIds().map(String));
+    ids.add(String(id));
+    localStorage.setItem("ownRecruitmentIds", JSON.stringify([...ids]));
+  }
+  function isOwnRecruitment(detail) {
+    if (!detail) return false;
+    if (detail.isOwner === true || detail.owner === true) return true;
+    const memberId = currentMemberId();
+    const leaderId = detail.leaderId || detail.leader?.id || detail.leader?.memberId;
+    if (memberId && leaderId && Number(leaderId) === memberId) return true;
+    return ownRecruitmentIds().map(String).includes(String(detail.id));
+  }
+  function setRecruitmentStatusFilter(status) {
+    recruitmentState.status = status;
+    document.querySelectorAll("[data-recruitment-status]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.recruitmentStatus === recruitmentState.status);
+    });
   }
   function ensureHeaderAvatar() {
     let avatar = $("#headerProfileAvatar");
@@ -209,16 +239,19 @@
     const params = new URLSearchParams(window.location.search);
     params.delete("id");
     if (pageNo > 0) params.set("page", String(pageNo)); else params.delete("page");
-    const category = $("#recruitmentCategory")?.value.trim();
-    if (category) params.set("category", category); else params.delete("category");
+    const searchType = $("#recruitmentSearchType")?.value || "category";
+    const keyword = $("#recruitmentSearchKeyword")?.value.trim() || "";
+    if (keyword) params.set("q", keyword); else params.delete("q");
+    if (searchType !== "category") params.set("searchType", searchType); else params.delete("searchType");
     if (recruitmentState.status !== "ALL") params.set("status", recruitmentState.status); else params.delete("status");
     const query = params.toString();
     window.history.replaceState(null, "", `/recruitments.html${query ? `?${query}` : ""}`);
   }
   function buildRecruitmentQuery() {
     const params = new URLSearchParams({ page: String(recruitmentState.page), size: String(recruitmentState.size), sort: "id,desc" });
-    const category = $("#recruitmentCategory")?.value.trim();
-    if (category) params.set("category", category);
+    const searchType = $("#recruitmentSearchType")?.value || "category";
+    const keyword = $("#recruitmentSearchKeyword")?.value.trim() || "";
+    if (searchType === "category" && keyword) params.set("category", keyword);
     return params.toString();
   }
   function showRecruitmentListMode() {
@@ -247,6 +280,24 @@
       <button class="button ghost small" type="button" data-page="${Math.min(totalPages - 1, current + 1)}" ${current >= totalPages - 1 ? "disabled" : ""}>다음</button>`;
     target.querySelectorAll("[data-page]").forEach((button) => button.addEventListener("click", () => loadRecruitments(Number(button.dataset.page))));
   }
+  function filterRecruitmentsBySearch(items) {
+    const type = $("#recruitmentSearchType")?.value || "category";
+    const keyword = ($("#recruitmentSearchKeyword")?.value || "").trim().toLowerCase();
+    if (!keyword) return items;
+    return items.filter((item) => {
+      if (type === "category") return String(item.category || "").toLowerCase().includes(keyword);
+      if (type === "title") return String(item.title || "").toLowerCase().includes(keyword);
+      if (type === "content") return [item.description, item.goal, item.method, item.conditions].some((value) => String(value || "").toLowerCase().includes(keyword));
+      if (type === "writer") return String(item.leaderId || item.leader?.id || "").toLowerCase().includes(keyword);
+      return true;
+    });
+  }
+  function renderRecruitmentsFromState() {
+    const statusItems = recruitmentState.status === "ALL" ? recruitmentState.items : recruitmentState.items.filter((item) => statusGroup(item.status) === recruitmentState.status);
+    const visibleItems = filterRecruitmentsBySearch(statusItems);
+    renderCards("#recruitmentList", visibleItems, "표시할 모집글이 없습니다.", renderRecruitmentRow);
+    renderRecruitmentPagination(recruitmentState.pageData);
+  }
   function renderRecruitmentRow(item) {
     const label = statusLabel(item.status);
     const group = statusGroup(item.status).toLowerCase();
@@ -265,10 +316,9 @@
     showRecruitmentListMode();
     updateRecruitmentUrl(recruitmentState.page);
     const pageData = await run(() => window.moiApi.request(`/api/recruitment-posts?${buildRecruitmentQuery()}`), null);
-    const items = getPageContent(pageData);
-    const visibleItems = recruitmentState.status === "ALL" ? items : items.filter((item) => statusGroup(item.status) === recruitmentState.status);
-    renderCards("#recruitmentList", visibleItems, "표시할 모집글이 없습니다.", renderRecruitmentRow);
-    renderRecruitmentPagination(pageData);
+    recruitmentState.pageData = pageData;
+    recruitmentState.items = getPageContent(pageData);
+    renderRecruitmentsFromState();
   }
   function detailItem(label, value) {
     if (value === undefined || value === null || value === "") return "";
@@ -283,6 +333,10 @@
     const detail = await run(() => window.moiApi.request(`/api/recruitment-posts/${id}`), showToast ? "모집글 상세를 조회했습니다." : null);
     const view = $("#recruitmentDetailView");
     if (!view) return;
+    const owner = isOwnRecruitment(detail);
+    const actionButtons = owner
+      ? `<button class="button ghost" type="button" data-recruitment-action="edit">\uC218\uC815</button><button class="button danger" type="button" data-recruitment-action="delete">\uC0AD\uC81C</button><button class="button" type="button" data-recruitment-action="applications">\uC2E0\uCCAD\uC790 \uAD00\uB9AC</button>`
+      : `<button class="button" type="button" data-recruitment-action="apply">\uCC38\uAC00 \uC2E0\uCCAD</button>`;
     view.innerHTML = `
       <header class="board-detail-header">
         <div class="recruitment-row-meta"><span class="badge status-${statusGroup(detail.status).toLowerCase()}">${escapeHtml(statusLabel(detail.status))}</span><span>${escapeHtml(detail.category || "카테고리 없음")}</span><span>글 번호 ${escapeHtml(detail.id)}</span></div>
@@ -294,12 +348,33 @@
       <div class="board-body">
         ${detailTextSection("소개", detail.description)}${detailTextSection("목표", detail.goal)}${detailTextSection("진행 방식", detail.method)}${detailTextSection("참가 조건", detail.conditions)}
       </div>
-      <div class="detail-actions"><a class="button ghost" href="/recruitments.html">목록으로</a><button class="button" type="button">참가 신청</button></div>`;
+      <div class="detail-actions"><a class="button ghost" href="/recruitments.html">\uBAA9\uB85D\uC73C\uB85C</a>${actionButtons}</div>`;
+    view.querySelectorAll("[data-recruitment-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.recruitmentAction;
+        if (action === "edit" || action === "delete") toast("\uBAA8\uC9D1\uAE00 \uC218\uC815/\uC0AD\uC81C API\uAC00 \uC544\uC9C1 \uD544\uC694\uD569\uB2C8\uB2E4.", true);
+        if (action === "applications") toast("\uCC38\uAC00 \uC2E0\uCCAD \uC2B9\uC778/\uAC70\uC808 API\uAC00 \uC544\uC9C1 \uD544\uC694\uD569\uB2C8\uB2E4.", true);
+        if (action === "apply") toast("\uCC38\uAC00 \uC2E0\uCCAD API\uAC00 \uC544\uC9C1 \uD544\uC694\uD569\uB2C8\uB2E4.", true);
+      });
+    });
   }
   function openMemberEditModal() { showPanel("#memberEditBackdrop"); showPanel("#memberEditPanel"); document.body.classList.add("modal-open"); setTimeout(() => $("#updateMemberForm input[name='nickname']")?.focus(), 0); }
   function closeMemberEditModal() { hidePanel("#memberEditBackdrop"); hidePanel("#memberEditPanel"); document.body.classList.remove("modal-open"); }
-  function openRecruitmentCreateModal() { showPanel("#recruitmentCreateBackdrop"); showPanel("#recruitmentCreatePanel"); document.body.classList.add("modal-open"); }
+  async function openRecruitmentCreateModal() {
+    const leaders = await fetchMyGroups().catch(() => []);
+    const selectable = leaders.filter(isLeaderGroup);
+    if (selectable.length === 0) {
+      openNeedLeaderGroupModal();
+      return;
+    }
+    populateRecruitmentLeaderGroups(selectable);
+    showPanel("#recruitmentCreateBackdrop");
+    showPanel("#recruitmentCreatePanel");
+    document.body.classList.add("modal-open");
+  }
   function closeRecruitmentCreateModal() { hidePanel("#recruitmentCreateBackdrop"); hidePanel("#recruitmentCreatePanel"); document.body.classList.remove("modal-open"); }
+  function openNeedLeaderGroupModal() { showPanel("#needLeaderGroupBackdrop"); showPanel("#needLeaderGroupPanel"); document.body.classList.add("modal-open"); }
+  function closeNeedLeaderGroupModal() { hidePanel("#needLeaderGroupBackdrop"); hidePanel("#needLeaderGroupPanel"); document.body.classList.remove("modal-open"); }
 
   function bindLogin() {
     $("#loginForm")?.addEventListener("submit", async (event) => {
@@ -335,10 +410,37 @@
     if (!target) return;
     renderCards(targetSelector, items || [], emptyText, renderer);
   }
+  function groupRoleLabel(role) {
+    const value = String(role || "").toUpperCase();
+    if (value === "LEADER") return "운영자";
+    if (value === "MANAGER") return "매니저";
+    if (value === "MEMBER") return "팀원";
+    return "참여 중";
+  }
+  function groupStatusLabel(status) {
+    const value = String(status || "").toUpperCase();
+    if (value === "ACTIVE") return "진행 중";
+    if (value === "ENDED") return "종료";
+    return "상태 미정";
+  }
+  function isLeaderGroup(group) {
+    return String(group?.role || "").toUpperCase() === "LEADER";
+  }
+  function leaderGroups() {
+    return myGroupState.groups.filter(isLeaderGroup);
+  }
+  async function fetchMyGroups(force = false) {
+    if (myGroupState.loaded && !force) return myGroupState.groups;
+    const groups = await run(() => window.moiApi.request("/api/groups/me"), null);
+    myGroupState.groups = Array.isArray(groups) ? groups : [];
+    myGroupState.loaded = true;
+    return myGroupState.groups;
+  }
   function renderMyGroupLink(group) {
+    const joinedText = group.joinedAt ? ` · 가입일 ${formatDate(group.joinedAt)}` : "";
     return `<a class="entity-card my-group-link" href="/group.html?groupId=${encodeURIComponent(group.groupId)}">
       <strong>${escapeHtml(group.name || `그룹 ${group.groupId}`)}</strong>
-      <div class="meta">${escapeHtml(group.roleLabel || "참여 중")} · ${escapeHtml(group.statusLabel || "운영 중")}</div>
+      <div class="meta">${escapeHtml(groupRoleLabel(group.role))} · ${escapeHtml(groupStatusLabel(group.status))}${escapeHtml(joinedText)}</div>
     </a>`;
   }
   function renderPendingApplication(application) {
@@ -347,12 +449,16 @@
       <div class="meta">${escapeHtml(application.category || "카테고리 없음")} · 승인 대기</div>
     </a>`;
   }
-  async function loadMyGroups() {
-    // TODO: Part2/Part3 API가 준비되면 아래 세 목록을 실제 응답으로 채운다.
-    renderGroupSection("#operatingGroupList", "#operatingGroupCount", [], "운영 중인 그룹 조회 API가 준비되면 자동으로 표시됩니다.", renderMyGroupLink);
-    renderGroupSection("#pendingGroupList", "#pendingGroupCount", [], "신청 중인 그룹 조회 API가 준비되면 자동으로 표시됩니다.", renderPendingApplication);
-    renderGroupSection("#memberGroupList", "#memberGroupCount", [], "팀원으로 활동 중인 그룹 조회 API가 준비되면 자동으로 표시됩니다.", renderMyGroupLink);
-  }  function populateMemberForm(member) {
+  async function loadMyGroups(force = false) {
+    const list = await fetchMyGroups(force);
+    const operatingGroups = list.filter((group) => ["LEADER", "MANAGER"].includes(String(group.role || "").toUpperCase()));
+    const memberGroups = list.filter((group) => String(group.role || "").toUpperCase() === "MEMBER");
+
+    renderGroupSection("#operatingGroupList", "#operatingGroupCount", operatingGroups, "운영 중인 그룹이 없습니다.", renderMyGroupLink);
+    renderGroupSection("#pendingGroupList", "#pendingGroupCount", [], "신청 중인 그룹 조회 API가 아직 필요합니다.", renderPendingApplication);
+    renderGroupSection("#memberGroupList", "#memberGroupCount", memberGroups, "팀원으로 활동 중인 그룹이 없습니다.", renderMyGroupLink);
+  }
+  function populateMemberForm(member) {
     const form = $("#updateMemberForm");
     setField(form, "nickname", member.nickname);
     setField(form, "bio", member.bio);
@@ -415,53 +521,116 @@
         loadRecruitments(0).catch(() => {});
       });
     });
-    if ($("#recruitmentCategory") && params.get("category")) $("#recruitmentCategory").value = params.get("category");
-    $("#recruitmentCategory")?.addEventListener("change", () => loadRecruitments(0));
-    $("#recruitmentCategory")?.addEventListener("keydown", (event) => { if (event.key === "Enter") loadRecruitments(0); });
+    if ($("#recruitmentSearchType")) $("#recruitmentSearchType").value = params.get("searchType") || "category";
+    if ($("#recruitmentSearchKeyword")) $("#recruitmentSearchKeyword").value = params.get("q") || params.get("category") || "";
+    $("#recruitmentSearchButton")?.addEventListener("click", () => loadRecruitments(0));
+    $("#recruitmentSearchKeyword")?.addEventListener("input", renderRecruitmentsFromState);
+    $("#recruitmentSearchKeyword")?.addEventListener("keydown", (event) => { if (event.key === "Enter") loadRecruitments(0); });
+    $("#recruitmentSearchType")?.addEventListener("change", renderRecruitmentsFromState);
     $("#openCreateRecruitmentButton")?.addEventListener("click", openRecruitmentCreateModal);
+    $("#closeNeedLeaderGroupButton")?.addEventListener("click", closeNeedLeaderGroupModal);
+    $("#cancelNeedLeaderGroupButton")?.addEventListener("click", closeNeedLeaderGroupModal);
+    $("#needLeaderGroupBackdrop")?.addEventListener("click", closeNeedLeaderGroupModal);
+    $("#goCreateGroupButton")?.addEventListener("click", () => { window.location.href = "/group.html#create-group"; });
     $("#closeCreateRecruitmentButton")?.addEventListener("click", closeRecruitmentCreateModal);
     $("#recruitmentCreateBackdrop")?.addEventListener("click", closeRecruitmentCreateModal);
     document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeRecruitmentCreateModal(); });
     $("#createRecruitmentForm")?.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const payload = compact(formData(event.currentTarget));
+      const payload = formData(event.currentTarget);
+      const selectedGroupId = payload.leaderGroupId;
+      if (!leaderGroups().some((group) => String(group.groupId) === String(selectedGroupId))) {
+        toast("운영자인 그룹을 선택해야 모집글을 작성할 수 있습니다.", true);
+        return;
+      }
+      delete payload.leaderGroupId;
+      payload.title = payload.title?.trim() || "";
+      payload.category = payload.category?.trim() || "";
       payload.capacity = asNumber(payload.capacity);
-      await run(() => window.moiApi.request("/api/recruitment-posts", { method: "POST", body: window.moiApi.toJsonBody(payload) }), "모집글을 등록했습니다.");
+      payload.recruitmentDeadline = payload.recruitmentDeadline || null;
+      if (!payload.title || !payload.category || !payload.capacity || !payload.recruitmentDeadline) {
+        toast("스터디 이름, 카테고리, 모집 인원, 모집 마감일은 필수입니다.", true);
+        return;
+      }
+      const created = await run(() => window.moiApi.request("/api/recruitment-posts", { method: "POST", body: window.moiApi.toJsonBody(payload) }), "\uBAA8\uC9D1\uAE00\uC744 \uB4F1\uB85D\uD588\uC2B5\uB2C8\uB2E4.");
+      markRecruitmentAsOwn(created?.id);
       closeRecruitmentCreateModal();
       event.currentTarget.reset();
+      if ($("#recruitmentSearchKeyword")) $("#recruitmentSearchKeyword").value = "";
+      setRecruitmentStatusFilter("ALL");
+      window.history.replaceState(null, "", "/recruitments.html");
       await loadRecruitments(0);
     });
     if (id) loadRecruitmentDetail(id).catch(() => {});
     else loadRecruitments(pageParam).catch(() => {});
   }
-  function currentGroupId() { return $("#groupIdInput")?.value || $("#scheduleGroupId")?.value; }
+  function populateRecruitmentLeaderGroups(groups = leaderGroups()) {
+    const select = $("#recruitmentLeaderGroupId");
+    if (!select) return;
+    select.innerHTML = groups.map((group) => `<option value="${escapeHtml(group.groupId)}">${escapeHtml(group.name || `그룹 ${group.groupId}`)}</option>`).join("");
+  }
+  function currentGroupId() { return $("#myGroupSelect")?.value || $("#groupIdInput")?.value || $("#scheduleGroupId")?.value; }
+  function renderGroupQuickCard(group) {
+    return `<button class="entity-card my-group-link group-choice-card" type="button" data-group-id="${escapeHtml(group.groupId)}">
+      <strong>${escapeHtml(group.name || `그룹 ${group.groupId}`)}</strong>
+      <div class="meta">${escapeHtml(groupRoleLabel(group.role))} · ${escapeHtml(groupStatusLabel(group.status))}</div>
+    </button>`;
+  }
+  function populateGroupSelector(groups) {
+    const select = $("#myGroupSelect");
+    if (select) {
+      const current = select.value || new URLSearchParams(window.location.search).get("groupId") || "";
+      select.innerHTML = `<option value="">그룹을 선택하세요</option>${groups.map((group) => `<option value="${escapeHtml(group.groupId)}">${escapeHtml(group.name || `그룹 ${group.groupId}`)} (${escapeHtml(groupRoleLabel(group.role))})</option>`).join("")}`;
+      if (current) select.value = current;
+    }
+    renderCards("#myGroupQuickList", groups, "참여 중인 그룹이 없습니다. 그룹 생성은 백엔드 API가 추가되면 연결됩니다.", renderGroupQuickCard);
+    document.querySelectorAll("[data-group-id]").forEach((card) => {
+      card.addEventListener("click", () => {
+        if ($("#myGroupSelect")) $("#myGroupSelect").value = card.dataset.groupId;
+        loadCurrentGroup().catch(() => {});
+      });
+    });
+  }
   function renderGroup(group) {
     if ($("#groupTitle")) $("#groupTitle").textContent = group.name || "그룹 홈";
     if ($("#groupDescription")) $("#groupDescription").textContent = `그룹 ID ${group.groupId} · 모집글 ID ${group.postId}`;
-    if ($("#groupSummary")) $("#groupSummary").innerHTML = `<article><strong>${escapeHtml(group.status)}</strong><span>그룹 상태</span></article><article><strong>${escapeHtml(group.myRole)}</strong><span>내 역할</span></article><article><strong>${group.members?.length || 0}명</strong><span>활성 그룹원</span></article><article><strong>${escapeHtml(group.createdAt || "-")}</strong><span>생성일</span></article>`;
-    renderCards("#groupMemberList", group.members || [], "활성 그룹원이 없습니다.", (member) => `<article class="entity-card member-card"><span class="badge">${escapeHtml(member.role)}</span><strong>회원 #${escapeHtml(member.userId)}</strong><div class="meta">가입일 ${escapeHtml(member.joinedAt || "-")}</div></article>`);
+    if ($("#groupSummary")) $("#groupSummary").innerHTML = `<article><strong>${escapeHtml(groupStatusLabel(group.status))}</strong><span>그룹 상태</span></article><article><strong>${escapeHtml(groupRoleLabel(group.myRole))}</strong><span>내 역할</span></article><article><strong>${group.members?.length || 0}명</strong><span>활성 그룹원</span></article><article><strong>${escapeHtml(formatDate(group.createdAt) || "-")}</strong><span>생성일</span></article>`;
+    renderCards("#groupMemberList", group.members || [], "활성 그룹원이 없습니다.", (member) => `<article class="entity-card member-card"><span class="badge">${escapeHtml(groupRoleLabel(member.role))}</span><strong>회원 #${escapeHtml(member.userId)}</strong><div class="meta">가입일 ${escapeHtml(formatDate(member.joinedAt) || "-")}</div></article>`);
   }
   async function loadGroupSchedules() {
+    if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; }
     const data = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules?scope=${$("#groupScheduleScope")?.value || "upcoming"}`), "일정을 조회했습니다.");
     renderCards("#groupScheduleList", data.items || [], "표시할 일정이 없습니다.", (item) => `<article class="entity-card schedule-card"><span class="badge">일정 #${item.scheduleId}</span><strong>${escapeHtml(item.title)}</strong><div class="meta">${escapeHtml(item.scheduledAt)} · ${escapeHtml(item.location || item.onlineLink || "장소 미정")}</div></article>`);
   }
   function syncGroupScheduleIds(scheduleId) { ["#groupScheduleId", "#groupSummaryScheduleId"].forEach((selector) => { const input = $(selector); if (input && scheduleId) input.value = scheduleId; }); }
   async function loadCurrentGroup() {
+    if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; }
+    window.history.replaceState(null, "", `/group.html?groupId=${encodeURIComponent(currentGroupId())}`);
     const group = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}`), "그룹 홈을 조회했습니다.");
     renderGroup(group);
     await loadGroupSchedules().catch(() => {});
   }
-  function bindGroup() {
+  function openCreateGroupModal() { showPanel("#groupCreateBackdrop"); showPanel("#groupCreatePanel"); document.body.classList.add("modal-open"); }
+  function closeCreateGroupModal() { hidePanel("#groupCreateBackdrop"); hidePanel("#groupCreatePanel"); document.body.classList.remove("modal-open"); }
+  async function bindGroup() {
     const params = new URLSearchParams(window.location.search);
+    const groups = await fetchMyGroups().catch(() => []);
+    populateGroupSelector(groups);
     const groupId = params.get("groupId");
-    if (groupId && $("#groupIdInput")) $("#groupIdInput").value = groupId;
+    if (groupId && $("#myGroupSelect")) $("#myGroupSelect").value = groupId;
+    $("#refreshMyGroupsButton")?.addEventListener("click", async () => populateGroupSelector(await fetchMyGroups(true)));
     $("#loadGroupButton")?.addEventListener("click", loadCurrentGroup);
+    $("#openCreateGroupButton")?.addEventListener("click", openCreateGroupModal);
+    $("#closeCreateGroupButton")?.addEventListener("click", closeCreateGroupModal);
+    $("#groupCreateBackdrop")?.addEventListener("click", closeCreateGroupModal);
+    $("#createGroupForm")?.addEventListener("submit", async (event) => { event.preventDefault(); toast("그룹 생성 API가 아직 필요합니다. Part3에서 POST /api/groups 또는 Part2 승인 후 그룹 생성 연결이 필요합니다.", true); });
     $("#groupLoadSchedulesButton")?.addEventListener("click", loadGroupSchedules);
-    $("#groupCreateScheduleForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const schedule = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules`, { method: "POST", body: window.moiApi.toJsonBody(compact(formData(event.currentTarget))) }), "일정을 생성했습니다."); syncGroupScheduleIds(schedule?.scheduleId); await loadGroupSchedules(); });
+    $("#groupCreateScheduleForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; } const schedule = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules`, { method: "POST", body: window.moiApi.toJsonBody(compact(formData(event.currentTarget))) }), "일정을 생성했습니다."); syncGroupScheduleIds(schedule?.scheduleId); await loadGroupSchedules(); });
     $("#groupAnswerAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); const response = await run(() => window.moiApi.request(`/api/attendance/schedules/${payload.scheduleId}/answers`, { method: "POST", body: window.moiApi.toJsonBody({ response: payload.response }) }), "출석 응답을 저장했습니다."); json("#groupAttendanceOutput", response); });
     $("#groupCheckAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); const response = await run(() => window.moiApi.request(`/api/attendance/schedules/${payload.scheduleId}/records`, { method: "POST", body: window.moiApi.toJsonBody({ userId: asNumber(payload.userId), status: payload.status }) }), "출석을 체크했습니다."); json("#groupAttendanceOutput", response); });
     $("#groupLoadAttendanceSummaryButton")?.addEventListener("click", async () => { const response = await run(() => window.moiApi.request(`/api/attendance/schedules/${$("#groupSummaryScheduleId").value}/records/summary`), "출석 요약을 조회했습니다."); json("#groupAttendanceOutput", response); });
     setDefaultScheduleTime();
+    if (window.location.hash === "#create-group") openCreateGroupModal();
     if (groupId) loadCurrentGroup().catch(() => {});
   }
 

@@ -3,9 +3,11 @@ package com.mycom.myapp.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mycom.myapp.application.dto.request.JoinApplicationCreateRequest;
+import com.mycom.myapp.application.entity.ApplicationStatus;
 import com.mycom.myapp.application.entity.JoinApplication;
 import com.mycom.myapp.application.repository.JoinApplicationRepository;
 import com.mycom.myapp.global.exception.BusinessException;
@@ -14,6 +16,8 @@ import com.mycom.myapp.member.repository.MemberRepository;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
+import com.mycom.myapp.study.service.CreateStudyGroupCommand;
+import com.mycom.myapp.study.service.StudyGroupCreationService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +34,7 @@ class JoinApplicationServiceTest {
     @Mock private JoinApplicationRepository joinApplicationRepository;
     @Mock private RecruitmentRepository recruitmentRepository;
     @Mock private MemberRepository memberRepository;
+    @Mock private StudyGroupCreationService studyGroupCreationService;
 
     @InjectMocks private JoinApplicationService joinApplicationService;
 
@@ -39,12 +44,14 @@ class JoinApplicationServiceTest {
         Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
         ReflectionTestUtils.setField(leader, "id", 1L);
         Member applicant = Member.create("applicant@test.com", "encoded", "지원자", null, null, null);
+
         RecruitmentPost post =
                 RecruitmentPost.builder()
                         .leader(leader)
                         .title("제목")
                         .status(RecruitmentStatus.RECRUITING)
                         .build();
+
         JoinApplicationCreateRequest request =
                 new JoinApplicationCreateRequest("지원동기", "경험", "주말 가능", "백엔드");
 
@@ -64,11 +71,13 @@ class JoinApplicationServiceTest {
     void create_fail_duplicate() {
         Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
         ReflectionTestUtils.setField(leader, "id", 1L);
+
         RecruitmentPost post =
                 RecruitmentPost.builder()
                         .leader(leader)
                         .status(RecruitmentStatus.RECRUITING)
                         .build();
+
         JoinApplicationCreateRequest request =
                 new JoinApplicationCreateRequest("지원동기", null, null, null);
 
@@ -84,6 +93,7 @@ class JoinApplicationServiceTest {
     void getApplicants_fail_accessDenied() {
         Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
         ReflectionTestUtils.setField(leader, "id", 1L);
+
         RecruitmentPost post =
                 RecruitmentPost.builder()
                         .leader(leader)
@@ -101,6 +111,7 @@ class JoinApplicationServiceTest {
     void getApplicants_success() {
         Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
         ReflectionTestUtils.setField(leader, "id", 1L);
+
         RecruitmentPost post =
                 RecruitmentPost.builder()
                         .leader(leader)
@@ -113,5 +124,154 @@ class JoinApplicationServiceTest {
         var result = joinApplicationService.getApplicants(10L, 1L);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("리더가 PENDING 상태의 지원을 승인하면 상태가 APPROVED로 바뀐다")
+    void approve_success() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+        Member applicant = Member.create("applicant@test.com", "encoded", "지원자", null, null, null);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
+
+        JoinApplication application =
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(applicant)
+                        .motivation("지원동기")
+                        .build();
+
+        when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
+        when(joinApplicationRepository.findByIdAndPostId(100L, 10L))
+                .thenReturn(Optional.of(application));
+
+        var response = joinApplicationService.approve(10L, 100L, 1L);
+
+        assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
+    }
+
+    @Test
+    @DisplayName("리더가 아닌 사용자가 승인을 시도하면 예외가 발생한다")
+    void approve_fail_notLeader() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
+
+        when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
+
+        assertThatThrownBy(() -> joinApplicationService.approve(10L, 100L, 999L))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("이미 처리된 지원을 다시 승인하려 하면 예외가 발생한다")
+    void approve_fail_alreadyProcessed() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+        Member applicant = Member.create("applicant@test.com", "encoded", "지원자", null, null, null);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
+
+        JoinApplication application =
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(applicant)
+                        .motivation("지원동기")
+                        .build();
+        application.approve();
+
+        when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
+        when(joinApplicationRepository.findByIdAndPostId(100L, 10L))
+                .thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> joinApplicationService.approve(10L, 100L, 1L))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("리더가 PENDING 상태의 지원을 거절하면 상태가 REJECTED로 바뀐다")
+    void reject_success() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+        Member applicant = Member.create("applicant@test.com", "encoded", "지원자", null, null, null);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
+
+        JoinApplication application =
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(applicant)
+                        .motivation("지원동기")
+                        .build();
+
+        when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
+        when(joinApplicationRepository.findByIdAndPostId(100L, 10L))
+                .thenReturn(Optional.of(application));
+
+        var response = joinApplicationService.reject(10L, 100L, 1L);
+
+        assertThat(response.status()).isEqualTo(ApplicationStatus.REJECTED);
+    }
+
+    @Test
+    @DisplayName("그룹 확정 시 승인된 지원자만 골라 StudyGroupCreationService에 전달한다")
+    void confirmGroup_success() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+        Member approvedApplicant =
+                Member.create("approved@test.com", "encoded", "승인자", null, null, null);
+        ReflectionTestUtils.setField(approvedApplicant, "id", 2L);
+        Member pendingApplicant =
+                Member.create("pending@test.com", "encoded", "대기자", null, null, null);
+        ReflectionTestUtils.setField(pendingApplicant, "id", 3L);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .title("제목")
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
+
+        JoinApplication approved =
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(approvedApplicant)
+                        .motivation("지원동기")
+                        .build();
+        approved.approve();
+        JoinApplication pending =
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(pendingApplicant)
+                        .motivation("지원동기")
+                        .build();
+
+        when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
+        when(joinApplicationRepository.findByPostId(10L)).thenReturn(List.of(approved, pending));
+        when(studyGroupCreationService.create(any(CreateStudyGroupCommand.class))).thenReturn(999L);
+
+        Long groupId = joinApplicationService.confirmGroup(10L, 1L);
+
+        assertThat(groupId).isEqualTo(999L);
+        verify(studyGroupCreationService)
+                .create(new CreateStudyGroupCommand(10L, "제목", 1L, List.of(2L)));
     }
 }
