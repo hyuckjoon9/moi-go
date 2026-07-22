@@ -25,6 +25,19 @@ Part2 모집글·지원 작업의 범위와 협업 경계를 정의한다. 공�
 
 루트 `AGENTS.md` 갱신도 허용한다. 다른 파트나 `global`, 빌드 설정, 공통 테스트 지원 코드는 공유 영역이다.
 
+### Part2에서 수정 가능한 영역
+
+Part2 작업 브랜치에서는 원칙적으로 다음 경로만 수정한다(Part1 `development-guide.md`의 allowlist 형식을 따름).
+
+```text
+src/main/java/com/mycom/myapp/recruitment/**
+src/main/java/com/mycom/myapp/application/**
+src/test/java/com/mycom/myapp/recruitment/**
+src/test/java/com/mycom/myapp/application/**
+src/test/resources/**
+docs/part2-recruitment/**
+```
+
 ### 파트 간 경계
 
 | 영역 | 원칙 |
@@ -36,6 +49,7 @@ Part2 모집글·지원 작업의 범위와 협업 경계를 정의한다. 공�
 
 다른 영역의 Entity나 Repository에 직접 결합하지 않는다. 외부 변경이 필요하면 공개 경계로 해결 가능한지 먼저 확인하고, 담당자와 계약을 합의한 뒤 최소 범위와 테스트만 수정한다. 독립 검토가 가능하면 별도 브랜치·PR로 분리하고, 같은 PR이면 경로·이유·영향·검증 결과를 명시한다.
 
+**특히 `study` 패키지는 권혁준(Part3) 담당이며, 장지원(Part2)은 절대 해당 패키지 내부 파일을 생성·수정하지 않는다.** 필요한 계약 변경은 문서로 요청하고 Part3가 구현한다.
 
 ## 핵심 불변식
 
@@ -48,9 +62,13 @@ Part2 모집글·지원 작업의 범위와 협업 경계를 정의한다. 공�
 
 세부 데이터 계약은 `erd.md`, API·오류 계약은 `api.md`, 사용자 기능·권한 규칙은 `feature-spec.md`, 그룹 연동 경계는 [`study-group-integration-design.md`](study-group-integration-design.md)를 따른다.
 
+## 브랜치 네이밍
+
+Part1·Part3는 `feature/part1-<topic>`, `feature/part3-<topic>`처럼 `partN-` 접두사를 쓴다. Part2는 지금까지 `feature/recruitment-post-create`, `feature/join-application-list`처럼 도메인명을 접두사로 써왔다 — 기존 브랜치를 소급해서 바꿀 필요는 없지만, 팀이 `partN-` 접두사로 통일하기로 하면 새 브랜치부터는 `feature/part2-<topic>` 형태를 쓴다. 어느 쪽으로 갈지는 팀 컨벤션 확정 후 이 절을 갱신한다.
+
 ## 작업 흐름
 
-1. `develop`을 최신화하고 `feature/recruitment-post-<topic>` 또는 `fix/recruitment-<problem>` 브랜치를 만든다.
+1. `develop`을 최신화하고 `feature/recruitment-post-<topic>`(또는 팀 합의 시 `feature/part2-<topic>`) 또는 `fix/recruitment-<problem>` 브랜치를 만든다.
 2. 이 문서, `context.md`, 관련 코드·문서를 읽고 실제 Git 상태와 대조한다.
 3. 완료 조건을 테스트 사례로 먼저 정의하고 필요한 최소 범위를 구현한다.
 4. API나 데이터 계약이 바뀌면 같은 작업에서 `api.md` 또는 `erd.md`를 갱신한다.
@@ -63,7 +81,22 @@ Part2 모집글·지원 작업의 범위와 협업 경계를 정의한다. 공�
 .\gradlew.bat spotlessCheck
 ```
 
-브랜치 하나에는 목적 하나만 둔다. 지금까지 사용한 브랜치 예: `feature/recruitment-post-create`, `feature/recruitment-post-read`, `feature/join-application-list`, `feature/join-application-approval`, `feature/recruitment-post-manage`. 커밋 형식과 타입은 README의 `<type>: <한글 설명>`을 따른다.
+브랜치 하나에는 목적 하나만 둔다. 지금까지 사용한 브랜치 예: `feature/recruitment-post-create`, `feature/recruitment-post-read`, `feature/join-application-list`, `feature/join-application-approval`, `feature/recruitment-post-manage`.
+
+## 커밋 전략
+
+커밋 메시지는 README의 `<type>: <한글 설명>` 형식을 따른다.
+
+| 타입 | 사용 기준 | Part2 예시 |
+| --- | --- | --- |
+| `feat` | 모집글·지원 기능 추가 | `feat: 모집글 수정·삭제·마감·종료 API 구현` |
+| `fix` | 잘못된 검증, 권한, 그룹 연동 처리 수정 | `fix: 지원 승인 시 그룹원 추가 실패 처리 수정` |
+| `refactor` | 외부 동작을 바꾸지 않는 구조 개선 | `refactor: confirmGroup 제거하고 StudyGroupProvisioningPort로 전환` |
+| `test` | 테스트 추가·수정만 포함 | `test: 모집글 종료 시 그룹 종료 요청 테스트 추가` |
+| `docs` | 문서만 추가·수정 | `docs: Part2 API 명세 검증 완료 항목 반영` |
+| `chore` | 빌드, 설정, 포맷 등 제품 동작과 직접 관련 없는 작업 | `chore: 테스트 데이터소스 환경변수 정리` |
+
+커밋 하나에는 리뷰 가능한 하나의 논리적 변경만 담는다.
 
 ## 구현 원칙
 

@@ -55,7 +55,7 @@ Part3의 실제 구현(`StudyGroupProvisioningService.createGroup()`)은 `approv
 | Part3 오류 코드 | 조건 | Part2에서의 영향 |
 | --- | --- | --- |
 | `GROUP_NOT_FOUND` | 해당 `postId`의 그룹이 없음(정상 흐름에서는 발생하지 않아야 함) | 승인 실패, 지원 상태 롤백 |
-| `GROUP_ENDED` | 그룹이 이미 `ENDED` | 승인 실패, 지원 상태 롤백 |
+| `GROUP_MEMBER_ADD_NOT_ALLOWED` | 그룹이 이미 `ENDED`(과거에는 `GROUP_ENDED`를 재사용했으나, 일정 관리 실패와 메시지가 겹쳐서 Part3가 전용 코드로 분리함 — "종료된 그룹에는 새 그룹원을 추가할 수 없습니다.") | 승인 실패, 지원 상태 롤백 |
 | `WITHDRAWN_GROUP_MEMBER` | 지원자가 과거 탈퇴 이력이 있는 그룹원 | 승인 실패, 지원 상태 롤백 |
 
 이미 활성 멤버인 경우(같은 사용자를 중복 승인 시도하는 등)는 멱등하게 성공 처리된다(다만 Part2 쪽에서는 `application.getStatus() != PENDING` 체크가 먼저 걸려 `APPLICATION_ALREADY_PROCESSED`로 막히므로 실제로는 도달하지 않는 경로다).

@@ -41,18 +41,35 @@ git log -3 --oneline
 
 상세 필드·오류는 `api.md`, 데이터 제약은 `erd.md`, 설계 이유는 `study-group-integration-design.md`를 기준으로 한다.
 
+## 완료된 항목 (갱신됨)
+
+- Postman 통합 테스트 11단계 플랜 전 항목 완료. 삭제(409 `RECRUITMENT_DELETE_NOT_ALLOWED`) 포함.
+- `RecruitmentCreateRequest`/`RecruitmentUpdateRequest` 검증 어노테이션 적용 확인 완료.
+- `GlobalExceptionHandler`의 `DataIntegrityViolationException` 매핑 적용 확인 완료.
+- `JoinApplicationServiceTest.create_success` 정상 버전으로 복구 확인 완료.
+- (Part3 확인 요청 → 해결) `GET /api/groups/me`가 `ENDED` 그룹을 제외하던 필터가 제거됨 — 이제 활성 그룹원이면 그룹 상태와 무관하게 전부 반환되고, 응답에 `status` 필드가 있어 프론트가 ACTIVE/ENDED를 구분할 수 있음.
+- (Part3 확인 요청 → 해결) `GROUP_ENDED` 메시지 문제 → `addMember()` 실패 시 별도 코드 `GROUP_MEMBER_ADD_NOT_ALLOWED`("종료된 그룹에는 새 그룹원을 추가할 수 없습니다.")로 분리됨. `GROUP_ENDED`는 이제 일정 관리 실패 상황에서만 쓰임.
+- (Part4 진행 상황) 참석 응답 마감·그룹원 권한 검증이 `ScheduleAttendancePolicyReader` 연동으로 완료됨(이전엔 미검증 상태였음). Part2와 직접 관련은 없지만 전체 앱 완성도에 참고.
+
 ## 바로 다음 작업
 
-1. Postman 통합 테스트 11단계 플랜의 나머지 항목 완료·기록: (10) 그룹이 연결된 모집글 삭제 시 `409 RECRUITMENT_DELETE_NOT_ALLOWED` 응답 확인, (11) `GET /api/join-applications/me` 상태 필터 조회 확인.
-2. `RecruitmentCreateRequest`/`RecruitmentUpdateRequest`에 `@NotBlank`/`@NotNull` 등 검증 어노테이션을 실제로 적용했는지 재확인하고, 미적용이면 반영한다.
-3. `GlobalExceptionHandler`에 `DataIntegrityViolationException` → `409 RECRUITMENT_DELETE_NOT_ALLOWED` 매핑이 실제로 반영됐는지 재확인한다.
-4. `JoinApplicationServiceTest`의 `create_success` 테스트가 올바른 버전(지원 등록 케이스)으로 복구됐는지 확인한다.
-5. 그룹이 연결된 모집글의 삭제 정책(항상 막을지, 그룹도 함께 정리하는 경로를 둘지)을 팀과 확정하고 `feature-spec.md`, `erd.md`에 반영한다.
+1. 그룹이 연결된 모집글의 삭제 정책(항상 막을지, 그룹도 함께 정리하는 경로를 둘지)을 팀과 확정하고 `feature-spec.md`, `erd.md`에 반영한다.
+2. `RecruitmentPost.close()`/`end()`에 상태 전이 가드가 필요한지(예: 이미 `ENDED`인 글에 `close()` 재호출 허용 여부) 기획 확인 후 반영한다.
+3. `title` 필드 `@Size` 길이 제한 추가 여부 결정.
+4. 목록 조회 응답을 `Page` 그대로 노출할지 별도 DTO로 감쌀지, 삭제/지원 등록 성공 상태 코드를 Part3 컨벤션(`201`/`204`)에 맞출지 팀 컨벤션 논의.
+5. 프론트(`app.js`)에 Part2 API(지원 승인/거절 등) 연결 — 프론트 진행 상황에 따름.
 
-## 팀원(Part3) 확인 요청 사항
+## 남은 팀 확인 사항
 
-- `GET /api/groups/me`가 `ENDED` 상태 그룹을 목록에서 제외하는 것으로 보인다(DB에는 `status = ENDED`로 정상 반영됨을 확인함). 의도된 동작인지 확인 필요.
-- `GROUP_ENDED` 오류 메시지가 "종료된 그룹에서는 일정을 관리할 수 없습니다."로, 그룹원 추가 실패 상황에서도 일정 관리 문구가 그대로 노출된다. 문구 조정 필요 여부 확인.
+- (에러 응답에 `code` 필드를 추가할지) 프론트에서 에러별 분기 처리가 필요한지 확인 후 결정.
+- `local` 테스트 실행 시 `SPRING_DATASOURCE_USERNAME`/`SPRING_DATASOURCE_PASSWORD` 환경변수가 필수로 바뀐 것 — 팀 컨벤션 문서화(README/AGENTS.md) 필요.
+
+## 다음 세션용 시작 요청 예시
+
+```text
+AGENTS.md와 docs/part2-recruitment/context.md를 읽고 현재 Git 상태를 확인해줘.
+현재 브랜치의 '바로 다음 작업'부터 이어서 진행해줘.
+```
 
 ## 세션 종료 시 갱신
 
