@@ -100,7 +100,7 @@ class StudyGroupProvisioningServiceTest {
         StudyGroup ended = group(100L, GroupStatus.ENDED);
         when(groupRepository.findByPostId(10L)).thenReturn(Optional.of(ended));
         assertError(
-                ErrorCode.GROUP_ENDED,
+                ErrorCode.GROUP_MEMBER_ADD_NOT_ALLOWED,
                 () -> service.addMember(new AddStudyGroupMemberCommand(10L, 2L)));
 
         StudyGroup active = group(100L, GroupStatus.ACTIVE);

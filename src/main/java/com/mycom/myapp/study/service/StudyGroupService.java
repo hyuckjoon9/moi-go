@@ -7,7 +7,6 @@ import com.mycom.myapp.study.dto.response.MyStudyGroupResponse;
 import com.mycom.myapp.study.dto.response.StudyGroupHomeResponse;
 import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
-import com.mycom.myapp.study.entity.GroupStatus;
 import com.mycom.myapp.study.entity.StudyGroup;
 import com.mycom.myapp.study.repository.GroupMemberRepository;
 import com.mycom.myapp.study.repository.StudyGroupRepository;
@@ -55,8 +54,7 @@ public class StudyGroupService {
     @Transactional(readOnly = true)
     public List<MyStudyGroupResponse> getMyGroups(Long userId) {
         return groupMemberRepository
-                .findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
-                        userId, GroupMemberStatus.ACTIVE, GroupStatus.ACTIVE)
+                .findAllByUserIdAndStatusOrderByJoinedAtDescIdDesc(userId, GroupMemberStatus.ACTIVE)
                 .stream()
                 .map(MyStudyGroupResponse::from)
                 .toList();

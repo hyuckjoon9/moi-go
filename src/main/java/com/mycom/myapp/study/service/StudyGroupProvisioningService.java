@@ -42,7 +42,7 @@ public class StudyGroupProvisioningService implements StudyGroupProvisioningPort
     public Long addMember(AddStudyGroupMemberCommand command) {
         StudyGroup group = getGroup(command.postId());
         if (group.getStatus() == GroupStatus.ENDED) {
-            throw new BusinessException(ErrorCode.GROUP_ENDED);
+            throw new BusinessException(ErrorCode.GROUP_MEMBER_ADD_NOT_ALLOWED);
         }
         return groupMemberRepository
                 .findByStudyGroupIdAndUserId(group.getId(), command.userId())
