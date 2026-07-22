@@ -50,12 +50,10 @@ git config --get core.hooksPath
 
 ## 기술 스택
 
-* Java
-* Spring Boot
-* Gradle
-* MySQL
-* GitHub Actions
-* Spotless
+- Backend: Java, Spring Boot, Spring Security, Spring Data JPA
+- Database: MySQL
+- Test: JUnit 5, H2
+- Quality: Spotless, GitHub Actions
 
 ## 실행
 
