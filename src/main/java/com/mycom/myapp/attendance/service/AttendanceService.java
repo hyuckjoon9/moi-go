@@ -19,6 +19,8 @@ import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
 import com.mycom.myapp.study.entity.GroupRole;
 import com.mycom.myapp.study.repository.GroupMemberRepository;
+import com.mycom.myapp.study.service.StudyGroupAttendanceRatePolicy;
+import com.mycom.myapp.study.service.port.StudyGroupAttendanceRatePolicyReader;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,6 +42,7 @@ public class AttendanceService {
     private final StudyScheduleRepository studyScheduleRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final ScheduleAttendancePolicyReader scheduleAttendancePolicyReader;
+    private final StudyGroupAttendanceRatePolicyReader studyGroupAttendanceRatePolicyReader;
     private final Clock clock;
 
     /** 멤버가 스케줄에 처음 참석 여부를 등록한다. 마감이 지났거나 이미 응답이 있으면 거부한다. */
@@ -141,7 +144,11 @@ public class AttendanceService {
 
     /** 그룹의 활성 LEADER/MANAGER가 그룹원별 출석률(이 그룹의 스케줄만 집계)을 조회한다. */
     public List<MyAttendanceRateResponse> getGroupAttendanceRates(Long groupId, Long requesterId) {
-        validateGroupManager(groupId, requesterId);
+        StudyGroupAttendanceRatePolicy policy =
+                studyGroupAttendanceRatePolicyReader.getAttendanceRatePolicy(groupId, requesterId);
+        if (!policy.canViewAllAttendanceRates()) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
+        }
 
         List<Long> scheduleIds =
                 studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(groupId).stream()
@@ -194,20 +201,6 @@ public class AttendanceService {
     /** checkedBy가 scheduleId 소속 그룹의 활성 LEADER/MANAGER인지 검증한다. */
     private void validateManager(Long scheduleId, Long checkedBy) {
         GroupMember member = validateActiveMember(scheduleId, checkedBy);
-        if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
-            throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
-        }
-    }
-
-    /** requesterId가 groupId의 활성 LEADER/MANAGER인지 검증한다. */
-    private void validateGroupManager(Long groupId, Long requesterId) {
-        GroupMember member =
-                groupMemberRepository
-                        .findByStudyGroupIdAndUserId(groupId, requesterId)
-                        .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_ACCESS_DENIED));
-        if (member.getStatus() == GroupMemberStatus.WITHDRAWN) {
-            throw new BusinessException(ErrorCode.WITHDRAWN_GROUP_MEMBER);
-        }
         if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
             throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
         }
