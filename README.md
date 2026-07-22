@@ -1,6 +1,13 @@
-# 프로젝트명
+# Moi-Go
 
-Spring Boot 기반 4인 팀 프로젝트
+Moi-Go는 스터디원 모집부터 실제 스터디 운영, 출석 및 활동 기록까지 한곳에서 관리하는 서비스입니다.
+
+## 기술 스택
+
+- Backend: Java, Spring Boot, Spring Security, Spring Data JPA
+- Database: MySQL
+- Test: JUnit 5, H2
+- Quality: Spotless, GitHub Actions
 
 ## 개발 환경
 
@@ -48,60 +55,98 @@ git config --get core.hooksPath
 
 이후 커밋할 때 Spotless가 자동으로 코드 포맷을 적용한다.
 
-## 기술 스택
-
-* Java
-* Spring Boot
-* Gradle
-* MySQL
-* GitHub Actions
-* Spotless
-
 ## 실행
 
-### Windows
+### 1. 로컬 DB 설정
 
-```powershell
-.\gradlew.bat bootRun
+처음 실행하기 전에 예시 파일을 복사한 뒤, 본인의 MySQL 연결 정보를 입력합니다.
+
+#### macOS / Linux / Git Bash
+
+```bash
+cp src/main/resources/application-local.example.properties \
+  src/main/resources/application-local.properties
 ```
 
-### macOS / Git Bash
+#### Windows PowerShell
+
+```powershell
+Copy-Item src/main/resources/application-local.example.properties `
+  src/main/resources/application-local.properties
+```
+
+#### Windows 명령 프롬프트(cmd)
+
+```cmd
+copy src\main\resources\application-local.example.properties ^
+  src\main\resources\application-local.properties
+```
+
+`application-local.properties`는 Git에 포함되지 않습니다.
+
+### 2. 애플리케이션 실행
+
+#### macOS / Linux / Git Bash
 
 ```bash
 ./gradlew bootRun
+```
+
+#### Windows PowerShell / 명령 프롬프트(cmd)
+
+```powershell
+.\gradlew.bat bootRun
 ```
 
 ## 테스트
 
 테스트 실행 환경과 방법은 [테스트 가이드](docs/test-guide.md)를 참고합니다.
 
-### Windows
+전체 테스트에는 로컬 MySQL 테스트 DB가 필요합니다. 테스트용 DB 계정 정보는 파일에 저장하지 않고 환경변수로 전달합니다.
+
+#### macOS / Linux / Git Bash
+
+```bash
+SPRING_DATASOURCE_USERNAME=YOUR_MYSQL_USERNAME \
+SPRING_DATASOURCE_PASSWORD=YOUR_MYSQL_PASSWORD \
+./gradlew test
+```
+
+#### Windows PowerShell
 
 ```powershell
+$env:SPRING_DATASOURCE_USERNAME = "YOUR_MYSQL_USERNAME"
+$env:SPRING_DATASOURCE_PASSWORD = "YOUR_MYSQL_PASSWORD"
 .\gradlew.bat test
 ```
 
-### macOS / Git Bash
+#### Windows 명령 프롬프트(cmd)
 
-```bash
-./gradlew test
+```cmd
+set SPRING_DATASOURCE_USERNAME=YOUR_MYSQL_USERNAME
+set SPRING_DATASOURCE_PASSWORD=YOUR_MYSQL_PASSWORD
+.\gradlew.bat test
 ```
+
+마지막에 `BUILD SUCCESSFUL`이 출력되면 테스트가 성공한 것입니다.
 
 ## 코드 포맷
 
 커밋 시 Git Hook이 자동으로 포맷을 적용한다.
 
-수동 적용:
-
-```bash
-./gradlew spotlessApply
-```
-
-포맷 검사:
+### macOS / Linux / Git Bash
 
 ```bash
 ./gradlew spotlessCheck
 ```
+
+### Windows PowerShell / 명령 프롬프트(cmd)
+
+```powershell
+.\gradlew.bat spotlessCheck
+```
+
+마지막에 `BUILD SUCCESSFUL`이 출력되면 포맷 검사가 성공한 것입니다.
 
 ## 브랜치 규칙
 
@@ -111,6 +156,7 @@ git config --get core.hooksPath
 | `develop`   | 개발 통합     |
 | `feature/*` | 기능 개발     |
 | `fix/*`     | 버그 수정     |
+| `docs/*`    | 문서 작업     |
 
 ```text
 feature/member-signup
