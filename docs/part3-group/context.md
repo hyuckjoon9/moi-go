@@ -1,6 +1,6 @@
 # Part3 작업 컨텍스트
 
-> 기준: 2026-07-22, `develop`의 `db9161c`
+> 기준: 2026-07-22, `develop`의 `b885904`
 >
 > 실제 Git 상태가 이 문서와 다르면 저장소를 우선한다. 개인 기록인 `.local/part3/updates.md`가 있으면 최신 항목만 참고하되 오래된 브랜치 기록은 무시한다.
 
@@ -24,8 +24,11 @@ git log -3 --oneline
 - 외부 경계: Part1 `auth/member`, Part2 `recruitment/application`, Part4 `attendance`, `activity`, `global`
 - 그룹 영속성·생성·홈 조회와 일정 생성·조회·수정·응답 마감 변경·삭제가 `develop`에 반영됐다.
 - 일정 삭제는 참석 응답 `CASCADE`, 출석·활동 기록 `RESTRICT` 및 서비스 사전 검사로 보호한다.
-- Part3는 `ScheduleAttendancePolicyReader`를 제공하지만 Part4 참석 응답 서비스는 아직 이를 사용하지 않는다.
-- Part3는 `StudyGroupAttendanceRatePolicyReader`를 제공한다. 활성 그룹의 활성 `LEADER` 또는 `MANAGER`만 `canViewAllAttendanceRates=true`를 받으며, Part4는 이 결과로 그룹 전체 출석률 조회를 제한한다.
+- Part2는 `StudyGroupProvisioningPort`를 통해 모집글 게시 시 그룹 생성, 신청 승인 시 그룹원 추가, 스터디 종료 시 그룹 종료를 요청한다.
+- Part4 참석 응답 등록·변경·삭제는 `ScheduleAttendancePolicyReader`를 통해 일정·활성 그룹원·실질 마감을 확인한다.
+- Part4 그룹 전체 출석률 조회는 `StudyGroupAttendanceRatePolicyReader`로 권한·상태 판단을 위임한다. 활성 그룹의 활성 `LEADER` 또는 `MANAGER`만 `canViewAllAttendanceRates=true`를 받으며, `false`는 Part4 권한 오류로 변환한다.
+- 그룹 전체 출석률 집계는 1차 MVP 예외로 Part4가 `StudyScheduleRepository`에서 그룹 일정 범위를, `GroupMemberRepository`에서 활성 그룹원 목록을 직접 조회한다. 이 직접 조회는 권한·상태 판단에 사용하지 않는다.
+- 실제 DB SQL에는 일정 → 참석 응답 `CASCADE`, 일정 → 출석·활동 기록 `RESTRICT` FK가 정의돼 있다. 저장소의 통합 테스트는 동일한 삭제 계약을 검증한다.
 
 ## 구현 완료 계약
 
@@ -45,24 +48,13 @@ git log -3 --oneline
 - 응답 마감은 전용 `PATCH`로 설정·변경·제거한다. 기존 유효 마감 이후 재개방하지 않는다.
 - 미래 일정만 삭제하며 출석·활동 기록이 있으면 `SCHEDULE_DELETE_NOT_ALLOWED`로 거부한다.
 
-상세 필드·오류는 `api.md`, 데이터 제약은 `erd.md`, 설계 이유는 해당 `*-design.md`를 기준으로 한다.
+상세 필드·HTTP·내부 서비스·오류 계약은 `api.md`, 사용자 규칙은 `feature-spec.md`, 데이터 제약은 `erd.md`를 기준으로 한다.
 
 ## 바로 다음 작업
 
-Part2가 `StudyGroupProvisioningPort`를 게시·신청 승인·스터디 취소 흐름에 연결하고 기존 `confirmGroup()`을 대체한다. 세 호출 지점은 부분 전환하지 않고 같은 변경에서 전환하며, Part3 예외가 Part2 상태 변경까지 롤백하는 통합 테스트를 추가한다.
+Part2·Part3 프로비저닝 경계의 실제 트랜잭션 롤백 통합 테스트를 추가한다. 현재 Part2 테스트는 포트 호출을 mock으로 검증하므로, `createGroup`·`addMember`·`endGroup` 실패 시 Part2 상태 변경까지 롤백되는지 DB 통합 테스트로 확인해야 한다.
 
-이후 작업:
-
-Part4 참석 응답 등록·변경·삭제에 Part3 일정 정책을 적용한다.
-
-1. `AttendanceService`가 `ScheduleAttendancePolicyReader`를 통해 일정·그룹원·실질 마감을 확인하게 한다.
-2. 세 동작 모두 `now < effectiveDeadline`일 때만 허용하고, 마감 시 `ATTENDANCE_RESPONSE_CLOSED`를 반환한다.
-3. `schedule-fk-verification.sql`과 통합 테스트로 `CASCADE`·`RESTRICT` 계약을 확인한다.
-4. Part3·Part4·활동 관련 테스트, 전체 테스트와 `spotlessCheck`를 실행한다.
-
-이 작업은 Part4 소유 코드를 수정하므로 `development-guide.md`의 협업 원칙에 따라 담당자 리뷰와 변경 이유를 PR에 명시한다.
-
-Part4 출석률 조회는 개인 조회를 인증 사용자 본인으로 제한하고, 그룹 전체 조회는 `groupId` 범위의 집계와 `StudyGroupAttendanceRatePolicyReader` 권한 확인을 함께 적용한다.
+이후 Part4 그룹 전체 출석률 집계의 직접 Repository 조회 예외를 유지할지 검토한다. 경계를 완전히 분리하려면 Part3가 그룹 일정 ID 목록과 활성 그룹원 목록을 제공하는 조회 포트를 추가한다.
 
 ## 세션 종료 시 갱신
 
