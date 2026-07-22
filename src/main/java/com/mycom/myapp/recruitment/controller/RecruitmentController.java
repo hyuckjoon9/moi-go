@@ -1,6 +1,5 @@
 package com.mycom.myapp.recruitment.controller;
 
-import com.mycom.myapp.application.service.JoinApplicationService;
 import com.mycom.myapp.global.response.ApiResponse;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.recruitment.dto.request.RecruitmentCreateRequest;

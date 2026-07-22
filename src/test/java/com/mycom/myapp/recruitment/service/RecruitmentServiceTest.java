@@ -42,16 +42,28 @@ class RecruitmentServiceTest {
 
         RecruitmentCreateRequest request =
                 new RecruitmentCreateRequest(
-                        "제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, java.time.LocalDate.now().plusDays(7), "8주", "조건");
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        java.time.LocalDate.now().plusDays(7),
+                        "8주",
+                        "조건");
 
         when(memberRepository.findById(1L)).thenReturn(Optional.of(leader));
         when(recruitmentRepository.save(any(RecruitmentPost.class)))
-                .thenAnswer(invocation -> {
-                    RecruitmentPost saved = invocation.getArgument(0);
-                    ReflectionTestUtils.setField(saved, "id", 10L); // [추가] 실제 DB처럼 id를 채워줌
-                    return saved;
-                });
+                .thenAnswer(
+                        invocation -> {
+                            RecruitmentPost saved = invocation.getArgument(0);
+                            ReflectionTestUtils.setField(saved, "id", 10L); // [추가] 실제 DB처럼 id를 채워줌
+                            return saved;
+                        });
 
         var response = recruitmentService.create(1L, request);
 
@@ -74,8 +86,19 @@ class RecruitmentServiceTest {
 
         RecruitmentUpdateRequest request =
                 new RecruitmentUpdateRequest(
-                        "수정된 제목", "개발", "수정된 설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, java.time.LocalDate.now().plusDays(7), "8주", "조건");
+                        "수정된 제목",
+                        "개발",
+                        "수정된 설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        java.time.LocalDate.now().plusDays(7),
+                        "8주",
+                        "조건");
 
         when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
 
@@ -99,8 +122,19 @@ class RecruitmentServiceTest {
 
         RecruitmentUpdateRequest request =
                 new RecruitmentUpdateRequest(
-                        "제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link", "매주 화요일", 5,
-                        java.time.LocalDate.now().plusDays(7), "8주", "조건");
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        java.time.LocalDate.now().plusDays(7),
+                        "8주",
+                        "조건");
 
         when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
 
@@ -115,7 +149,10 @@ class RecruitmentServiceTest {
         ReflectionTestUtils.setField(leader, "id", 1L);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
 

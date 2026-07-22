@@ -73,7 +73,10 @@ class JoinApplicationServiceTest {
         ReflectionTestUtils.setField(leader, "id", 1L);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         JoinApplicationCreateRequest request =
                 new JoinApplicationCreateRequest("지원동기", null, null, null);
@@ -92,7 +95,10 @@ class JoinApplicationServiceTest {
         ReflectionTestUtils.setField(leader, "id", 1L);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
 
@@ -107,7 +113,10 @@ class JoinApplicationServiceTest {
         ReflectionTestUtils.setField(leader, "id", 1L);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
         when(joinApplicationRepository.findByPostId(10L)).thenReturn(List.of());
@@ -126,19 +135,26 @@ class JoinApplicationServiceTest {
         ReflectionTestUtils.setField(applicant, "id", 2L);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         JoinApplication application =
-                JoinApplication.builder().post(post).applicant(applicant).motivation("지원동기").build();
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(applicant)
+                        .motivation("지원동기")
+                        .build();
 
         when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
-        when(joinApplicationRepository.findByIdAndPostId(100L, 10L)).thenReturn(Optional.of(application));
+        when(joinApplicationRepository.findByIdAndPostId(100L, 10L))
+                .thenReturn(Optional.of(application));
 
         var response = joinApplicationService.approve(10L, 100L, 1L);
 
         assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
-        verify(studyGroupProvisioningPort)
-                .addMember(new AddStudyGroupMemberCommand(10L, 2L));
+        verify(studyGroupProvisioningPort).addMember(new AddStudyGroupMemberCommand(10L, 2L));
     }
 
     @Test
@@ -148,7 +164,10 @@ class JoinApplicationServiceTest {
         ReflectionTestUtils.setField(leader, "id", 1L);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
 
@@ -164,14 +183,22 @@ class JoinApplicationServiceTest {
         Member applicant = Member.create("applicant@test.com", "encoded", "지원자", null, null, null);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         JoinApplication application =
-                JoinApplication.builder().post(post).applicant(applicant).motivation("지원동기").build();
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(applicant)
+                        .motivation("지원동기")
+                        .build();
         application.approve();
 
         when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
-        when(joinApplicationRepository.findByIdAndPostId(100L, 10L)).thenReturn(Optional.of(application));
+        when(joinApplicationRepository.findByIdAndPostId(100L, 10L))
+                .thenReturn(Optional.of(application));
 
         assertThatThrownBy(() -> joinApplicationService.approve(10L, 100L, 1L))
                 .isInstanceOf(BusinessException.class);
@@ -185,13 +212,21 @@ class JoinApplicationServiceTest {
         Member applicant = Member.create("applicant@test.com", "encoded", "지원자", null, null, null);
 
         RecruitmentPost post =
-                RecruitmentPost.builder().leader(leader).status(RecruitmentStatus.RECRUITING).build();
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
 
         JoinApplication application =
-                JoinApplication.builder().post(post).applicant(applicant).motivation("지원동기").build();
+                JoinApplication.builder()
+                        .post(post)
+                        .applicant(applicant)
+                        .motivation("지원동기")
+                        .build();
 
         when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
-        when(joinApplicationRepository.findByIdAndPostId(100L, 10L)).thenReturn(Optional.of(application));
+        when(joinApplicationRepository.findByIdAndPostId(100L, 10L))
+                .thenReturn(Optional.of(application));
 
         var response = joinApplicationService.reject(10L, 100L, 1L);
 

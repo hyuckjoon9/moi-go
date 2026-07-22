@@ -26,12 +26,39 @@ class RecruitmentControllerTest {
     void createReturnsResponseFromAuthenticatedLeaderId() {
         RecruitmentCreateRequest request =
                 new RecruitmentCreateRequest(
-                        "제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, null, "8주", "조건");
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건");
         RecruitmentResponse response =
                 new RecruitmentResponse(
-                        1L, 1L, "제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, null, "8주", "조건", "RECRUITING", null, null);
+                        1L,
+                        1L,
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건",
+                        "RECRUITING",
+                        null,
+                        null);
         when(recruitmentService.create(1L, request)).thenReturn(response);
 
         var result = controller.create(authenticatedMember, request);
@@ -54,8 +81,24 @@ class RecruitmentControllerTest {
     void getDetailReturnsResponse() {
         RecruitmentResponse response =
                 new RecruitmentResponse(
-                        1L, 1L, "제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, null, "8주", "조건", "RECRUITING", null, null);
+                        1L,
+                        1L,
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건",
+                        "RECRUITING",
+                        null,
+                        null);
         when(recruitmentService.getDetail(1L)).thenReturn(response);
 
         var result = controller.getDetail(1L);
@@ -67,12 +110,39 @@ class RecruitmentControllerTest {
     void updateReturnsUpdatedResponse() {
         RecruitmentUpdateRequest request =
                 new RecruitmentUpdateRequest(
-                        "수정된 제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, null, "8주", "조건");
+                        "수정된 제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건");
         RecruitmentResponse response =
                 new RecruitmentResponse(
-                        1L, 1L, "수정된 제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, null, "8주", "조건", "RECRUITING", null, null);
+                        1L,
+                        1L,
+                        "수정된 제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건",
+                        "RECRUITING",
+                        null,
+                        null);
         when(recruitmentService.update(1L, 1L, request)).thenReturn(response);
 
         var result = controller.update(authenticatedMember, 1L, request);
@@ -91,8 +161,24 @@ class RecruitmentControllerTest {
     void closeReturnsClosedResponse() {
         RecruitmentResponse response =
                 new RecruitmentResponse(
-                        1L, 1L, "제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, null, "8주", "조건", "CLOSED", null, null);
+                        1L,
+                        1L,
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건",
+                        "CLOSED",
+                        null,
+                        null);
         when(recruitmentService.close(1L, 1L)).thenReturn(response);
 
         var result = controller.close(authenticatedMember, 1L);
@@ -104,8 +190,24 @@ class RecruitmentControllerTest {
     void endReturnsEndedResponse() {
         RecruitmentResponse response =
                 new RecruitmentResponse(
-                        1L, 1L, "제목", "개발", "설명", "목표", "방법", "ONLINE", null, "http://link",
-                        "매주 화요일", 5, null, "8주", "조건", "ENDED", null, null);
+                        1L,
+                        1L,
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        null,
+                        "8주",
+                        "조건",
+                        "ENDED",
+                        null,
+                        null);
         when(recruitmentService.end(1L, 1L)).thenReturn(response);
 
         var result = controller.end(authenticatedMember, 1L);
