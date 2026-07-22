@@ -382,6 +382,7 @@ class AttendanceServiceTest {
 
     @Test
     void deleteAttendanceDeletesExistingRecord() {
+        stubManager(10L, 1L, GroupRole.LEADER);
         AttendanceRecord existing =
                 AttendanceRecord.builder()
                         .scheduleId(10L)
@@ -392,13 +393,26 @@ class AttendanceServiceTest {
         given(attendanceRecordRepository.findByScheduleIdAndUserId(10L, 20L))
                 .willReturn(Optional.of(existing));
 
-        attendanceService.deleteAttendance(10L, 20L);
+        attendanceService.deleteAttendance(10L, 20L, 1L);
 
         verify(attendanceRecordRepository).delete(existing);
     }
 
     @Test
+    void deleteAttendanceThrowsWhenRequesterIsPlainMember() {
+        stubManager(10L, 1L, GroupRole.MEMBER);
+
+        assertThatThrownBy(() -> attendanceService.deleteAttendance(10L, 20L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN));
+    }
+
+    @Test
     void getSummaryAggregatesRecordsByStatus() {
+        stubManager(10L, 1L, GroupRole.LEADER);
         List<AttendanceRecord> records =
                 List.of(
                         AttendanceRecord.builder()
@@ -421,7 +435,7 @@ class AttendanceServiceTest {
                                 .build());
         given(attendanceRecordRepository.findByScheduleId(10L)).willReturn(records);
 
-        AttendanceSummaryResponse summary = attendanceService.getSummary(10L);
+        AttendanceSummaryResponse summary = attendanceService.getSummary(10L, 1L);
 
         assertThat(summary.getTotalCount()).isEqualTo(3);
         assertThat(summary.getPresentCount()).isEqualTo(1);
@@ -429,6 +443,18 @@ class AttendanceServiceTest {
         assertThat(summary.getAbsentCount()).isEqualTo(1);
         assertThat(summary.getExcusedCount()).isEqualTo(0);
         assertThat(summary.getMembers()).hasSize(3);
+    }
+
+    @Test
+    void getSummaryThrowsWhenRequesterIsPlainMember() {
+        stubManager(10L, 1L, GroupRole.MEMBER);
+
+        assertThatThrownBy(() -> attendanceService.getSummary(10L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN));
     }
 
     @Test
@@ -442,7 +468,7 @@ class AttendanceServiceTest {
         given(attendanceRecordRepository.countByUserIdAndStatus(20L, AttendanceStatus.EXCUSED))
                 .willReturn(0L);
 
-        MyAttendanceRateResponse response = attendanceService.getMyAttendanceRate(20L);
+        MyAttendanceRateResponse response = attendanceService.getMyAttendanceRate(20L, 20L);
 
         assertThat(response.getTotalCount()).isEqualTo(5);
         assertThat(response.getAttendanceRate()).isEqualTo(60.0);
@@ -452,10 +478,20 @@ class AttendanceServiceTest {
     void getMyAttendanceRateReturnsZeroWhenNoRecords() {
         given(attendanceRecordRepository.countByUserIdAndStatus(any(), any())).willReturn(0L);
 
-        MyAttendanceRateResponse response = attendanceService.getMyAttendanceRate(20L);
+        MyAttendanceRateResponse response = attendanceService.getMyAttendanceRate(20L, 20L);
 
         assertThat(response.getTotalCount()).isEqualTo(0);
         assertThat(response.getAttendanceRate()).isEqualTo(0.0);
+    }
+
+    @Test
+    void getMyAttendanceRateThrowsWhenRequesterIsNotSelf() {
+        assertThatThrownBy(() -> attendanceService.getMyAttendanceRate(20L, 21L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_RATE_ACCESS_DENIED));
     }
 
     private void stubOpenPolicy(Long scheduleId, Long userId) {

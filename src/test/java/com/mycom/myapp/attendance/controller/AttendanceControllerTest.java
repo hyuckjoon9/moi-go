@@ -180,11 +180,21 @@ class AttendanceControllerTest {
     }
 
     @Test
-    void deleteAttendanceDeletesByPathVariables() {
-        ResponseEntity<Void> response = controller.deleteAttendance(10L, 5L);
+    void deleteAttendanceDeletesForAuthenticatedRequester() {
+        ResponseEntity<Void> response = controller.deleteAttendance(10L, 5L, authenticatedMember);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-        verify(attendanceService).deleteAttendance(10L, 5L);
+        verify(attendanceService).deleteAttendance(10L, 5L, 2L);
+    }
+
+    @Test
+    void deleteAttendanceRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.deleteAttendance(10L, 5L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 
     @Test
@@ -199,22 +209,45 @@ class AttendanceControllerTest {
                         .excusedCount(0)
                         .members(List.of())
                         .build();
-        when(attendanceService.getSummary(10L)).thenReturn(summary);
+        when(attendanceService.getSummary(10L, 2L)).thenReturn(summary);
 
-        ResponseEntity<AttendanceSummaryResponse> response = controller.getSummary(10L);
+        ResponseEntity<AttendanceSummaryResponse> response =
+                controller.getSummary(10L, authenticatedMember);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(summary);
     }
 
     @Test
-    void getMyAttendanceRateReturnsServiceResult() {
-        MyAttendanceRateResponse rate = MyAttendanceRateResponse.of(5L, 3L, 1L, 0L, 0L);
-        when(attendanceService.getMyAttendanceRate(5L)).thenReturn(rate);
+    void getSummaryRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.getSummary(10L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
 
-        ResponseEntity<MyAttendanceRateResponse> response = controller.getMyAttendanceRate(5L);
+    @Test
+    void getMyAttendanceRateReturnsServiceResult() {
+        AuthenticatedMember self = new AuthenticatedMember(5L, "self@example.com", MemberRole.USER);
+        MyAttendanceRateResponse rate = MyAttendanceRateResponse.of(5L, 3L, 1L, 0L, 0L);
+        when(attendanceService.getMyAttendanceRate(5L, 5L)).thenReturn(rate);
+
+        ResponseEntity<MyAttendanceRateResponse> response =
+                controller.getMyAttendanceRate(5L, self);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(rate);
+    }
+
+    @Test
+    void getMyAttendanceRateRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.getMyAttendanceRate(5L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 }

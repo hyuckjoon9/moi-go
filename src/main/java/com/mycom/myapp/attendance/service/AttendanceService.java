@@ -108,20 +108,25 @@ public class AttendanceService {
         return record;
     }
 
-    /** 출석 체크 기록을 삭제한다. */
+    /** 모집장이 출석 체크 기록을 삭제한다. */
     @Transactional
-    public void deleteAttendance(Long scheduleId, Long userId) {
+    public void deleteAttendance(Long scheduleId, Long userId, Long requesterId) {
+        validateManager(scheduleId, requesterId);
         attendanceRecordRepository.delete(getRecord(scheduleId, userId));
     }
 
     /** 모집장이 스케줄 하나의 출석 현황(상태별 인원 수 + 멤버별 내역)을 조회한다. */
-    public AttendanceSummaryResponse getSummary(Long scheduleId) {
+    public AttendanceSummaryResponse getSummary(Long scheduleId, Long requesterId) {
+        validateManager(scheduleId, requesterId);
         List<AttendanceRecord> records = attendanceRecordRepository.findByScheduleId(scheduleId);
         return AttendanceSummaryResponse.of(scheduleId, records);
     }
 
-    /** 사용자의 전체 스케줄 기준 누적 출석률(PRESENT 건수 / 전체 건수 * 100)을 계산한다. */
-    public MyAttendanceRateResponse getMyAttendanceRate(Long userId) {
+    /** 본인의 전체 스케줄 기준 누적 출석률(PRESENT 건수 / 전체 건수 * 100)을 계산한다. */
+    public MyAttendanceRateResponse getMyAttendanceRate(Long userId, Long requesterId) {
+        if (!requesterId.equals(userId)) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_RATE_ACCESS_DENIED);
+        }
         long presentCount =
                 attendanceRecordRepository.countByUserIdAndStatus(userId, AttendanceStatus.PRESENT);
         long lateCount =
