@@ -2,6 +2,7 @@ package com.mycom.myapp.global.exception;
 
 import com.mycom.myapp.global.response.ApiResponse;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -36,5 +37,12 @@ public class GlobalExceptionHandler {
             IllegalArgumentException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(exception.getMessage()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolationException(
+            DataIntegrityViolationException exception) {
+        return ResponseEntity.status(ErrorCode.RECRUITMENT_DELETE_NOT_ALLOWED.getStatus())
+                .body(ApiResponse.error(ErrorCode.RECRUITMENT_DELETE_NOT_ALLOWED.getMessage()));
     }
 }
