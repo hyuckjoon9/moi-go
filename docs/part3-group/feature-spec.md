@@ -4,7 +4,7 @@
 
 ## 목적과 범위
 
-Part3는 모집 완료된 스터디의 그룹 홈과 일정을 제공한다. 사용자는 자신이 속한 그룹을 확인하고, 그룹 운영자는 일정을 관리하며, 모든 활성 그룹원은 일정을 조회한다.
+Part3는 모집글과 연결된 스터디 그룹의 홈과 일정을 제공한다. 그룹은 모집글 게시 시 생성되며, 사용자는 자신이 속한 그룹을 확인하고, 그룹 운영자는 일정을 관리하며, 모든 활성 그룹원은 일정을 조회한다.
 
 | 범위 | 포함 기능 | 제외 기능 |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Part3는 모집 완료된 스터디의 그룹 홈과 일정을 제공한다. 사
 
 ### 내 그룹 목록
 
-1. 사용자는 활성 그룹원으로 속한 활성 그룹만 조회한다.
+1. 사용자는 활성 그룹원으로 속한 `ACTIVE`, `ENDED` 그룹을 조회한다.
 2. 목록은 최근 가입 그룹부터 표시한다. 가입 시각이 같으면 그룹원 ID가 큰 항목을 먼저 표시한다.
 3. 프론트엔드는 `LEADER`, `MANAGER`를 운영 그룹으로, `MEMBER`를 참여 그룹으로 구분한다.
 
@@ -98,11 +98,12 @@ Part3는 모집 완료된 스터디의 그룹 홈과 일정을 제공한다. 사
 
 ### 데이터와 연동 경계
 
-- 그룹 프로비저닝은 Part2가 `StudyGroupProvisioningPort`를 호출해 요청한다. 게시 시 `createGroup`, 신청 건별 승인 시 `addMember`, 스터디 취소 시 `endGroup`을 사용한다. 기존 일괄 `confirmGroup()` 흐름의 전환은 Part2 작업에서 수행한다.
+- 그룹 프로비저닝은 Part2가 `StudyGroupProvisioningPort`를 호출해 요청한다. 모집글 게시 시 `createGroup`, 신청 건별 승인 시 `addMember`, 스터디 종료 시 `endGroup`을 사용하며 Part2와 Part3는 같은 트랜잭션에 참여한다.
 - `postId`는 그룹 생성의 멱등 키다. 같은 모집글로 재요청해도 기존 그룹과 그룹원을 유지한다.
 - Part3는 Part1·Part2의 Entity나 Repository를 직접 조회하지 않고 식별자와 공개 계약만 사용한다.
 - 일정 삭제 전 출석·활동 이력은 각 파트의 공개 조회 포트로 확인한다. 최종 데이터 무결성은 FK 정책이 보장한다.
 - Part4는 `StudyGroupAttendanceRatePolicyReader#getAttendanceRatePolicy(groupId, requesterId)`로 그룹 전체 출석률 조회 권한을 확인한다. 반환된 `canViewAllAttendanceRates`는 활성 그룹의 활성 `LEADER` 또는 `MANAGER`일 때만 `true`이며, 역할 enum은 Part4에 노출하지 않는다.
+- 그룹 전체 출석률 집계의 일정 범위와 활성 그룹원 목록 구성은 1차 MVP 예외로 Part4가 `StudyScheduleRepository`, `GroupMemberRepository`를 직접 조회한다. 이 직접 조회는 권한·상태 판단에 사용하지 않으며, 그 판단은 반드시 `StudyGroupAttendanceRatePolicyReader`에 위임한다.
 
 ## 화면 처리 기준
 

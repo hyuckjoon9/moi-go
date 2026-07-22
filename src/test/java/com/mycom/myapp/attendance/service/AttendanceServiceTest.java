@@ -29,6 +29,8 @@ import com.mycom.myapp.study.entity.GroupRole;
 import com.mycom.myapp.study.entity.GroupStatus;
 import com.mycom.myapp.study.entity.StudyGroup;
 import com.mycom.myapp.study.repository.GroupMemberRepository;
+import com.mycom.myapp.study.service.StudyGroupAttendanceRatePolicy;
+import com.mycom.myapp.study.service.port.StudyGroupAttendanceRatePolicyReader;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -53,6 +55,7 @@ class AttendanceServiceTest {
     @Mock private StudyScheduleRepository studyScheduleRepository;
     @Mock private GroupMemberRepository groupMemberRepository;
     @Mock private ScheduleAttendancePolicyReader scheduleAttendancePolicyReader;
+    @Mock private StudyGroupAttendanceRatePolicyReader studyGroupAttendanceRatePolicyReader;
 
     @InjectMocks private AttendanceService attendanceService;
 
@@ -499,8 +502,7 @@ class AttendanceServiceTest {
     @Test
     void getGroupAttendanceRatesReturnsPerMemberRatesScopedToGroupSchedules() {
         StudyGroup group = group();
-        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
-                .willReturn(Optional.of(GroupMember.join(group, 1L, GroupRole.LEADER)));
+        stubCanViewAllAttendanceRates(100L, 1L, true);
         given(studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(100L))
                 .willReturn(List.of(schedule(group, 10L), schedule(group, 11L)));
         List<AttendanceRecord> records =
@@ -548,8 +550,7 @@ class AttendanceServiceTest {
     @Test
     void getGroupAttendanceRatesSkipsScheduleQueryWhenGroupHasNoSchedules() {
         StudyGroup group = group();
-        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
-                .willReturn(Optional.of(GroupMember.join(group, 1L, GroupRole.LEADER)));
+        stubCanViewAllAttendanceRates(100L, 1L, true);
         given(studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(100L))
                 .willReturn(List.of());
         given(
@@ -567,10 +568,8 @@ class AttendanceServiceTest {
     }
 
     @Test
-    void getGroupAttendanceRatesThrowsWhenRequesterIsPlainMember() {
-        StudyGroup group = group();
-        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
-                .willReturn(Optional.of(GroupMember.join(group, 1L, GroupRole.MEMBER)));
+    void getGroupAttendanceRatesThrowsWhenPolicyForbids() {
+        stubCanViewAllAttendanceRates(100L, 1L, false);
 
         assertThatThrownBy(() -> attendanceService.getGroupAttendanceRates(100L, 1L))
                 .isInstanceOfSatisfying(
@@ -581,9 +580,9 @@ class AttendanceServiceTest {
     }
 
     @Test
-    void getGroupAttendanceRatesThrowsWhenNotGroupMember() {
-        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
-                .willReturn(Optional.empty());
+    void getGroupAttendanceRatesPropagatesPolicyReaderErrors() {
+        given(studyGroupAttendanceRatePolicyReader.getAttendanceRatePolicy(100L, 1L))
+                .willThrow(new BusinessException(ErrorCode.GROUP_ACCESS_DENIED));
 
         assertThatThrownBy(() -> attendanceService.getGroupAttendanceRates(100L, 1L))
                 .isInstanceOfSatisfying(
@@ -593,20 +592,10 @@ class AttendanceServiceTest {
                                         .isEqualTo(ErrorCode.GROUP_ACCESS_DENIED));
     }
 
-    @Test
-    void getGroupAttendanceRatesThrowsWhenRequesterIsWithdrawn() {
-        StudyGroup group = group();
-        GroupMember member = GroupMember.join(group, 1L, GroupRole.LEADER);
-        member.withdraw();
-        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
-                .willReturn(Optional.of(member));
-
-        assertThatThrownBy(() -> attendanceService.getGroupAttendanceRates(100L, 1L))
-                .isInstanceOfSatisfying(
-                        BusinessException.class,
-                        exception ->
-                                assertThat(exception.getErrorCode())
-                                        .isEqualTo(ErrorCode.WITHDRAWN_GROUP_MEMBER));
+    private void stubCanViewAllAttendanceRates(
+            Long groupId, Long requesterId, boolean canViewAllAttendanceRates) {
+        given(studyGroupAttendanceRatePolicyReader.getAttendanceRatePolicy(groupId, requesterId))
+                .willReturn(new StudyGroupAttendanceRatePolicy(groupId, canViewAllAttendanceRates));
     }
 
     private void stubOpenPolicy(Long scheduleId, Long userId) {
