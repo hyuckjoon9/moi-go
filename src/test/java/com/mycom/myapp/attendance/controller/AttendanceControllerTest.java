@@ -250,4 +250,27 @@ class AttendanceControllerTest {
                                 assertThat(exception.getErrorCode())
                                         .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
+
+    @Test
+    void getGroupAttendanceRatesReturnsServiceResult() {
+        List<MyAttendanceRateResponse> rates =
+                List.of(MyAttendanceRateResponse.of(20L, 3L, 1L, 0L, 0L));
+        when(attendanceService.getGroupAttendanceRates(100L, 2L)).thenReturn(rates);
+
+        ResponseEntity<List<MyAttendanceRateResponse>> response =
+                controller.getGroupAttendanceRates(100L, authenticatedMember);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(rates);
+    }
+
+    @Test
+    void getGroupAttendanceRatesRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.getGroupAttendanceRates(100L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
 }

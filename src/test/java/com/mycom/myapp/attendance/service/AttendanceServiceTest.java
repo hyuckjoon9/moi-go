@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.mycom.myapp.attendance.dto.request.AttendanceAnswerRequest;
@@ -23,6 +24,7 @@ import com.mycom.myapp.schedule.repository.StudyScheduleRepository;
 import com.mycom.myapp.schedule.service.ScheduleAttendancePolicy;
 import com.mycom.myapp.schedule.service.port.ScheduleAttendancePolicyReader;
 import com.mycom.myapp.study.entity.GroupMember;
+import com.mycom.myapp.study.entity.GroupMemberStatus;
 import com.mycom.myapp.study.entity.GroupRole;
 import com.mycom.myapp.study.entity.GroupStatus;
 import com.mycom.myapp.study.entity.StudyGroup;
@@ -492,6 +494,119 @@ class AttendanceServiceTest {
                         exception ->
                                 assertThat(exception.getErrorCode())
                                         .isEqualTo(ErrorCode.ATTENDANCE_RATE_ACCESS_DENIED));
+    }
+
+    @Test
+    void getGroupAttendanceRatesReturnsPerMemberRatesScopedToGroupSchedules() {
+        StudyGroup group = group();
+        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
+                .willReturn(Optional.of(GroupMember.join(group, 1L, GroupRole.LEADER)));
+        given(studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(100L))
+                .willReturn(List.of(schedule(group, 10L), schedule(group, 11L)));
+        List<AttendanceRecord> records =
+                List.of(
+                        AttendanceRecord.builder()
+                                .scheduleId(10L)
+                                .userId(20L)
+                                .status(AttendanceStatus.PRESENT)
+                                .checkedBy(1L)
+                                .build(),
+                        AttendanceRecord.builder()
+                                .scheduleId(11L)
+                                .userId(20L)
+                                .status(AttendanceStatus.ABSENT)
+                                .checkedBy(1L)
+                                .build(),
+                        AttendanceRecord.builder()
+                                .scheduleId(10L)
+                                .userId(21L)
+                                .status(AttendanceStatus.PRESENT)
+                                .checkedBy(1L)
+                                .build());
+        given(attendanceRecordRepository.findByScheduleIdIn(List.of(10L, 11L))).willReturn(records);
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(
+                        List.of(
+                                GroupMember.join(group, 20L, GroupRole.MEMBER),
+                                GroupMember.join(group, 21L, GroupRole.MEMBER)));
+
+        List<MyAttendanceRateResponse> result = attendanceService.getGroupAttendanceRates(100L, 1L);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getUserId()).isEqualTo(20L);
+        assertThat(result.get(0).getPresentCount()).isEqualTo(1);
+        assertThat(result.get(0).getAbsentCount()).isEqualTo(1);
+        assertThat(result.get(0).getAttendanceRate()).isEqualTo(50.0);
+        assertThat(result.get(1).getUserId()).isEqualTo(21L);
+        assertThat(result.get(1).getPresentCount()).isEqualTo(1);
+        assertThat(result.get(1).getAttendanceRate()).isEqualTo(100.0);
+    }
+
+    @Test
+    void getGroupAttendanceRatesSkipsScheduleQueryWhenGroupHasNoSchedules() {
+        StudyGroup group = group();
+        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
+                .willReturn(Optional.of(GroupMember.join(group, 1L, GroupRole.LEADER)));
+        given(studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(100L))
+                .willReturn(List.of());
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(List.of(GroupMember.join(group, 20L, GroupRole.MEMBER)));
+
+        List<MyAttendanceRateResponse> result = attendanceService.getGroupAttendanceRates(100L, 1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTotalCount()).isEqualTo(0);
+        assertThat(result.get(0).getAttendanceRate()).isEqualTo(0.0);
+        verify(attendanceRecordRepository, never()).findByScheduleIdIn(any());
+    }
+
+    @Test
+    void getGroupAttendanceRatesThrowsWhenRequesterIsPlainMember() {
+        StudyGroup group = group();
+        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
+                .willReturn(Optional.of(GroupMember.join(group, 1L, GroupRole.MEMBER)));
+
+        assertThatThrownBy(() -> attendanceService.getGroupAttendanceRates(100L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN));
+    }
+
+    @Test
+    void getGroupAttendanceRatesThrowsWhenNotGroupMember() {
+        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> attendanceService.getGroupAttendanceRates(100L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.GROUP_ACCESS_DENIED));
+    }
+
+    @Test
+    void getGroupAttendanceRatesThrowsWhenRequesterIsWithdrawn() {
+        StudyGroup group = group();
+        GroupMember member = GroupMember.join(group, 1L, GroupRole.LEADER);
+        member.withdraw();
+        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
+                .willReturn(Optional.of(member));
+
+        assertThatThrownBy(() -> attendanceService.getGroupAttendanceRates(100L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.WITHDRAWN_GROUP_MEMBER));
     }
 
     private void stubOpenPolicy(Long scheduleId, Long userId) {

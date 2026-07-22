@@ -12,12 +12,14 @@
 | `DELETE` | `/api/attendance/schedules/{scheduleId}/records/{userId}` | 필요 (그룹 활성 LEADER/MANAGER) | 출석 기록 삭제 |
 | `GET` | `/api/attendance/schedules/{scheduleId}/records/summary` | 필요 (그룹 활성 LEADER/MANAGER) | 스케줄 출석 현황 요약 조회 |
 | `GET` | `/api/attendance/users/{userId}/rate` | 필요 (본인만) | 개인 누적 출석률 조회 |
+| `GET` | `/api/attendance/groups/{groupId}/rates` | 필요 (그룹 활성 LEADER/MANAGER) | 그룹원별 출석률 목록 조회 |
 
 ## 구현 상태 메모
 
 - `userId`/`checkedBy`는 쿼리 파라미터로 받지 않는다. `@AuthenticationPrincipal AuthenticatedMember`로 로그인한 사용자 id를 서버가 직접 채운다 (Part1 인증 방식과 동일, `Authorization: Bearer {accessToken}` 헤더 필요). 인증 정보가 없으면 `401`.
 - 출석 체크 등록·수정·삭제·요약 조회(`POST`/`PUT`/`DELETE .../records/{userId}`/`GET .../records/summary`)는 모두 `StudySchedule → StudyGroup → GroupMember` 조회로 요청자가 해당 스케줄 그룹의 활성 `LEADER`/`MANAGER`인지 검증한다(Activity 도메인과 동일한 패턴). 검증 순서는 일정 없음(`SCHEDULE_NOT_FOUND`) → 그룹원 아님(`GROUP_ACCESS_DENIED`) → 탈퇴 그룹원(`WITHDRAWN_GROUP_MEMBER`) → 권한 없음(`ATTENDANCE_MANAGEMENT_FORBIDDEN`) 순이다.
-- `GET /users/{userId}/rate`는 요청자 본인의 출석률만 조회할 수 있다. 경로의 `userId`가 인증된 사용자 id와 다르면 `403`(`ATTENDANCE_RATE_ACCESS_DENIED`)이다. 모집장이 다른 그룹원의 출석률을 보는 기능은 아직 없다 — 이 API가 그룹 스코프 없이 사용자 전체 스케줄을 집계하기 때문에, 도입하려면 "요청자와 대상자가 같은 그룹이고 요청자가 그 그룹의 LEADER/MANAGER" 같은 별도 스코프 규칙이 필요해 지금은 범위에서 제외했다.
+- `GET /users/{userId}/rate`는 요청자 본인의 출석률만 조회할 수 있다. 경로의 `userId`가 인증된 사용자 id와 다르면 `403`(`ATTENDANCE_RATE_ACCESS_DENIED`)이다. 이 API는 그룹 스코프 없이 사용자 전체 스케줄을 집계하므로 본인 조회로 한정했다.
+- 모집장이 그룹원별 출석률을 보려면 `GET /groups/{groupId}/rates`를 쓴다. `Attendance` 패키지 안에서 `StudyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(groupId)`로 이 그룹의 `scheduleId` 목록을 구하고, `AttendanceRecordRepository.findByScheduleIdIn(scheduleIds)`로 이 그룹의 스케줄에서 발생한 출석 기록만 집계한다(다른 그룹 일정은 섞이지 않는다). 요청자가 해당 그룹의 활성 `LEADER`/`MANAGER`인지는 `GroupMemberRepository`로 직접 검증한다(스케줄 하나에 종속된 검사가 아니라 `groupId` 자체에 대한 검사라 `validateManager`와 별도로 `validateGroupManager`를 둔다). 응답은 그룹의 활성 그룹원 전원을 포함하며(출석 기록이 없는 멤버는 0.0), 순서는 역할 → 가입 시각 → 사용자 id 순이다.
 - 참석 응답 등록·변경·삭제는 Part3의 공개 포트 `ScheduleAttendancePolicyReader.getAttendancePolicy(scheduleId, userId)`로 조회한 `effectiveDeadline`(=`responseDeadline`이 있으면 그 값, 없으면 `scheduledAt`) 이전인지 검증한다. `now < effectiveDeadline`이 아니면 `409`(`ATTENDANCE_RESPONSE_CLOSED`)로 거부한다. 이 포트가 스케줄 존재·활성 그룹원 여부도 함께 검증하므로 `SCHEDULE_NOT_FOUND`/`GROUP_ACCESS_DENIED`/`WITHDRAWN_GROUP_MEMBER`도 이 세 API에서 발생할 수 있다(Part3 Repository를 직접 참조하지 않는다, `docs/part3-group/schedule-deletion-deadline-design.md` 참고). 출석 체크(모집장)에는 이 검증이 없다 — 아직 논의되지 않은 부분이다.
 - 같은 `scheduleId`/`userId` 조합으로 이미 응답/체크가 있으면 등록(`POST`)은 `409`로 거부한다. 수정은 `PUT`을 쓴다.
 - 대상이 없으면(`PUT`/`DELETE`) `404`를 반환한다.
@@ -283,3 +285,43 @@
 | --- | --- |
 | `401` | Authorization 헤더 없음 또는 인증 실패 |
 | `403` | 경로의 `userId`가 요청자 본인이 아님 (`ATTENDANCE_RATE_ACCESS_DENIED`) |
+
+## GET /api/attendance/groups/{groupId}/rates
+
+그룹의 활성 `LEADER`/`MANAGER`가 그룹원별 출석률을 조회한다. `GET /users/{userId}/rate`와 달리 이 그룹의 스케줄에서 발생한 출석 기록만 집계하고, 응답이 없거나 출석 체크가 안 된 멤버도 `0.0`으로 포함해 그룹의 활성 그룹원 전원을 보여준다.
+
+### Response 200
+
+```json
+[
+  {
+    "userId": 20,
+    "totalCount": 4,
+    "presentCount": 3,
+    "lateCount": 0,
+    "absentCount": 1,
+    "excusedCount": 0,
+    "attendanceRate": 75.0
+  },
+  {
+    "userId": 21,
+    "totalCount": 4,
+    "presentCount": 4,
+    "lateCount": 0,
+    "absentCount": 0,
+    "excusedCount": 0,
+    "attendanceRate": 100.0
+  }
+]
+```
+
+순서는 역할(`LEADER` → `MANAGER` → `MEMBER`) → 가입 시각 → 사용자 id 순이다. 그룹에 일정이 하나도 없으면 전원 `totalCount: 0`, `attendanceRate: 0.0`으로 반환한다.
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `403` | 요청자가 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
+| `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
+| `403` | 요청자가 `LEADER`/`MANAGER`가 아님 (`ATTENDANCE_MANAGEMENT_FORBIDDEN`) |

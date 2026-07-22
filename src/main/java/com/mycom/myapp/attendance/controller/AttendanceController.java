@@ -10,6 +10,7 @@ import com.mycom.myapp.attendance.service.AttendanceService;
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.global.security.AuthenticatedMember;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -119,6 +120,15 @@ public class AttendanceController {
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
         Long requesterId = requireAuthenticatedId(authenticatedMember);
         return ResponseEntity.ok(attendanceService.getMyAttendanceRate(userId, requesterId));
+    }
+
+    /** 그룹원별 출석률 목록 조회 (모집장) */
+    @GetMapping("/groups/{groupId}/rates")
+    public ResponseEntity<List<MyAttendanceRateResponse>> getGroupAttendanceRates(
+            @PathVariable("groupId") Long groupId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+        Long requesterId = requireAuthenticatedId(authenticatedMember);
+        return ResponseEntity.ok(attendanceService.getGroupAttendanceRates(groupId, requesterId));
     }
 
     private Long requireAuthenticatedId(AuthenticatedMember authenticatedMember) {

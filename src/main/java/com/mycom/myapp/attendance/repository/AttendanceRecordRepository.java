@@ -12,6 +12,8 @@ public interface AttendanceRecordRepository
 
     List<AttendanceRecord> findByScheduleId(Long scheduleId);
 
+    List<AttendanceRecord> findByScheduleIdIn(List<Long> scheduleIds);
+
     Optional<AttendanceRecord> findByScheduleIdAndUserId(Long scheduleId, Long userId);
 
     long countByUserIdAndStatus(Long userId, AttendanceStatus status);

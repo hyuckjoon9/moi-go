@@ -139,6 +139,44 @@ public class AttendanceService {
                 userId, presentCount, lateCount, absentCount, excusedCount);
     }
 
+    /** 그룹의 활성 LEADER/MANAGER가 그룹원별 출석률(이 그룹의 스케줄만 집계)을 조회한다. */
+    public List<MyAttendanceRateResponse> getGroupAttendanceRates(Long groupId, Long requesterId) {
+        validateGroupManager(groupId, requesterId);
+
+        List<Long> scheduleIds =
+                studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(groupId).stream()
+                        .map(StudySchedule::getId)
+                        .toList();
+        List<AttendanceRecord> records =
+                scheduleIds.isEmpty()
+                        ? List.of()
+                        : attendanceRecordRepository.findByScheduleIdIn(scheduleIds);
+
+        List<GroupMember> members =
+                groupMemberRepository
+                        .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                groupId, GroupMemberStatus.ACTIVE);
+        return members.stream()
+                .map(member -> memberAttendanceRate(member.getUserId(), records))
+                .toList();
+    }
+
+    private MyAttendanceRateResponse memberAttendanceRate(
+            Long userId, List<AttendanceRecord> groupRecords) {
+        long presentCount = countStatus(groupRecords, userId, AttendanceStatus.PRESENT);
+        long lateCount = countStatus(groupRecords, userId, AttendanceStatus.LATE);
+        long absentCount = countStatus(groupRecords, userId, AttendanceStatus.ABSENT);
+        long excusedCount = countStatus(groupRecords, userId, AttendanceStatus.EXCUSED);
+        return MyAttendanceRateResponse.of(
+                userId, presentCount, lateCount, absentCount, excusedCount);
+    }
+
+    private long countStatus(List<AttendanceRecord> records, Long userId, AttendanceStatus status) {
+        return records.stream()
+                .filter(record -> record.getUserId().equals(userId) && record.getStatus() == status)
+                .count();
+    }
+
     /** (scheduleId, userId) 조합의 참석 여부 응답을 찾는다. 없으면 예외. */
     private AttendanceAnswer getAnswer(Long scheduleId, Long userId) {
         return attendanceResponseRepository
@@ -156,6 +194,20 @@ public class AttendanceService {
     /** checkedBy가 scheduleId 소속 그룹의 활성 LEADER/MANAGER인지 검증한다. */
     private void validateManager(Long scheduleId, Long checkedBy) {
         GroupMember member = validateActiveMember(scheduleId, checkedBy);
+        if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
+        }
+    }
+
+    /** requesterId가 groupId의 활성 LEADER/MANAGER인지 검증한다. */
+    private void validateGroupManager(Long groupId, Long requesterId) {
+        GroupMember member =
+                groupMemberRepository
+                        .findByStudyGroupIdAndUserId(groupId, requesterId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_ACCESS_DENIED));
+        if (member.getStatus() == GroupMemberStatus.WITHDRAWN) {
+            throw new BusinessException(ErrorCode.WITHDRAWN_GROUP_MEMBER);
+        }
         if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
             throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
         }
