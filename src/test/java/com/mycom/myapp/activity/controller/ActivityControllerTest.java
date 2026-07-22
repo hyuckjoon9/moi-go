@@ -124,12 +124,23 @@ class ActivityControllerTest {
                         .authorId(1L)
                         .topic("토픽")
                         .build();
-        when(activityService.getRecordResponse(10L)).thenReturn(response);
+        when(activityService.getRecordResponse(10L, 1L)).thenReturn(response);
 
-        ResponseEntity<ActivityRecordResponse> result = controller.getRecord(10L);
+        ResponseEntity<ActivityRecordResponse> result =
+                controller.getRecord(10L, authenticatedMember);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(result.getBody()).isEqualTo(response);
+    }
+
+    @Test
+    void getRecordRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.getRecord(10L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 
     @Test
@@ -181,11 +192,22 @@ class ActivityControllerTest {
     void getReviewsReturnsServiceResult() {
         List<ActivityReviewResponse> reviews =
                 List.of(ActivityReviewResponse.builder().id(1L).activityRecordId(100L).build());
-        when(activityService.getReviews(100L)).thenReturn(reviews);
+        when(activityService.getReviews(100L, 1L)).thenReturn(reviews);
 
-        ResponseEntity<List<ActivityReviewResponse>> response = controller.getReviews(100L);
+        ResponseEntity<List<ActivityReviewResponse>> response =
+                controller.getReviews(100L, authenticatedMember);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(reviews);
+    }
+
+    @Test
+    void getReviewsRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.getReviews(100L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
     }
 }

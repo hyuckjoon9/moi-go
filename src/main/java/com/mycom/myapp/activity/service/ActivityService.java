@@ -79,8 +79,9 @@ public class ActivityService {
         activityRecordRepository.delete(record);
     }
 
-    /** 일정의 활동 기록을 조회한다. */
-    public ActivityRecordResponse getRecordResponse(Long scheduleId) {
+    /** 일정 그룹의 활성 그룹원이 활동 기록을 조회한다. */
+    public ActivityRecordResponse getRecordResponse(Long scheduleId, Long userId) {
+        validateActiveMember(scheduleId, userId);
         return ActivityRecordResponse.of(getRecord(scheduleId));
     }
 
@@ -117,11 +118,10 @@ public class ActivityService {
         activityReviewRepository.delete(review);
     }
 
-    /** 활동 기록에 달린 리뷰 목록을 조회한다. */
-    public List<ActivityReviewResponse> getReviews(Long activityRecordId) {
-        if (!activityRecordRepository.existsById(activityRecordId)) {
-            throw new BusinessException(ErrorCode.ACTIVITY_RECORD_NOT_FOUND);
-        }
+    /** 활동 기록이 속한 일정 그룹의 활성 그룹원이 리뷰 목록을 조회한다. */
+    public List<ActivityReviewResponse> getReviews(Long activityRecordId, Long userId) {
+        ActivityRecord record = getRecordById(activityRecordId);
+        validateActiveMember(record.getScheduleId(), userId);
         return activityReviewRepository.findByActivityRecordId(activityRecordId).stream()
                 .map(ActivityReviewResponse::of)
                 .toList();

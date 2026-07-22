@@ -68,8 +68,10 @@ public class ActivityController {
     /** 활동 기록 조회 */
     @GetMapping("/schedules/{scheduleId}/record")
     public ResponseEntity<ActivityRecordResponse> getRecord(
-            @PathVariable("scheduleId") Long scheduleId) {
-        return ResponseEntity.ok(activityService.getRecordResponse(scheduleId));
+            @PathVariable("scheduleId") Long scheduleId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+        Long userId = requireAuthenticatedId(authenticatedMember);
+        return ResponseEntity.ok(activityService.getRecordResponse(scheduleId, userId));
     }
 
     /** 활동 기록 리뷰 작성 */
@@ -98,8 +100,10 @@ public class ActivityController {
     /** 활동 기록 리뷰 목록 조회 */
     @GetMapping("/records/{activityRecordId}/reviews")
     public ResponseEntity<List<ActivityReviewResponse>> getReviews(
-            @PathVariable("activityRecordId") Long activityRecordId) {
-        return ResponseEntity.ok(activityService.getReviews(activityRecordId));
+            @PathVariable("activityRecordId") Long activityRecordId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+        Long userId = requireAuthenticatedId(authenticatedMember);
+        return ResponseEntity.ok(activityService.getReviews(activityRecordId, userId));
     }
 
     private Long requireAuthenticatedId(AuthenticatedMember authenticatedMember) {
