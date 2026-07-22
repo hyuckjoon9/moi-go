@@ -73,6 +73,8 @@ git config --get core.hooksPath
 
 ## 테스트
 
+테스트 실행 환경과 방법은 [테스트 가이드](docs/test-guide.md)를 참고합니다.
+
 ### Windows
 
 ```powershell
