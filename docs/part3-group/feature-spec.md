@@ -102,6 +102,7 @@ Part3는 모집 완료된 스터디의 그룹 홈과 일정을 제공한다. 사
 - `postId`는 그룹 생성의 멱등 키다. 같은 모집글로 재요청해도 기존 그룹과 그룹원을 유지한다.
 - Part3는 Part1·Part2의 Entity나 Repository를 직접 조회하지 않고 식별자와 공개 계약만 사용한다.
 - 일정 삭제 전 출석·활동 이력은 각 파트의 공개 조회 포트로 확인한다. 최종 데이터 무결성은 FK 정책이 보장한다.
+- Part4는 `StudyGroupAttendanceRatePolicyReader#getAttendanceRatePolicy(groupId, requesterId)`로 그룹 전체 출석률 조회 권한을 확인한다. 반환된 `canViewAllAttendanceRates`는 활성 그룹의 활성 `LEADER` 또는 `MANAGER`일 때만 `true`이며, 역할 enum은 Part4에 노출하지 않는다.
 
 ## 화면 처리 기준
 
