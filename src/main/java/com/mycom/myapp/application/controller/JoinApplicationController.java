@@ -10,6 +10,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,5 +37,23 @@ public class JoinApplicationController {
             @AuthenticationPrincipal AuthenticatedMember principal,
             @PathVariable("postId") Long postId) {
         return ApiResponse.success(joinApplicationService.getApplicants(postId, principal.id()));
+    }
+
+    @PatchMapping("/{applicationId}/approve")
+    public ApiResponse<JoinApplicationResponse> approve(
+            @AuthenticationPrincipal AuthenticatedMember principal,
+            @PathVariable("postId") Long postId,
+            @PathVariable("applicationId") Long applicationId) {
+        return ApiResponse.success(
+                joinApplicationService.approve(postId, applicationId, principal.id()));
+    }
+
+    @PatchMapping("/{applicationId}/reject")
+    public ApiResponse<JoinApplicationResponse> reject(
+            @AuthenticationPrincipal AuthenticatedMember principal,
+            @PathVariable("postId") Long postId,
+            @PathVariable("applicationId") Long applicationId) {
+        return ApiResponse.success(
+                joinApplicationService.reject(postId, applicationId, principal.id()));
     }
 }

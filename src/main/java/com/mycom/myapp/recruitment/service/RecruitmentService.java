@@ -5,6 +5,7 @@ import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.member.entity.Member;
 import com.mycom.myapp.member.repository.MemberRepository;
 import com.mycom.myapp.recruitment.dto.request.RecruitmentCreateRequest;
+import com.mycom.myapp.recruitment.dto.request.RecruitmentUpdateRequest;
 import com.mycom.myapp.recruitment.dto.response.RecruitmentResponse;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
@@ -66,5 +67,56 @@ public class RecruitmentService {
                         .findById(id)
                         .orElseThrow(() -> new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND));
         return RecruitmentResponse.from(post);
+    }
+
+    @Transactional
+    public RecruitmentResponse update(
+            Long postId, Long requesterId, RecruitmentUpdateRequest request) {
+        RecruitmentPost post = getPostAsLeader(postId, requesterId);
+        post.update(
+                request.title(),
+                request.category(),
+                request.description(),
+                request.goal(),
+                request.method(),
+                request.meetingType(),
+                request.location(),
+                request.onlineLink(),
+                request.meetingDay(),
+                request.capacity(),
+                request.recruitmentDeadline(),
+                request.expectedDuration(),
+                request.conditions());
+        return RecruitmentResponse.from(post);
+    }
+
+    @Transactional
+    public void delete(Long postId, Long requesterId) {
+        recruitmentRepository.delete(getPostAsLeader(postId, requesterId));
+    }
+
+    @Transactional
+    public RecruitmentResponse close(Long postId, Long requesterId) {
+        RecruitmentPost post = getPostAsLeader(postId, requesterId);
+        post.close();
+        return RecruitmentResponse.from(post);
+    }
+
+    @Transactional
+    public RecruitmentResponse end(Long postId, Long requesterId) {
+        RecruitmentPost post = getPostAsLeader(postId, requesterId);
+        post.end();
+        return RecruitmentResponse.from(post);
+    }
+
+    private RecruitmentPost getPostAsLeader(Long postId, Long requesterId) {
+        RecruitmentPost post =
+                recruitmentRepository
+                        .findById(postId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND));
+        if (!post.getLeader().getId().equals(requesterId)) {
+            throw new BusinessException(ErrorCode.RECRUITMENT_ACCESS_DENIED);
+        }
+        return post;
     }
 }
