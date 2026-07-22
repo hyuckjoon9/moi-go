@@ -11,6 +11,16 @@ import com.mycom.myapp.attendance.repository.AttendanceRecordRepository;
 import com.mycom.myapp.attendance.repository.AttendanceResponseRepository;
 import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
+import com.mycom.myapp.schedule.entity.StudySchedule;
+import com.mycom.myapp.schedule.repository.StudyScheduleRepository;
+import com.mycom.myapp.schedule.service.ScheduleAttendancePolicy;
+import com.mycom.myapp.schedule.service.port.ScheduleAttendancePolicyReader;
+import com.mycom.myapp.study.entity.GroupMember;
+import com.mycom.myapp.study.entity.GroupMemberStatus;
+import com.mycom.myapp.study.entity.GroupRole;
+import com.mycom.myapp.study.repository.GroupMemberRepository;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,11 +37,16 @@ public class AttendanceService {
 
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final AttendanceResponseRepository attendanceResponseRepository;
+    private final StudyScheduleRepository studyScheduleRepository;
+    private final GroupMemberRepository groupMemberRepository;
+    private final ScheduleAttendancePolicyReader scheduleAttendancePolicyReader;
+    private final Clock clock;
 
-    /** 멤버가 스케줄에 처음 참석 여부를 등록한다. 이미 응답이 있으면 거부한다. */
+    /** 멤버가 스케줄에 처음 참석 여부를 등록한다. 마감이 지났거나 이미 응답이 있으면 거부한다. */
     @Transactional
     public AttendanceAnswer submitAnswer(
             Long scheduleId, Long userId, AttendanceAnswerRequest request) {
+        validateResponseOpen(scheduleId, userId);
         if (attendanceResponseRepository
                 .findByScheduleIdAndUserId(scheduleId, userId)
                 .isPresent()) {
@@ -46,18 +61,20 @@ public class AttendanceService {
         return attendanceResponseRepository.save(answer);
     }
 
-    /** 이미 등록된 참석 여부 응답을 바꾼다. (예: UNDECIDED → ATTEND) */
+    /** 이미 등록된 참석 여부 응답을 바꾼다. (예: UNDECIDED → ATTEND) 마감이 지나면 거부한다. */
     @Transactional
     public AttendanceAnswer changeAnswer(
             Long scheduleId, Long userId, AttendanceAnswerRequest request) {
+        validateResponseOpen(scheduleId, userId);
         AttendanceAnswer answer = getAnswer(scheduleId, userId);
         answer.changeResponse(request.getResponse());
         return answer;
     }
 
-    /** 참석 여부 응답을 삭제한다. */
+    /** 참석 여부 응답을 삭제한다. 마감이 지나면 거부한다. */
     @Transactional
     public void deleteAnswer(Long scheduleId, Long userId) {
+        validateResponseOpen(scheduleId, userId);
         attendanceResponseRepository.delete(getAnswer(scheduleId, userId));
     }
 
@@ -65,6 +82,7 @@ public class AttendanceService {
     @Transactional
     public AttendanceRecord checkAttendance(
             Long scheduleId, Long checkedBy, AttendanceCheckRequest request) {
+        validateManager(scheduleId, checkedBy);
         if (attendanceRecordRepository
                 .findByScheduleIdAndUserId(scheduleId, request.getUserId())
                 .isPresent()) {
@@ -84,25 +102,31 @@ public class AttendanceService {
     @Transactional
     public AttendanceRecord updateAttendance(
             Long scheduleId, Long checkedBy, AttendanceCheckRequest request) {
+        validateManager(scheduleId, checkedBy);
         AttendanceRecord record = getRecord(scheduleId, request.getUserId());
         record.updateStatus(request.getStatus(), checkedBy);
         return record;
     }
 
-    /** 출석 체크 기록을 삭제한다. */
+    /** 모집장이 출석 체크 기록을 삭제한다. */
     @Transactional
-    public void deleteAttendance(Long scheduleId, Long userId) {
+    public void deleteAttendance(Long scheduleId, Long userId, Long requesterId) {
+        validateManager(scheduleId, requesterId);
         attendanceRecordRepository.delete(getRecord(scheduleId, userId));
     }
 
     /** 모집장이 스케줄 하나의 출석 현황(상태별 인원 수 + 멤버별 내역)을 조회한다. */
-    public AttendanceSummaryResponse getSummary(Long scheduleId) {
+    public AttendanceSummaryResponse getSummary(Long scheduleId, Long requesterId) {
+        validateManager(scheduleId, requesterId);
         List<AttendanceRecord> records = attendanceRecordRepository.findByScheduleId(scheduleId);
         return AttendanceSummaryResponse.of(scheduleId, records);
     }
 
-    /** 사용자의 전체 스케줄 기준 누적 출석률(PRESENT 건수 / 전체 건수 * 100)을 계산한다. */
-    public MyAttendanceRateResponse getMyAttendanceRate(Long userId) {
+    /** 본인의 전체 스케줄 기준 누적 출석률(PRESENT 건수 / 전체 건수 * 100)을 계산한다. */
+    public MyAttendanceRateResponse getMyAttendanceRate(Long userId, Long requesterId) {
+        if (!requesterId.equals(userId)) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_RATE_ACCESS_DENIED);
+        }
         long presentCount =
                 attendanceRecordRepository.countByUserIdAndStatus(userId, AttendanceStatus.PRESENT);
         long lateCount =
@@ -113,6 +137,44 @@ public class AttendanceService {
                 attendanceRecordRepository.countByUserIdAndStatus(userId, AttendanceStatus.EXCUSED);
         return MyAttendanceRateResponse.of(
                 userId, presentCount, lateCount, absentCount, excusedCount);
+    }
+
+    /** 그룹의 활성 LEADER/MANAGER가 그룹원별 출석률(이 그룹의 스케줄만 집계)을 조회한다. */
+    public List<MyAttendanceRateResponse> getGroupAttendanceRates(Long groupId, Long requesterId) {
+        validateGroupManager(groupId, requesterId);
+
+        List<Long> scheduleIds =
+                studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(groupId).stream()
+                        .map(StudySchedule::getId)
+                        .toList();
+        List<AttendanceRecord> records =
+                scheduleIds.isEmpty()
+                        ? List.of()
+                        : attendanceRecordRepository.findByScheduleIdIn(scheduleIds);
+
+        List<GroupMember> members =
+                groupMemberRepository
+                        .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                groupId, GroupMemberStatus.ACTIVE);
+        return members.stream()
+                .map(member -> memberAttendanceRate(member.getUserId(), records))
+                .toList();
+    }
+
+    private MyAttendanceRateResponse memberAttendanceRate(
+            Long userId, List<AttendanceRecord> groupRecords) {
+        long presentCount = countStatus(groupRecords, userId, AttendanceStatus.PRESENT);
+        long lateCount = countStatus(groupRecords, userId, AttendanceStatus.LATE);
+        long absentCount = countStatus(groupRecords, userId, AttendanceStatus.ABSENT);
+        long excusedCount = countStatus(groupRecords, userId, AttendanceStatus.EXCUSED);
+        return MyAttendanceRateResponse.of(
+                userId, presentCount, lateCount, absentCount, excusedCount);
+    }
+
+    private long countStatus(List<AttendanceRecord> records, Long userId, AttendanceStatus status) {
+        return records.stream()
+                .filter(record -> record.getUserId().equals(userId) && record.getStatus() == status)
+                .count();
     }
 
     /** (scheduleId, userId) 조합의 참석 여부 응답을 찾는다. 없으면 예외. */
@@ -127,5 +189,56 @@ public class AttendanceService {
         return attendanceRecordRepository
                 .findByScheduleIdAndUserId(scheduleId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ATTENDANCE_RECORD_NOT_FOUND));
+    }
+
+    /** checkedBy가 scheduleId 소속 그룹의 활성 LEADER/MANAGER인지 검증한다. */
+    private void validateManager(Long scheduleId, Long checkedBy) {
+        GroupMember member = validateActiveMember(scheduleId, checkedBy);
+        if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
+        }
+    }
+
+    /** requesterId가 groupId의 활성 LEADER/MANAGER인지 검증한다. */
+    private void validateGroupManager(Long groupId, Long requesterId) {
+        GroupMember member =
+                groupMemberRepository
+                        .findByStudyGroupIdAndUserId(groupId, requesterId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_ACCESS_DENIED));
+        if (member.getStatus() == GroupMemberStatus.WITHDRAWN) {
+            throw new BusinessException(ErrorCode.WITHDRAWN_GROUP_MEMBER);
+        }
+        if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
+        }
+    }
+
+    /** userId가 scheduleId 소속 그룹의 활성 그룹원인지(역할 무관) 검증한다. */
+    private GroupMember validateActiveMember(Long scheduleId, Long userId) {
+        StudySchedule schedule =
+                studyScheduleRepository
+                        .findById(scheduleId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        Long groupId = schedule.getStudyGroup().getId();
+        GroupMember member =
+                groupMemberRepository
+                        .findByStudyGroupIdAndUserId(groupId, userId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.GROUP_ACCESS_DENIED));
+        if (member.getStatus() == GroupMemberStatus.WITHDRAWN) {
+            throw new BusinessException(ErrorCode.WITHDRAWN_GROUP_MEMBER);
+        }
+        return member;
+    }
+
+    /**
+     * userId가 scheduleId 소속 그룹의 활성 그룹원인지 확인하고, 참석 응답 마감(effectiveDeadline)이 지나지 않았는지 검증한다. Part3의
+     * 공개 포트({@link ScheduleAttendancePolicyReader})를 통해 조회한다.
+     */
+    private void validateResponseOpen(Long scheduleId, Long userId) {
+        ScheduleAttendancePolicy policy =
+                scheduleAttendancePolicyReader.getAttendancePolicy(scheduleId, userId);
+        if (!LocalDateTime.now(clock).isBefore(policy.effectiveDeadline())) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_RESPONSE_CLOSED);
+        }
     }
 }
