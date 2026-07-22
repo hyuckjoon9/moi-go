@@ -2,7 +2,6 @@ package com.mycom.myapp.study.repository;
 
 import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
-import com.mycom.myapp.study.entity.GroupStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -20,6 +19,6 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     List<GroupMember> findAllByUserIdAndStatus(Long userId, GroupMemberStatus status);
 
     @EntityGraph(attributePaths = "studyGroup")
-    List<GroupMember> findAllByUserIdAndStatusAndStudyGroupStatusOrderByJoinedAtDescIdDesc(
-            Long userId, GroupMemberStatus status, GroupStatus groupStatus);
+    List<GroupMember> findAllByUserIdAndStatusOrderByJoinedAtDescIdDesc(
+            Long userId, GroupMemberStatus status);
 }

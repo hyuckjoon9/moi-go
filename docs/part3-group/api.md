@@ -44,7 +44,7 @@
 
 `GET /api/groups/me`
 
-로그인 사용자가 활성 그룹원으로 속한 활성 그룹만 반환한다. 목록은 `joinedAt` 내림차순이며, 가입 시각이 같으면 그룹원 ID 내림차순이다.
+로그인 사용자가 활성 그룹원으로 속한 그룹을 반환한다. 그룹 상태가 `ACTIVE`면 운영 중인 그룹이고, `ENDED`면 종료된 그룹 이력이다. 목록은 `joinedAt` 내림차순이며, 가입 시각이 같으면 그룹원 ID 내림차순이다.
 
 ### 성공 응답 — 200
 
@@ -70,7 +70,7 @@
 | `groupId` | number | 그룹 ID |
 | `postId` | number | 연결된 모집글 ID |
 | `name` | string | 그룹 이름 |
-| `status` | `ACTIVE` | 이 API는 활성 그룹만 반환 |
+| `status` | `ACTIVE` \| `ENDED` | 그룹 상태 |
 | `role` | `LEADER` \| `MANAGER` \| `MEMBER` | 호출자의 활성 그룹원 역할 |
 | `joinedAt` | string(date-time) | 호출자의 그룹 가입 시각 |
 
