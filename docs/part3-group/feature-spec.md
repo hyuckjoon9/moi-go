@@ -98,7 +98,7 @@ Part3는 모집 완료된 스터디의 그룹 홈과 일정을 제공한다. 사
 
 ### 데이터와 연동 경계
 
-- 그룹 생성은 Part2가 `StudyGroupCreationService.create(CreateStudyGroupCommand)`를 호출해 요청한다.
+- 그룹 프로비저닝은 Part2가 `StudyGroupProvisioningPort`를 호출해 요청한다. 게시 시 `createGroup`, 신청 건별 승인 시 `addMember`, 스터디 취소 시 `endGroup`을 사용한다. 기존 일괄 `confirmGroup()` 흐름의 전환은 Part2 작업에서 수행한다.
 - `postId`는 그룹 생성의 멱등 키다. 같은 모집글로 재요청해도 기존 그룹과 그룹원을 유지한다.
 - Part3는 Part1·Part2의 Entity나 Repository를 직접 조회하지 않고 식별자와 공개 계약만 사용한다.
 - 일정 삭제 전 출석·활동 이력은 각 파트의 공개 조회 포트로 확인한다. 최종 데이터 무결성은 FK 정책이 보장한다.
