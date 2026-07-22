@@ -1,6 +1,5 @@
 package com.mycom.myapp.recruitment.controller;
 
-import com.mycom.myapp.application.service.JoinApplicationService;
 import com.mycom.myapp.global.response.ApiResponse;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.recruitment.dto.request.RecruitmentCreateRequest;
@@ -30,7 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecruitmentController {
 
     private final RecruitmentService recruitmentService;
-    private final JoinApplicationService joinApplicationService;
 
     @PostMapping
     public ApiResponse<RecruitmentResponse> create(
@@ -50,13 +48,6 @@ public class RecruitmentController {
     @GetMapping("/{id}")
     public ApiResponse<RecruitmentResponse> getDetail(@PathVariable("id") Long id) {
         return ApiResponse.success(recruitmentService.getDetail(id));
-    }
-
-    @PostMapping("/{postId}/confirm-group")
-    public ApiResponse<Long> confirmGroup(
-            @AuthenticationPrincipal AuthenticatedMember principal,
-            @PathVariable("postId") Long postId) {
-        return ApiResponse.success(joinApplicationService.confirmGroup(postId, principal.id()));
     }
 
     @PatchMapping("/{id}")

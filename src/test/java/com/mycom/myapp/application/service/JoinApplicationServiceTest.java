@@ -16,8 +16,8 @@ import com.mycom.myapp.member.repository.MemberRepository;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
-import com.mycom.myapp.study.service.CreateStudyGroupCommand;
-import com.mycom.myapp.study.service.StudyGroupCreationService;
+import com.mycom.myapp.study.service.AddStudyGroupMemberCommand;
+import com.mycom.myapp.study.service.port.StudyGroupProvisioningPort;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +34,7 @@ class JoinApplicationServiceTest {
     @Mock private JoinApplicationRepository joinApplicationRepository;
     @Mock private RecruitmentRepository recruitmentRepository;
     @Mock private MemberRepository memberRepository;
-    @Mock private StudyGroupCreationService studyGroupCreationService;
+    @Mock private StudyGroupProvisioningPort studyGroupProvisioningPort;
 
     @InjectMocks private JoinApplicationService joinApplicationService;
 
@@ -127,11 +127,12 @@ class JoinApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("리더가 PENDING 상태의 지원을 승인하면 상태가 APPROVED로 바뀐다")
+    @DisplayName("리더가 PENDING 상태의 지원을 승인하면 상태가 APPROVED로 바뀌고 그룹원 추가를 요청한다")
     void approve_success() {
         Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
         ReflectionTestUtils.setField(leader, "id", 1L);
         Member applicant = Member.create("applicant@test.com", "encoded", "지원자", null, null, null);
+        ReflectionTestUtils.setField(applicant, "id", 2L);
 
         RecruitmentPost post =
                 RecruitmentPost.builder()
@@ -153,6 +154,7 @@ class JoinApplicationServiceTest {
         var response = joinApplicationService.approve(10L, 100L, 1L);
 
         assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
+        verify(studyGroupProvisioningPort).addMember(new AddStudyGroupMemberCommand(10L, 2L));
     }
 
     @Test
@@ -229,49 +231,5 @@ class JoinApplicationServiceTest {
         var response = joinApplicationService.reject(10L, 100L, 1L);
 
         assertThat(response.status()).isEqualTo(ApplicationStatus.REJECTED);
-    }
-
-    @Test
-    @DisplayName("그룹 확정 시 승인된 지원자만 골라 StudyGroupCreationService에 전달한다")
-    void confirmGroup_success() {
-        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
-        ReflectionTestUtils.setField(leader, "id", 1L);
-        Member approvedApplicant =
-                Member.create("approved@test.com", "encoded", "승인자", null, null, null);
-        ReflectionTestUtils.setField(approvedApplicant, "id", 2L);
-        Member pendingApplicant =
-                Member.create("pending@test.com", "encoded", "대기자", null, null, null);
-        ReflectionTestUtils.setField(pendingApplicant, "id", 3L);
-
-        RecruitmentPost post =
-                RecruitmentPost.builder()
-                        .leader(leader)
-                        .title("제목")
-                        .status(RecruitmentStatus.RECRUITING)
-                        .build();
-
-        JoinApplication approved =
-                JoinApplication.builder()
-                        .post(post)
-                        .applicant(approvedApplicant)
-                        .motivation("지원동기")
-                        .build();
-        approved.approve();
-        JoinApplication pending =
-                JoinApplication.builder()
-                        .post(post)
-                        .applicant(pendingApplicant)
-                        .motivation("지원동기")
-                        .build();
-
-        when(recruitmentRepository.findById(10L)).thenReturn(Optional.of(post));
-        when(joinApplicationRepository.findByPostId(10L)).thenReturn(List.of(approved, pending));
-        when(studyGroupCreationService.create(any(CreateStudyGroupCommand.class))).thenReturn(999L);
-
-        Long groupId = joinApplicationService.confirmGroup(10L, 1L);
-
-        assertThat(groupId).isEqualTo(999L);
-        verify(studyGroupCreationService)
-                .create(new CreateStudyGroupCommand(10L, "제목", 1L, List.of(2L)));
     }
 }

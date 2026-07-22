@@ -13,8 +13,8 @@ import com.mycom.myapp.member.repository.MemberRepository;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
-import com.mycom.myapp.study.service.CreateStudyGroupCommand;
-import com.mycom.myapp.study.service.StudyGroupCreationService;
+import com.mycom.myapp.study.service.AddStudyGroupMemberCommand;
+import com.mycom.myapp.study.service.port.StudyGroupProvisioningPort;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ public class JoinApplicationService {
     private final JoinApplicationRepository joinApplicationRepository;
     private final RecruitmentRepository recruitmentRepository;
     private final MemberRepository memberRepository;
-    private final StudyGroupCreationService studyGroupCreationService;
+    private final StudyGroupProvisioningPort studyGroupProvisioningPort;
 
     @Transactional
     public JoinApplicationResponse create(
@@ -39,11 +39,9 @@ public class JoinApplicationService {
         if (post.getLeader().getId().equals(applicantId)) {
             throw new BusinessException(ErrorCode.SELF_APPLICATION_NOT_ALLOWED);
         }
-
         if (post.getStatus() != RecruitmentStatus.RECRUITING) {
             throw new BusinessException(ErrorCode.RECRUITMENT_CLOSED);
         }
-
         if (joinApplicationRepository.existsByPostIdAndApplicantId(postId, applicantId)) {
             throw new BusinessException(ErrorCode.DUPLICATE_APPLICATION);
         }
@@ -70,11 +68,9 @@ public class JoinApplicationService {
                 recruitmentRepository
                         .findById(postId)
                         .orElseThrow(() -> new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND));
-
         if (!post.getLeader().getId().equals(requesterId)) {
             throw new BusinessException(ErrorCode.APPLICATION_ACCESS_DENIED);
         }
-
         return joinApplicationRepository.findByPostId(postId).stream()
                 .map(JoinApplicationResponse::from)
                 .toList();
@@ -98,6 +94,8 @@ public class JoinApplicationService {
             throw new BusinessException(ErrorCode.APPLICATION_ALREADY_PROCESSED);
         }
         application.approve();
+        studyGroupProvisioningPort.addMember(
+                new AddStudyGroupMemberCommand(postId, application.getApplicant().getId()));
         return JoinApplicationResponse.from(application);
     }
 
@@ -110,21 +108,6 @@ public class JoinApplicationService {
         }
         application.reject();
         return JoinApplicationResponse.from(application);
-    }
-
-    @Transactional
-    public Long confirmGroup(Long postId, Long leaderId) {
-        RecruitmentPost post = getPostAsLeader(postId, leaderId);
-        List<Long> approvedUserIds =
-                joinApplicationRepository.findByPostId(postId).stream()
-                        .filter(app -> app.getStatus() == ApplicationStatus.APPROVED)
-                        .map(app -> app.getApplicant().getId())
-                        .toList();
-        CreateStudyGroupCommand command =
-                new CreateStudyGroupCommand(postId, post.getTitle(), leaderId, approvedUserIds);
-        Long groupId = studyGroupCreationService.create(command);
-        post.activate();
-        return groupId;
     }
 
     private RecruitmentPost getPostAsLeader(Long postId, Long leaderId) {

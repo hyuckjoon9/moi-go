@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.mycom.myapp.application.service.JoinApplicationService;
 import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.member.entity.MemberRole;
 import com.mycom.myapp.recruitment.dto.request.RecruitmentCreateRequest;
@@ -19,10 +18,7 @@ import org.springframework.data.domain.PageRequest;
 class RecruitmentControllerTest {
 
     private final RecruitmentService recruitmentService = mock(RecruitmentService.class);
-    private final JoinApplicationService joinApplicationService =
-            mock(JoinApplicationService.class);
-    private final RecruitmentController controller =
-            new RecruitmentController(recruitmentService, joinApplicationService);
+    private final RecruitmentController controller = new RecruitmentController(recruitmentService);
     private final AuthenticatedMember authenticatedMember =
             new AuthenticatedMember(1L, "leader@test.com", MemberRole.USER);
 
