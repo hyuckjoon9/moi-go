@@ -30,8 +30,6 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
-    // TODO: checkedBy가 해당 스케줄 그룹의 LEADER/MANAGER인지 검증 (StudySchedule 연동 후)
-    // TODO: 참석 응답이 study_schedules.response_deadline 이전인지 검증 (StudySchedule 연동 후)
     // TODO: checkedBy가 해당 스케줄 그룹의 룰을 받아올 때 출석률 조회도 수정 (권한이 있는 사람만 가능하도록?)
 
     /** 참석 여부 응답 등록 */
