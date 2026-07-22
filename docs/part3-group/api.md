@@ -274,6 +274,42 @@
 
 응답 본문이 없다.
 
+## 내부 서비스 계약
+
+Part2와 Part4는 아래 공개 포트만 사용하며 Part3의 Entity나 Repository에 직접 의존하지 않는다. 모든 식별자는 `Long`이다.
+
+### 그룹 프로비저닝
+
+`StudyGroupProvisioningPort`는 Part2의 모집글·지원 트랜잭션에 `REQUIRED`로 참여한다.
+
+| 메서드 | 입력 | 결과·규칙 |
+| --- | --- | --- |
+| `createGroup` | `CreateStudyGroupCommand(postId, groupName, leaderUserId, approvedUserIds)` | 그룹과 모집장 `LEADER`를 생성하고 그룹 ID를 반환한다. 같은 `postId`는 기존 그룹 ID를 반환한다. 현재 Part2는 빈 `approvedUserIds`를 보내며 이 목록은 사용하지 않는다. |
+| `addMember` | `AddStudyGroupMemberCommand(postId, userId)` | 활성 그룹에 `MEMBER`를 추가하고 그룹 ID를 반환한다. 이미 활성인 그룹원은 멱등 성공한다. |
+| `endGroup` | `postId` | 그룹을 `ENDED`로 바꾸고 그룹 ID를 반환한다. 이미 종료된 그룹은 멱등 성공한다. |
+
+- 그룹이 없으면 `GROUP_NOT_FOUND`, 종료 그룹에 멤버를 추가하면 `GROUP_MEMBER_ADD_NOT_ALLOWED`, 탈퇴 이력이 있는 사용자를 다시 추가하면 `WITHDRAWN_GROUP_MEMBER`다.
+- `postId`, `groupName`, `leaderUserId`, `userId`와 `approvedUserIds`는 필수이며 잘못된 명령 객체는 `IllegalArgumentException`으로 거부한다.
+- Part2 상태 변경과 Part3 변경은 같은 트랜잭션에서 함께 커밋하거나 롤백한다.
+
+### 참석 응답 정책 조회
+
+`ScheduleAttendancePolicyReader#getAttendancePolicy(scheduleId, userId)`는 일정과 활성 그룹원 여부를 검증하고 다음 값을 반환한다.
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `scheduleId`, `groupId` | number | 일정과 그룹 ID |
+| `groupStatus` | `ACTIVE` \| `ENDED` | 그룹 상태 |
+| `activeGroupMember` | boolean | 검증을 통과한 활성 그룹원이므로 `true` |
+| `scheduledAt` | string(date-time) | 일정 시작 시각 |
+| `responseDeadline` | string(date-time) \| null | 별도 응답 마감 |
+
+`effectiveDeadline()`은 `responseDeadline`이 있으면 그 값, 없으면 `scheduledAt`을 반환한다. 일정이 없으면 `SCHEDULE_NOT_FOUND`, 그룹원이 아니면 `GROUP_ACCESS_DENIED`, 탈퇴 그룹원이면 `WITHDRAWN_GROUP_MEMBER`다. Part4는 `now < effectiveDeadline()`일 때만 참석 응답 등록·변경·삭제를 허용한다.
+
+### 그룹 전체 출석률 권한 조회
+
+`StudyGroupAttendanceRatePolicyReader#getAttendanceRatePolicy(groupId, requesterId)`는 `StudyGroupAttendanceRatePolicy(groupId, canViewAllAttendanceRates)`를 반환한다. 활성 그룹의 활성 `LEADER`·`MANAGER`만 `canViewAllAttendanceRates=true`이며, 그 밖의 역할이나 종료 그룹은 `false`다. 그룹이 없으면 `GROUP_NOT_FOUND`, 그룹원이 아니면 `GROUP_ACCESS_DENIED`, 탈퇴 그룹원이면 `WITHDRAWN_GROUP_MEMBER`다.
+
 ## 오류 응답
 
 | HTTP | 내부 코드 | 사용자 메시지 | 주요 발생 조건 |
@@ -287,6 +323,7 @@
 | 404 | `GROUP_NOT_FOUND` | 그룹을 찾을 수 없습니다. | 존재하지 않는 그룹 |
 | 404 | `SCHEDULE_NOT_FOUND` | 일정을 찾을 수 없습니다. | 존재하지 않거나 다른 그룹의 일정 |
 | 409 | `GROUP_ENDED` | 종료된 그룹에서는 일정을 관리할 수 없습니다. | 종료 그룹의 생성·수정·마감 변경·삭제 |
+| 409 | `GROUP_MEMBER_ADD_NOT_ALLOWED` | 종료된 그룹에는 새 그룹원을 추가할 수 없습니다. | 내부 `addMember` 호출 |
 | 409 | `SCHEDULE_UPDATE_NOT_ALLOWED` | 이미 시작된 일정은 수정할 수 없습니다. | 시작된 일정 수정 |
 | 409 | `SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED` | 마감되었거나 이미 시작된 일정의 응답 마감은 변경할 수 없습니다. | 시작·마감 이후 마감 변경 |
 | 409 | `SCHEDULE_DELETE_NOT_ALLOWED` | 출석 또는 활동 이력이 있거나 이미 시작된 일정은 삭제할 수 없습니다. | 시작된 일정, 출석·활동 이력 존재 |
