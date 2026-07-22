@@ -2,6 +2,13 @@
 
 Spring Boot 기반 4인 팀 프로젝트
 
+## 기술 스택
+
+- Backend: Java, Spring Boot, Spring Security, Spring Data JPA
+- Database: MySQL
+- Test: JUnit 5, H2
+- Quality: Spotless, GitHub Actions
+
 ## 개발 환경
 
 | 도구              | 버전                                             |
@@ -47,13 +54,6 @@ git config --get core.hooksPath
 ```
 
 이후 커밋할 때 Spotless가 자동으로 코드 포맷을 적용한다.
-
-## 기술 스택
-
-- Backend: Java, Spring Boot, Spring Security, Spring Data JPA
-- Database: MySQL
-- Test: JUnit 5, H2
-- Quality: Spotless, GitHub Actions
 
 ## 실행
 
