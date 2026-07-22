@@ -255,6 +255,7 @@ class ActivityServiceTest {
 
     @Test
     void getRecordResponseReturnsMappedResponse() {
+        stubManager(10L, 1L, GroupRole.MEMBER);
         ActivityRecord existing =
                 ActivityRecord.builder()
                         .scheduleId(10L)
@@ -264,10 +265,25 @@ class ActivityServiceTest {
                         .build();
         given(activityRecordRepository.findByScheduleId(10L)).willReturn(Optional.of(existing));
 
-        var response = activityService.getRecordResponse(10L);
+        var response = activityService.getRecordResponse(10L, 1L);
 
         assertThat(response.getScheduleId()).isEqualTo(10L);
         assertThat(response.getTopic()).isEqualTo("토픽");
+    }
+
+    @Test
+    void getRecordResponseThrowsWhenNotGroupMember() {
+        StudyGroup group = group();
+        given(studyScheduleRepository.findById(10L)).willReturn(Optional.of(schedule(group, 10L)));
+        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 1L))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> activityService.getRecordResponse(10L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.GROUP_ACCESS_DENIED));
     }
 
     @Test
@@ -405,9 +421,9 @@ class ActivityServiceTest {
 
     @Test
     void getReviewsThrowsWhenRecordNotFound() {
-        given(activityRecordRepository.existsById(100L)).willReturn(false);
+        given(activityRecordRepository.findById(100L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> activityService.getReviews(100L))
+        assertThatThrownBy(() -> activityService.getReviews(100L, 20L))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception ->
@@ -416,7 +432,25 @@ class ActivityServiceTest {
     }
 
     @Test
+    void getReviewsThrowsWhenNotGroupMember() {
+        stubActivityRecordWithSchedule(100L, 10L);
+        StudyGroup group = group();
+        given(studyScheduleRepository.findById(10L)).willReturn(Optional.of(schedule(group, 10L)));
+        given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, 20L))
+                .willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> activityService.getReviews(100L, 20L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.GROUP_ACCESS_DENIED));
+    }
+
+    @Test
     void getReviewsReturnsMappedResponses() {
+        stubActivityRecordWithSchedule(100L, 10L);
+        stubManager(10L, 20L, GroupRole.MEMBER);
         List<ActivityReview> reviews =
                 List.of(
                         ActivityReview.builder()
@@ -429,10 +463,9 @@ class ActivityServiceTest {
                                 .userId(21L)
                                 .comment("유익했습니다")
                                 .build());
-        given(activityRecordRepository.existsById(100L)).willReturn(true);
         given(activityReviewRepository.findByActivityRecordId(100L)).willReturn(reviews);
 
-        List<ActivityReviewResponse> result = activityService.getReviews(100L);
+        List<ActivityReviewResponse> result = activityService.getReviews(100L, 20L);
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getComment()).isEqualTo("좋았어요");
