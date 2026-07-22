@@ -5,6 +5,10 @@ import java.util.List;
 public record CreateStudyGroupCommand(
         Long postId, String groupName, Long leaderUserId, List<Long> approvedUserIds) {
 
+    public CreateStudyGroupCommand(Long postId, String groupName, Long leaderUserId) {
+        this(postId, groupName, leaderUserId, List.of());
+    }
+
     public CreateStudyGroupCommand {
         if (postId == null) {
             throw new IllegalArgumentException("모집글 식별자는 필수입니다.");
