@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '4.1.0'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'com.diffplug.spotless' version '8.8.0'
+    id 'jacoco'
 }
 
 group = 'com.mycom'
@@ -70,6 +71,38 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
 }
 
+jacoco {
+    toolVersion = "0.8.12"
+}
+ 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport 
 }
+ 
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+ 
+
+tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
+    dependsOn tasks.named('jacocoTestReport')
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.30
+            }
+        }
+    }
+}
+ 
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification') 
+}
+
+
