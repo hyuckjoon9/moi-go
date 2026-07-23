@@ -420,6 +420,82 @@ class ActivityServiceTest {
     }
 
     @Test
+    void deleteReviewByManagerDeletesAnyMembersReviewWhenRequesterIsManager() {
+        stubActivityRecordWithSchedule(100L, 10L);
+        stubManager(10L, 1L, GroupRole.LEADER);
+        ActivityReview existing =
+                ActivityReview.builder()
+                        .activityRecordId(100L)
+                        .userId(20L)
+                        .comment("부적절한 리뷰")
+                        .build();
+        given(activityReviewRepository.findById(500L)).willReturn(Optional.of(existing));
+
+        activityService.deleteReviewByManager(100L, 500L, 1L);
+
+        verify(activityReviewRepository).delete(existing);
+    }
+
+    @Test
+    void deleteReviewByManagerThrowsWhenRequesterIsPlainMember() {
+        stubActivityRecordWithSchedule(100L, 10L);
+        stubManager(10L, 1L, GroupRole.MEMBER);
+
+        assertThatThrownBy(() -> activityService.deleteReviewByManager(100L, 500L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ACTIVITY_RECORD_ACCESS_DENIED));
+    }
+
+    @Test
+    void deleteReviewByManagerThrowsWhenRecordNotFound() {
+        given(activityRecordRepository.findById(100L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> activityService.deleteReviewByManager(100L, 500L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ACTIVITY_RECORD_NOT_FOUND));
+    }
+
+    @Test
+    void deleteReviewByManagerThrowsWhenReviewNotFound() {
+        stubActivityRecordWithSchedule(100L, 10L);
+        stubManager(10L, 1L, GroupRole.LEADER);
+        given(activityReviewRepository.findById(500L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> activityService.deleteReviewByManager(100L, 500L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ACTIVITY_REVIEW_NOT_FOUND));
+    }
+
+    @Test
+    void deleteReviewByManagerThrowsWhenReviewBelongsToDifferentRecord() {
+        stubActivityRecordWithSchedule(100L, 10L);
+        stubManager(10L, 1L, GroupRole.LEADER);
+        ActivityReview otherRecordsReview =
+                ActivityReview.builder()
+                        .activityRecordId(999L)
+                        .userId(20L)
+                        .comment("다른 기록의 리뷰")
+                        .build();
+        given(activityReviewRepository.findById(500L)).willReturn(Optional.of(otherRecordsReview));
+
+        assertThatThrownBy(() -> activityService.deleteReviewByManager(100L, 500L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ACTIVITY_REVIEW_NOT_FOUND));
+    }
+
+    @Test
     void getReviewsThrowsWhenRecordNotFound() {
         given(activityRecordRepository.findById(100L)).willReturn(Optional.empty());
 

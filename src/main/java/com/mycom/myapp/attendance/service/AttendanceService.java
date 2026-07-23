@@ -2,6 +2,7 @@ package com.mycom.myapp.attendance.service;
 
 import com.mycom.myapp.attendance.dto.request.AttendanceAnswerRequest;
 import com.mycom.myapp.attendance.dto.request.AttendanceCheckRequest;
+import com.mycom.myapp.attendance.dto.response.AttendanceAnswerSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.AttendanceSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.MyAttendanceRateResponse;
 import com.mycom.myapp.attendance.entity.AttendanceAnswer;
@@ -123,6 +124,22 @@ public class AttendanceService {
         validateManager(scheduleId, requesterId);
         List<AttendanceRecord> records = attendanceRecordRepository.findByScheduleId(scheduleId);
         return AttendanceSummaryResponse.of(scheduleId, records);
+    }
+
+    /** 모집장이 스케줄 하나의 그룹원별 참석 여부 응답(RSVP) 현황을 조회한다. 미응답 그룹원도 함께 포함된다. */
+    public AttendanceAnswerSummaryResponse getAnswerSummary(Long scheduleId, Long requesterId) {
+        validateManager(scheduleId, requesterId);
+        StudySchedule schedule =
+                studyScheduleRepository
+                        .findById(scheduleId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        Long groupId = schedule.getStudyGroup().getId();
+        List<GroupMember> members =
+                groupMemberRepository
+                        .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                groupId, GroupMemberStatus.ACTIVE);
+        List<AttendanceAnswer> answers = attendanceResponseRepository.findByScheduleId(scheduleId);
+        return AttendanceAnswerSummaryResponse.of(scheduleId, members, answers);
     }
 
     /** 본인의 전체 스케줄 기준 누적 출석률(PRESENT 건수 / 전체 건수 * 100)을 계산한다. */

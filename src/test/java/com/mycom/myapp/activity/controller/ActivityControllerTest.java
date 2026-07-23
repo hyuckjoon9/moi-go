@@ -189,6 +189,25 @@ class ActivityControllerTest {
     }
 
     @Test
+    void deleteReviewByManagerDeletesForAuthenticatedRequester() {
+        ResponseEntity<Void> response =
+                controller.deleteReviewByManager(100L, 500L, authenticatedMember);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(activityService).deleteReviewByManager(100L, 500L, 1L);
+    }
+
+    @Test
+    void deleteReviewByManagerRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.deleteReviewByManager(100L, 500L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
+    @Test
     void getReviewsReturnsServiceResult() {
         List<ActivityReviewResponse> reviews =
                 List.of(ActivityReviewResponse.builder().id(1L).activityRecordId(100L).build());
