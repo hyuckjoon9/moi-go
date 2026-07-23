@@ -214,4 +214,49 @@ class RecruitmentControllerTest {
 
         assertThat(result.data()).isEqualTo(response);
     }
+
+    @Test
+    void reopenReturnsReopenedResponse() {
+        RecruitmentUpdateRequest request =
+                new RecruitmentUpdateRequest(
+                        "재모집 제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        6,
+                        null,
+                        "8주",
+                        "조건");
+        RecruitmentResponse response =
+                new RecruitmentResponse(
+                        1L,
+                        1L,
+                        "재모집 제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        6,
+                        null,
+                        "8주",
+                        "조건",
+                        "RECRUITING",
+                        null,
+                        null);
+        when(recruitmentService.reopen(1L, 1L, request)).thenReturn(response);
+
+        var result = controller.reopen(authenticatedMember, 1L, request);
+
+        assertThat(result.data()).isEqualTo(response);
+        verify(recruitmentService).reopen(1L, 1L, request);
+    }
 }

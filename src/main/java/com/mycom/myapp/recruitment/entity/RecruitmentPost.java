@@ -152,4 +152,35 @@ public class RecruitmentPost extends BaseTimeEntity {
     public void end() {
         this.status = RecruitmentStatus.ENDED;
     }
+
+    public void reopen(
+            String title,
+            String category,
+            String description,
+            String goal,
+            String method,
+            String meetingType,
+            String location,
+            String onlineLink,
+            String meetingDay,
+            Integer capacity,
+            LocalDate recruitmentDeadline,
+            String expectedDuration,
+            String conditions) {
+        update(
+                title,
+                category,
+                description,
+                goal,
+                method,
+                meetingType,
+                location,
+                onlineLink,
+                meetingDay,
+                capacity,
+                recruitmentDeadline,
+                expectedDuration,
+                conditions);
+        this.status = RecruitmentStatus.RECRUITING;
+    }
 }
