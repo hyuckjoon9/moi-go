@@ -37,7 +37,7 @@ CREATE TABLE users (
     CONSTRAINT chk_users_role
         CHECK (role IN ('USER', 'ADMIN')),
     CONSTRAINT chk_users_status
-        CHECK (status IN ('ACTIVE', 'WITHDRAWN'))
+        CHECK (status IN ('ACTIVE', 'SUSPENDED', 'WITHDRAWN'))
 ) ENGINE = InnoDB;
 
 CREATE TABLE admin_audit_logs (

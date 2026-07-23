@@ -55,4 +55,15 @@ class MemberTest {
         assertThat(member.getInterests()).isEqualTo("JPA");
         assertThat(member.getProfileImageUrl()).isEqualTo("https://example.com/profile.png");
     }
+
+    @Test
+    @DisplayName("Member 상태를 ACTIVE와 SUSPENDED 사이에서 변경한다")
+    void changeStatusUpdatesMemberStatus() {
+        Member member =
+                Member.create("user@moigo.test", "encoded-password", "모이고", null, null, null);
+
+        member.changeStatus(MemberStatus.SUSPENDED);
+
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.SUSPENDED);
+    }
 }

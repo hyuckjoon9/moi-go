@@ -26,7 +26,7 @@ erDiagram
         varchar_255 interests "nullable"
         varchar_500 profile_image_url "nullable"
         varchar_20 role "USER or ADMIN"
-        varchar_20 status "ACTIVE or WITHDRAWN"
+varchar_20 status "ACTIVE, SUSPENDED or WITHDRAWN"
         datetime created_at
         datetime updated_at
     }
@@ -88,7 +88,7 @@ erDiagram
 | `interests` | `VARCHAR(255)` | 관심 분야, 콤마 구분 문자열로 시작 |
 | `profile_image_url` | `VARCHAR(500)` | 프로필 이미지 URL, NULL 허용 |
 | `role` | `VARCHAR(20)` | `USER`, `ADMIN`; 기본값 `USER` |
-| `status` | `VARCHAR(20)` | `ACTIVE`, `WITHDRAWN`; 기본값 `ACTIVE` |
+| `status` | `VARCHAR(20)` | `ACTIVE`, `SUSPENDED`, `WITHDRAWN`; 기본값 `ACTIVE` |
 | `created_at` | `DATETIME` | 가입 시각, 기본값 `CURRENT_TIMESTAMP` |
 | `updated_at` | `DATETIME` | 수정 시각, 기본값 `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` |
 

@@ -80,7 +80,7 @@ docs/architecture/folder-structure.md
 - `nickname`은 UNIQUE다.
 - `password`는 암호화된 문자열만 저장한다.
 - `role`은 `USER`, `ADMIN`이다.
-- `status`는 `ACTIVE`, `WITHDRAWN`이다.
+- `status`는 `ACTIVE`, `SUSPENDED`, `WITHDRAWN`이다.
 - 탈퇴는 우선 `WITHDRAWN` 상태 변경으로 처리한다.
 
 ### `refresh_tokens`

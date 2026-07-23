@@ -84,7 +84,7 @@ Part1은 다음 두 테이블과 대응하는 Entity를 소유한다. 세부 컬
 
 | 테이블 | 대응 영역 | 핵심 제약과 규칙 |
 | --- | --- | --- |
-| `users` | `member` | 이메일과 닉네임은 유일하다. 역할은 `USER`, `ADMIN`, 상태는 `ACTIVE`, `WITHDRAWN`만 허용한다. |
+| `users` | `member` | 이메일과 닉네임은 유일하다. 역할은 `USER`, `ADMIN`, 상태는 `ACTIVE`, `SUSPENDED`, `WITHDRAWN`만 허용한다. |
 | `refresh_tokens` | `auth` | token은 유일하다. `user_id`는 `users.id`를 참조하고 회원 삭제 시 함께 삭제된다. |
 
 ### Part1 비즈니스 불변식

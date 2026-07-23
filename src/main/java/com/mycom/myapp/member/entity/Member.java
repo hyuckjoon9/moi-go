@@ -119,6 +119,13 @@ public class Member {
         status = MemberStatus.WITHDRAWN;
     }
 
+    public void changeStatus(MemberStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("회원 상태는 필수입니다.");
+        }
+        this.status = status;
+    }
+
     private static String normalizeNullable(String value) {
         if (value == null || value.isBlank()) {
             return null;
