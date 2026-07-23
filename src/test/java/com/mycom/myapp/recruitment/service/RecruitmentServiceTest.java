@@ -201,7 +201,7 @@ class RecruitmentServiceTest {
         assertThat(response.status()).isEqualTo("ENDED");
         verify(studyGroupProvisioningPort).endGroup(1L);
     }
-    
+
     @Test
     @DisplayName("리더가 마감된 모집글을 재모집하면 내용이 갱신되고 상태가 RECRUITING으로 바뀐다")
     void reopen_success() {
@@ -307,7 +307,10 @@ class RecruitmentServiceTest {
 
         when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
 
-        assertThatThrownBy(() -> recruitmentService.reopen(1L, 999L, request)) // 추가: 리더(1L)가 아닌 999L로 호출
+        assertThatThrownBy(
+                        () ->
+                                recruitmentService.reopen(
+                                        1L, 999L, request)) // 추가: 리더(1L)가 아닌 999L로 호출
                 .isInstanceOf(BusinessException.class);
     }
 }

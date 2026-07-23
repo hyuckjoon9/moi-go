@@ -76,7 +76,7 @@ public class RecruitmentController {
             @AuthenticationPrincipal AuthenticatedMember principal, @PathVariable("id") Long id) {
         return ApiResponse.success(recruitmentService.end(id, principal.id()));
     }
-    
+
     @PatchMapping("/{id}/reopen")
     public ApiResponse<RecruitmentResponse> reopen(
             @AuthenticationPrincipal AuthenticatedMember principal,

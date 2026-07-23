@@ -214,7 +214,7 @@ class RecruitmentControllerTest {
 
         assertThat(result.data()).isEqualTo(response);
     }
-    
+
     @Test
     void reopenReturnsReopenedResponse() {
         RecruitmentUpdateRequest request =
@@ -257,6 +257,6 @@ class RecruitmentControllerTest {
         var result = controller.reopen(authenticatedMember, 1L, request);
 
         assertThat(result.data()).isEqualTo(response);
-        verify(recruitmentService).reopen(1L, 1L, request); 
+        verify(recruitmentService).reopen(1L, 1L, request);
     }
 }

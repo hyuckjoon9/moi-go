@@ -117,7 +117,7 @@ public class RecruitmentService {
         studyGroupProvisioningPort.endGroup(postId);
         return RecruitmentResponse.from(post);
     }
-    
+
     @Transactional
     public RecruitmentResponse reopen(
             Long postId, Long requesterId, RecruitmentUpdateRequest request) {
