@@ -8,6 +8,7 @@
   let currentGroupDetail = null;
   let currentGroupMembers = [];
   let currentGroupSchedules = [];
+  let currentActivityRecord = null;
   let toastTimer;
 
   function formData(form) { return Object.fromEntries(new FormData(form).entries()); }
@@ -108,21 +109,25 @@
     return value ? Number(value) : null;
   }
   function ownRecruitmentIds() {
-    try { return JSON.parse(localStorage.getItem("ownRecruitmentIds") || "[]"); }
+    const memberId = currentMemberId();
+    if (!memberId) return [];
+    try { return JSON.parse(localStorage.getItem(`ownRecruitmentIds:${memberId}`) || "[]"); }
     catch (_) { return []; }
   }
   function markRecruitmentAsOwn(id) {
     if (!id) return;
+    const memberId = currentMemberId();
+    if (!memberId) return;
     const ids = new Set(ownRecruitmentIds().map(String));
     ids.add(String(id));
-    localStorage.setItem("ownRecruitmentIds", JSON.stringify([...ids]));
+    localStorage.setItem(`ownRecruitmentIds:${memberId}`, JSON.stringify([...ids]));
   }
   function isOwnRecruitment(detail) {
     if (!detail) return false;
     if (detail.isOwner === true || detail.owner === true) return true;
     const memberId = currentMemberId();
     const leaderId = detail.leaderId || detail.leader?.id || detail.leader?.memberId;
-    if (memberId && leaderId && Number(leaderId) === memberId) return true;
+    if (memberId && leaderId) return Number(leaderId) === memberId;
     return ownRecruitmentIds().map(String).includes(String(detail.id));
   }
   function setRecruitmentStatusFilter(status) {
@@ -343,7 +348,23 @@
     payload.recruitmentDeadline = payload.recruitmentDeadline || null;
     return payload;
   }
-  function validateRecruitmentPayload(payload) {
+  function recruitmentPayloadFromDetail(detail = {}) {
+    return {
+      title: detail.title || "",
+      category: detail.category || "",
+      description: detail.description || null,
+      goal: detail.goal || null,
+      method: detail.method || null,
+      meetingType: detail.meetingType || "ONLINE",
+      location: detail.location || null,
+      onlineLink: detail.onlineLink || null,
+      meetingDay: detail.meetingDay || null,
+      capacity: asNumber(detail.capacity),
+      recruitmentDeadline: detail.recruitmentDeadline || null,
+      expectedDuration: detail.expectedDuration || null,
+      conditions: detail.conditions || null,
+    };
+  }  function validateRecruitmentPayload(payload) {
     if (!payload.title || !payload.category || !payload.meetingType || !payload.capacity || !payload.recruitmentDeadline) {
       toast("스터디 이름, 카테고리, 모임 방식, 모집 인원, 모집 마감일은 필수입니다.", true);
       return false;
@@ -458,9 +479,21 @@
     const view = $("#recruitmentDetailView");
     if (!view) return;
     const owner = isOwnRecruitment(detail);
-    const actionButtons = owner
-      ? `<button class="button ghost" type="button" data-recruitment-action="edit">수정</button><button class="button danger" type="button" data-recruitment-action="delete">삭제</button><button class="button ghost" type="button" data-recruitment-action="close">모집 종료</button><button class="button ghost" type="button" data-recruitment-action="end">활동 종료</button><button class="button" type="button" data-recruitment-action="applications">신청자 관리</button>`
-      : `<button class="button" type="button" data-recruitment-action="apply">참가 신청</button>`;
+    const detailStatus = String(detail.status || "RECRUITING").toUpperCase();
+    let actionButtons = "";
+    if (owner) {
+      const recruitmentStateButton = detailStatus === "CLOSED"
+        ? `<button class="button ghost" type="button" data-recruitment-action="reopen">모집 재개</button>`
+        : detailStatus === "ENDED"
+          ? ""
+          : `<button class="button ghost" type="button" data-recruitment-action="close">모집 종료</button>`;
+      const endButton = detailStatus === "ENDED" ? "" : `<button class="button ghost" type="button" data-recruitment-action="end">활동 종료</button>`;
+      actionButtons = `<button class="button ghost" type="button" data-recruitment-action="edit">수정</button>${recruitmentStateButton}${endButton}<button class="button" type="button" data-recruitment-action="applications">신청자 관리</button>`;
+    } else {
+      actionButtons = statusGroup(detail.status) === "OPEN"
+        ? `<button class="button" type="button" data-recruitment-action="apply">참가 신청</button>`
+        : `<span class="meta action-note">모집이 종료된 글입니다.</span>`;
+    }
     view.innerHTML = `
       <header class="board-detail-header">
         <div class="recruitment-row-meta"><span class="badge status-${statusGroup(detail.status).toLowerCase()}">${escapeHtml(statusLabel(detail.status))}</span><span>${escapeHtml(detail.category || "카테고리 없음")}</span><span>글 번호 ${escapeHtml(detail.id)}</span></div>
@@ -477,11 +510,8 @@
       button.addEventListener("click", async () => {
         const action = button.dataset.recruitmentAction;
         if (action === "edit") openRecruitmentEditModal(detail);
-        if (action === "delete" && confirm("모집글을 삭제할까요?")) {
-          await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}`, { method: "DELETE" }), "모집글을 삭제했습니다.");
-          window.location.href = "/recruitments.html";
-        }
-        if (action === "close") { await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/close`, { method: "PATCH" }), "모집을 종료했습니다."); await loadRecruitmentDetail(detail.id); }
+        if (action === "close") { const updated = await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/close`, { method: "PATCH" }), "모집을 종료했습니다."); await loadRecruitmentDetail(updated?.id || detail.id); }
+        if (action === "reopen") { const updated = await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/reopen`, { method: "PATCH", body: window.moiApi.toJsonBody(recruitmentPayloadFromDetail(detail)) }), "모집을 다시 시작했습니다."); await loadRecruitmentDetail(updated?.id || detail.id); }
         if (action === "end") { await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/end`, { method: "PATCH" }), "활동을 종료했습니다."); await loadRecruitmentDetail(detail.id); }
         if (action === "applications") await loadRecruitmentApplications(detail.id);
         if (action === "apply") openJoinApplicationModal(detail.id);
@@ -504,6 +534,10 @@
     $("#loginForm")?.addEventListener("submit", async (event) => {
       event.preventDefault();
       await run(() => window.moiAuth.login(compact(formData(event.currentTarget))), "로그인되었습니다.");
+      localStorage.removeItem("memberId");
+      localStorage.removeItem("memberNickname");
+      localStorage.removeItem("memberProfileImageUrl");
+      localStorage.removeItem("memberProfilePreview");
       const member = await loadCurrentMemberForHeader();
       setHeaderGreeting(member);
       const params = new URLSearchParams(window.location.search);
@@ -754,6 +788,7 @@
   function toggleScheduleCreateForm(show) {
     const form = $("#groupCreateScheduleForm");
     if (!form) return;
+    if (show && !canManageCurrentGroupAttendance()) { toast("일정 생성 권한이 없습니다.", true); return; }
     form.classList.toggle("hidden", !show);
     if (show) form.querySelector('input[name="title"]')?.focus();
   }
@@ -769,23 +804,182 @@
       if (current && currentGroupSchedules.some((schedule) => String(schedule.scheduleId) === String(current))) select.value = current;
     });
   }
+  function syncGroupScheduleIds(scheduleId) {
+    document.querySelectorAll(".group-schedule-picker, #groupScheduleSelect").forEach((select) => { if (select && scheduleId) select.value = scheduleId; });
+  }
   function selectGroupSchedule(scheduleId) {
     if (!scheduleId) return;
+    const previousScheduleId = $("#groupScheduleSelect")?.value;
+    if (previousScheduleId && String(previousScheduleId) !== String(scheduleId)) closeGroupAnswerSummary();
     syncGroupScheduleIds(scheduleId);
     const schedule = selectedGroupSchedule(scheduleId);
     const detailPanel = $("#groupScheduleDetailPanel");
     if (detailPanel) detailPanel.classList.remove("hidden");
     if ($("#selectedScheduleTitle")) $("#selectedScheduleTitle").textContent = scheduleDisplayName(schedule);
-    loadGroupAttendanceRates().catch(() => {});
+    setGroupManagerControlsVisibility();
+    loadActivityRecord(scheduleId).catch(() => {});
+    if (canManageCurrentGroupAttendance()) loadGroupAttendanceRates().catch(() => {});
   }
   function renderAttendanceRate(rate) {
     const percentage = Number(rate.attendanceRate || 0).toFixed(1);
     return `<article class="entity-card attendance-rate-card"><span class="badge">${escapeHtml(groupMemberLabelForUserId(rate.userId))}</span><strong>${percentage}%</strong><div class="meta">출석 ${escapeHtml(rate.presentCount || 0)} · 지각 ${escapeHtml(rate.lateCount || 0)} · 결석 ${escapeHtml(rate.absentCount || 0)} · 인정 ${escapeHtml(rate.excusedCount || 0)}</div></article>`;
   }
   async function loadGroupAttendanceRates() {
-    if (!currentGroupId()) return;
+    if (!currentGroupId() || !canManageCurrentGroupAttendance()) return;
+    const list = $("#groupAttendanceRateList");
+    list?.classList.remove("hidden");
     const rates = await run(() => window.moiApi.request(`/api/attendance/groups/${currentGroupId()}/rates`), null);
     renderCards("#groupAttendanceRateList", rates || [], "표시할 출석률이 없습니다.", renderAttendanceRate);
+  }
+  function canManageCurrentGroupAttendance() {
+    return ["LEADER", "MANAGER"].includes(String(currentGroupDetail?.myRole || "").toUpperCase());
+  }
+  function setGroupManagerControlsVisibility() {
+    const manager = canManageCurrentGroupAttendance();
+    ["#openGroupScheduleCreateButton", "#groupAttendanceManagerActions", "#groupAttendanceRateList", "#groupAnswerSummaryList", "#groupCheckAttendanceForm"].forEach((selector) => {
+      $(selector)?.classList.toggle("hidden", !manager);
+    });
+    if (!manager) {
+      const rates = $("#groupAttendanceRateList");
+      const answers = $("#groupAnswerSummaryList");
+      if (rates) rates.innerHTML = "";
+      if (answers) answers.innerHTML = "";
+    }
+  }
+  function attendanceAnswerLabel(response) {
+    const value = String(response || "UNDECIDED").toUpperCase();
+    if (value === "ATTEND") return "참석";
+    if (value === "ABSENT") return "불참";
+    return "미정";
+  }
+  function attendanceAnswerClass(response) {
+    const value = String(response || "UNDECIDED").toUpperCase();
+    if (value === "ATTEND") return "attend";
+    if (value === "ABSENT") return "absent";
+    return "undecided";
+  }
+  function closeGroupAnswerSummary() {
+    const target = $("#groupAnswerSummaryList");
+    if (!target) return;
+    target.innerHTML = "";
+    delete target.dataset.scheduleId;
+    target.classList.add("hidden");
+  }
+  function renderAnswerSummary(summary, scheduleId) {
+    const target = $("#groupAnswerSummaryList");
+    if (!target) return;
+    target.dataset.scheduleId = String(scheduleId || "");
+    target.classList.remove("hidden");
+    const members = summary?.members || [];
+    const cards = members.length
+      ? members.map((member) => `<article class="entity-card attendance-summary-card"><span class="badge attendance-answer-badge ${attendanceAnswerClass(member.response)}">${escapeHtml(attendanceAnswerLabel(member.response))}</span><strong>${escapeHtml(groupMemberLabelForUserId(member.userId))}</strong><div class="meta">${member.respondedAt ? `응답일 ${escapeHtml(formatDate(member.respondedAt))}` : "아직 응답하지 않았습니다."}</div></article>`).join("")
+      : `<article class="entity-card attendance-summary-card"><p class="meta">표시할 참석 응답이 없습니다.</p></article>`;
+    target.innerHTML = `<div class="attendance-summary-header"><div><strong>참석 응답 현황</strong><p class="meta">참석 ${escapeHtml(summary?.attendCount || 0)}명 · 불참 ${escapeHtml(summary?.absentCount || 0)}명 · 미정 ${escapeHtml(summary?.undecidedCount || 0)}명 · 전체 ${escapeHtml(summary?.totalMemberCount || members.length || 0)}명</p></div></div>${cards}`;
+  }
+  async function loadGroupAnswerSummary() {
+    const scheduleId = $("#groupScheduleSelect")?.value || $("#groupSummaryScheduleSelect")?.value;
+    if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; }
+    if (!canManageCurrentGroupAttendance()) return;
+    const target = $("#groupAnswerSummaryList");
+    if (target && !target.classList.contains("hidden") && target.dataset.scheduleId === String(scheduleId)) {
+      closeGroupAnswerSummary();
+      return;
+    }
+    const summary = await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers/summary`), "참석 응답 현황을 조회했습니다.");
+    renderAnswerSummary(summary, scheduleId);
+  }
+  function canManageCurrentGroupActivity() {
+    return ["LEADER", "MANAGER"].includes(String(currentGroupDetail?.myRole || "").toUpperCase());
+  }
+  function fillActivityRecordForm(record = {}) {
+    const form = $("#activityRecordForm");
+    if (!form) return;
+    setField(form, "topic", record.topic || "");
+    setField(form, "content", record.content || "");
+    setField(form, "assignment", record.assignment || "");
+    setField(form, "nextPreparation", record.nextPreparation || "");
+    setField(form, "referenceLinks", record.referenceLinks || "");
+  }
+  function closeActivityRecordModal() {
+    hidePanel("#activityRecordBackdrop");
+    hidePanel("#activityRecordPanel");
+    if ($("#groupCreatePanel")?.classList.contains("hidden")) document.body.classList.remove("modal-open");
+  }
+  function openActivityRecordModal(mode = currentActivityRecord ? "edit" : "create") {
+    const scheduleId = $("#groupScheduleSelect")?.value;
+    if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; }
+    if (!canManageCurrentGroupActivity()) { toast("회고 작성 권한이 없습니다.", true); return; }
+    const editing = mode === "edit" && currentActivityRecord;
+    $("#activityRecordTitle") && ($("#activityRecordTitle").textContent = editing ? "회고 수정" : "회고 작성");
+    $("#saveActivityRecordButton") && ($("#saveActivityRecordButton").textContent = editing ? "회고 수정" : "회고 저장");
+    fillActivityRecordForm(editing ? currentActivityRecord : {});
+    showPanel("#activityRecordBackdrop");
+    showPanel("#activityRecordPanel");
+    document.body.classList.add("modal-open");
+    $("#activityRecordForm input[name='topic']")?.focus();
+  }
+  function setActivityRecordButtons(scheduleId, record) {
+    const manager = canManageCurrentGroupActivity();
+    $("#openActivityRecordCreateButton")?.classList.toggle("hidden", !scheduleId || !manager || !!record);
+    $("#openActivityRecordEditButton")?.classList.toggle("hidden", !scheduleId || !manager || !record);
+  }
+  function renderActivityRecord(record, scheduleId) {
+    const panel = $("#groupActivityPanel");
+    const view = $("#activityRecordView");
+    const reviewArea = $("#activityReviewArea");
+    if (!panel || !view) return;
+    panel.classList.toggle("hidden", !scheduleId);
+    currentActivityRecord = record || null;
+    setActivityRecordButtons(scheduleId, record);
+    if (!scheduleId) {
+      view.innerHTML = `<p class="meta">일정을 선택하면 회고 기록을 확인할 수 있습니다.</p>`;
+      reviewArea?.classList.add("hidden");
+      closeActivityRecordModal();
+      return;
+    }
+    if (!record) {
+      view.innerHTML = `<p class="meta">아직 작성된 회고가 없습니다.</p>`;
+      reviewArea?.classList.add("hidden");
+      fillActivityRecordForm({});
+      return;
+    }
+    view.innerHTML = `
+      <span class="badge">회고</span>
+      <strong>${escapeHtml(record.topic || "활동 회고")}</strong>
+      <dl class="info-list compact-info">
+        ${detailItem("내용", record.content)}${detailItem("과제", record.assignment)}${detailItem("다음 준비", record.nextPreparation)}${detailItem("참고 링크", record.referenceLinks)}
+      </dl>
+      <div class="meta">작성일 ${escapeHtml(formatDate(record.createdAt) || "-")} · 수정일 ${escapeHtml(formatDate(record.updatedAt) || "-")}</div>`;
+    fillActivityRecordForm(record);
+    reviewArea?.classList.remove("hidden");
+  }
+  function renderActivityReviews(reviews = []) {
+    const manager = canManageCurrentGroupActivity();
+    renderCards("#activityReviewList", reviews, "아직 회고 리뷰가 없습니다.", (review) => `<article class="entity-card activity-review-card" data-review-id="${escapeHtml(review.id)}"><div><span class="badge">${escapeHtml(groupMemberLabelForUserId(review.userId))}</span><p>${escapeHtml(review.comment || "내용이 없습니다.")}</p><div class="meta">작성일 ${escapeHtml(formatDate(review.createdAt) || "-")}</div></div>${manager ? `<button class="button ghost small" type="button" data-review-delete="true">리뷰 삭제</button>` : ""}</article>`);
+    document.querySelectorAll("[data-review-delete]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const reviewId = button.closest("[data-review-id]")?.dataset.reviewId;
+        if (!currentActivityRecord?.id || !reviewId) return;
+        await run(() => window.moiApi.request(`/api/activity/records/${currentActivityRecord.id}/reviews/${reviewId}`, { method: "DELETE" }), "리뷰를 삭제했습니다.");
+        await loadActivityReviews();
+      });
+    });
+  }
+  async function loadActivityReviews(recordId = currentActivityRecord?.id) {
+    if (!recordId) { renderActivityReviews([]); return; }
+    const reviews = await run(() => window.moiApi.request(`/api/activity/records/${recordId}/reviews`), null);
+    renderActivityReviews(reviews || []);
+  }
+  async function loadActivityRecord(scheduleId = $("#groupScheduleSelect")?.value) {
+    renderActivityRecord(null, scheduleId);
+    if (!scheduleId) return;
+    try {
+      const record = await window.moiApi.request(`/api/activity/schedules/${scheduleId}/record`);
+      renderActivityRecord(record, scheduleId);
+      await loadActivityReviews(record?.id).catch(() => {});
+    } catch (error) {
+      renderActivityRecord(null, scheduleId);
+    }
   }
   function renderGroup(group) {
     currentGroupDetail = group;
@@ -808,6 +1002,7 @@
     });
     populateGroupMemberSelect();
     renderGroupOperations(group);
+    setGroupManagerControlsVisibility();
   }
   function renderGroupApplications(applications, postId) {
     const target = $("#groupApplicationList");
@@ -851,16 +1046,14 @@
       await loadCurrentGroup().catch(() => {});
     });
   }
-  async function loadGroupSchedules() {
+  async function loadGroupSchedules(showToast = false) {
     if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; }
-    const data = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules?scope=${$("#groupScheduleScope")?.value || "upcoming"}`), "일정을 조회했습니다.");
+    closeGroupAnswerSummary();
+    const data = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules?scope=${$("#groupScheduleScope")?.value || "upcoming"}`), showToast ? "일정을 조회했습니다." : null);
     currentGroupSchedules = [...(data.items || [])].sort((a, b) => new Date(b.scheduledAt || 0) - new Date(a.scheduledAt || 0));
     populateGroupSchedulePickers();
     renderCards("#groupScheduleList", currentGroupSchedules, "표시할 일정이 없습니다.", (item) => `<article class="entity-card schedule-card selectable-card" data-schedule-card="true" data-schedule-id="${escapeHtml(item.scheduleId)}"><span class="badge">일정</span><strong>${escapeHtml(item.title || "제목 없는 일정")}</strong><div class="meta">${escapeHtml(formatDate(item.scheduledAt) || item.scheduledAt || "일시 미정")} · ${escapeHtml(item.location || item.onlineLink || "장소 미정")}</div><p>${escapeHtml(item.content || "상세 내용이 없습니다.")}</p></article>`);
     document.querySelectorAll("[data-schedule-card]").forEach((card) => card.addEventListener("click", () => selectGroupSchedule(card.dataset.scheduleId)));
-  }
-  function syncGroupScheduleIds(scheduleId) {
-    document.querySelectorAll(".group-schedule-picker, #groupScheduleSelect").forEach((select) => { if (select && scheduleId) select.value = scheduleId; });
   }
   async function loadCurrentGroup() {
     if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; }
@@ -869,10 +1062,20 @@
     renderGroup(group);
     $(".group-schedule-workspace-panel")?.classList.remove("hidden");
     await loadGroupSchedules().catch(() => {});
-    await loadGroupAttendanceRates().catch(() => {});
+    if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {});
   }
   function openCreateGroupModal() { showPanel("#groupCreateBackdrop"); showPanel("#groupCreatePanel"); document.body.classList.add("modal-open"); }
   function closeCreateGroupModal() { hidePanel("#groupCreateBackdrop"); hidePanel("#groupCreatePanel"); document.body.classList.remove("modal-open"); }
+  async function submitAttendanceAnswer(scheduleId, response) {
+    const body = window.moiApi.toJsonBody({ response });
+    try {
+      await window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "POST", body });
+      toast("출석 응답을 저장했습니다.");
+      refreshAuthChip();
+    } catch (_) {
+      await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "PUT", body }), "출석 응답을 수정했습니다.");
+    }
+  }
   async function bindGroup() {
     const params = new URLSearchParams(window.location.search);
     const groups = await fetchMyGroups().catch(() => []);
@@ -887,16 +1090,25 @@
     $("#createGroupForm")?.addEventListener("submit", async (event) => { event.preventDefault(); toast("그룹 생성 API가 아직 필요합니다. Part3에서 POST /api/groups 또는 Part2 승인 후 그룹 생성 연결이 필요합니다.", true); });
     $("#openGroupScheduleCreateButton")?.addEventListener("click", () => toggleScheduleCreateForm(true));
     $("#cancelGroupScheduleCreateButton")?.addEventListener("click", () => toggleScheduleCreateForm(false));
-    $("#groupLoadSchedulesButton")?.addEventListener("click", loadGroupSchedules);
-    $("#groupCreateScheduleForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; } const form = event.currentTarget; const schedule = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules`, { method: "POST", body: window.moiApi.toJsonBody(compact(formData(form))) }), "일정을 생성했습니다."); const createdId = schedule?.scheduleId; form.reset(); setDefaultScheduleTime(); toggleScheduleCreateForm(false); await loadGroupSchedules(); if (createdId) selectGroupSchedule(createdId); });
-    $("#groupAnswerAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); if (!payload.scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${payload.scheduleId}/answers`, { method: "POST", body: window.moiApi.toJsonBody({ response: payload.response }) }), "출석 응답을 저장했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
-    $("#groupCheckAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); if (!payload.scheduleId || !payload.userId) { toast("일정과 그룹원을 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${payload.scheduleId}/records`, { method: "POST", body: window.moiApi.toJsonBody({ userId: asNumber(payload.userId), status: payload.status }) }), "출석을 체크했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
-    $("#groupLoadAttendanceSummaryButton")?.addEventListener("click", async () => { const scheduleId = $("#groupSummaryScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/records/summary`), "출석 요약을 조회했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
+    $("#groupLoadSchedulesButton")?.addEventListener("click", () => loadGroupSchedules(true));
+    $("#groupCreateScheduleForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; } if (!canManageCurrentGroupAttendance()) { toast("일정 생성 권한이 없습니다.", true); return; } const form = event.currentTarget; const schedule = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules`, { method: "POST", body: window.moiApi.toJsonBody(compact(formData(form))) }), "일정을 생성했습니다."); const createdId = schedule?.scheduleId; form.reset(); setDefaultScheduleTime(); toggleScheduleCreateForm(false); await loadGroupSchedules(); if (createdId) selectGroupSchedule(createdId); });
+    $("#groupAnswerAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); if (!payload.scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await submitAttendanceAnswer(payload.scheduleId, payload.response); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
+    $("#deleteAttendanceAnswerButton")?.addEventListener("click", async () => { const scheduleId = $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "DELETE" }), "출석 응답을 삭제했습니다."); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
+    $("#groupCheckAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!canManageCurrentGroupAttendance()) return; const payload = formData(event.currentTarget); if (!payload.scheduleId || !payload.userId) { toast("일정과 그룹원을 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${payload.scheduleId}/records`, { method: "POST", body: window.moiApi.toJsonBody({ userId: asNumber(payload.userId), status: payload.status }) }), "출석을 체크했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
+    $("#groupLoadAnswerSummaryButton")?.addEventListener("click", loadGroupAnswerSummary);
+    $("#groupLoadAttendanceSummaryButton")?.addEventListener("click", async () => { const scheduleId = $("#groupSummaryScheduleSelect")?.value || $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } if (!canManageCurrentGroupAttendance()) return; await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/records/summary`), "출석 체크 현황을 조회했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
+    $("#openActivityRecordCreateButton")?.addEventListener("click", () => openActivityRecordModal("create"));
+    $("#openActivityRecordEditButton")?.addEventListener("click", () => openActivityRecordModal("edit"));
+    $("#closeActivityRecordButton")?.addEventListener("click", closeActivityRecordModal);
+    $("#activityRecordBackdrop")?.addEventListener("click", closeActivityRecordModal);
+    $("#reloadActivityRecordButton")?.addEventListener("click", () => loadActivityRecord());
+    $("#reloadActivityReviewsButton")?.addEventListener("click", () => loadActivityReviews());
+    $("#activityRecordForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const scheduleId = $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } const payload = compact(formData(event.currentTarget)); if (!payload.topic && !payload.content) { toast("회고 주제나 내용을 입력하세요.", true); return; } const method = currentActivityRecord ? "PUT" : "POST"; const record = await run(() => window.moiApi.request(`/api/activity/schedules/${scheduleId}/record`, { method, body: window.moiApi.toJsonBody(payload) }), currentActivityRecord ? "회고를 수정했습니다." : "회고를 저장했습니다."); renderActivityRecord(record, scheduleId); closeActivityRecordModal(); await loadActivityReviews(record?.id).catch(() => {}); });
+    $("#activityReviewForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!currentActivityRecord?.id) { toast("회고 기록을 먼저 조회하세요.", true); return; } const payload = compact(formData(event.currentTarget)); if (!payload.comment) { toast("리뷰 내용을 입력하세요.", true); return; } await run(() => window.moiApi.request(`/api/activity/records/${currentActivityRecord.id}/reviews`, { method: "POST", body: window.moiApi.toJsonBody(payload) }), "리뷰를 등록했습니다."); event.currentTarget.reset(); await loadActivityReviews(); });
     setDefaultScheduleTime();
     if (window.location.hash === "#create-group") openCreateGroupModal();
     if (groupId) loadCurrentGroup().catch(() => {});
   }
-
   async function loadSchedules() {
     const data = await run(() => window.moiApi.request(`/api/groups/${$("#scheduleGroupId").value}/schedules?scope=${$("#scheduleScope").value}`), "일정을 조회했습니다.");
     renderCards("#scheduleList", data.items || [], "표시할 일정이 없습니다.", (item) => `<article class="entity-card"><span class="badge">일정 #${item.scheduleId}</span><strong>${escapeHtml(item.title)}</strong><div class="meta">${escapeHtml(item.scheduledAt)} · ${escapeHtml(item.location || "장소 미정")}</div></article>`);
