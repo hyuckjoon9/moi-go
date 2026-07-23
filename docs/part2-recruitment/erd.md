@@ -20,7 +20,7 @@ erDiagram
 | --- | --- | --- |
 | `id` | `BIGINT` | PK, AUTO_INCREMENT |
 | `leader_id` | `BIGINT` | `members.id` FK |
-| `title` | `VARCHAR(100)` | 필수(길이 제약 실제 적용 확인 필요) |
+| `title` | `VARCHAR(100)` | 필수(`@Column(nullable=false)`). DTO는 `@NotBlank`만 적용, 100자 길이 제한은 애플리케이션 레벨에서 검증하지 않음(DB 컬럼 길이로만 제한) |
 | `category` | `VARCHAR(50)` | 필수 |
 | `description` | `TEXT` | NULL 허용 |
 | `goal` | `VARCHAR(255)` | NULL 허용 |
@@ -29,7 +29,7 @@ erDiagram
 | `location` | `VARCHAR(255)` | NULL 허용 |
 | `online_link` | `VARCHAR(500)` | NULL 허용 |
 | `meeting_day` | `VARCHAR(50)` | NULL 허용 |
-| `capacity` | `INT` | NULL 허용(현재 nullable — 응답 DTO는 원시 `int`라 NPE 위험, "확인 필요" 참고) |
+| `capacity` | `INT` | DB 컬럼은 여전히 nullable(`@Column(nullable=false)` 미적용). 다만 `RecruitmentCreateRequest`/`UpdateRequest`에 `@NotNull @Positive`가 적용돼 있어 API 경로로는 null이 들어올 수 없음 — NPE 위험은 사실상 해소됐지만 DB 제약 자체는 낮은 우선순위로 남아있음 |
 | `recruitment_deadline` | `DATE` | NULL 허용 |
 | `expected_duration` | `VARCHAR(50)` | NULL 허용 |
 | `conditions` | `TEXT` | NULL 허용 |
@@ -48,10 +48,10 @@ erDiagram
 | `experience` | `TEXT` | NULL 허용 |
 | `available_time` | `VARCHAR(255)` | NULL 허용 |
 | `desired_role` | `VARCHAR(50)` | NULL 허용 |
-| `status` | `VARCHAR(20)` | `PENDING`, `APPROVED`, `REJECTED`; 기본 `PENDING` |
+| `status` | `VARCHAR(20)` | `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`; 기본 `PENDING`. `CANCELLED`는 Entity에 `cancel()` 메서드는 있으나 Service에서 호출하는 곳이 없음(죽은 코드 — 지원 취소 기능이 필요하면 나중에 연결) |
 | `applied_at` | `DATETIME` | 기본 `CURRENT_TIMESTAMP` |
 
-`(post_id, applicant_id)`가 같은 모집글에 대한 사용자 중복 지원을 막아야 한다(현재 `existsByPostIdAndApplicantId` 애플리케이션 레벨 체크만 확인됨 — DB UNIQUE 제약 존재 여부 확인 필요).
+`(post_id, applicant_id)` UNIQUE 제약이 DB 레벨에 실제로 걸려있음을 코드로 확인 완료(`@UniqueConstraint(name = "uk_join_applications_post_applicant", ...)`). 애플리케이션 레벨 `existsByPostIdAndApplicantId` 체크와 이중 방어 중.
 
 ## 외부 경계와 삭제 정책
 
@@ -59,7 +59,7 @@ erDiagram
 | --- | --- | --- | --- |
 | 회원 → 모집글(리더) | `RESTRICT` | `CASCADE` | Part2는 회원 ID만 참조 |
 | 회원 → 지원서(지원자) | `RESTRICT` | `CASCADE` | Part2는 회원 ID만 참조 |
-| 모집글 → 지원서 | `CASCADE`(추정, 확인 필요) | `CASCADE` | 모집글 종속 관계 |
+| 모집글 → 지원서 | 확인 필요(엔티티 어노테이션에서 명시적 CASCADE 설정을 찾지 못함 — 기본은 FK 삭제 제약이 DB에 안 걸려있을 수 있음) | `CASCADE` | 모집글 종속 관계 |
 | 모집글 → 그룹 | `RESTRICT`(Part3 소유 FK) | `CASCADE` | Part2가 생성 조건을 판단해 `StudyGroupProvisioningPort` 호출, 실제 FK는 `study_groups.post_id`에 걸림 |
 
 모집글 삭제 시 `study_groups.post_id` FK가 `RESTRICT`이므로, 현재 설계(모집글 작성 즉시 그룹 자동 생성)에서는 그룹이 없는 모집글이 사실상 없어 삭제가 항상 FK 위반으로 막힐 수 있다. 이 경우를 어떻게 처리할지는 `feature-spec.md`의 "모집글 삭제" 절과 `study-group-integration-design.md`를 참고한다.
@@ -72,7 +72,7 @@ erDiagram
 | `recruitment_posts` | (`leader_id`) | 리더별 조회 |
 | `join_applications` | (`post_id`) | 모집글별 지원자 목록 조회 |
 | `join_applications` | (`applicant_id`, `status`) | 내 신청 목록 상태별 조회 |
-| `join_applications` | UNIQUE(`post_id`, `applicant_id`) | 중복 지원 방지(DB 레벨 적용 여부 확인 필요) |
+| `join_applications` | UNIQUE(`post_id`, `applicant_id`) 
 
 ## Entity 매핑
 
