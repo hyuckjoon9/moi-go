@@ -50,8 +50,8 @@ Back Office는 일반 사용자 기능과 URL·권한·응답 모델을 분리�
 - 로그인 화면은 기존 로그인을 재사용하며 관리자 전용 비밀번호나 자동 로그인 기능을
   추가하지 않는다.
 - 관리자 계정은 DB 운영 절차로만 생성하며 관리자 생성·승격 HTTP API는 제공하지 않는다.
-- 백오피스 JavaScript는 기존 사용자 화면용 `app.js`에서 분리해
-  `/js/backoffice.js`에 둔다.
+- 백오피스 JavaScript는 기존 사용자 화면용 `app.js`에서 분리한다. 운영 현황은
+  `/js/backoffice.js`, 회원 관리는 `/js/backoffice-members.js`가 담당한다.
 
 1차 대시보드 이후 화면은 아래 경로를 추가한다.
 
@@ -200,8 +200,7 @@ Controller
 4. 그룹·일정·출석·활동 읽기 전용 조회
 5. 운영 이력 검색 화면과 전체 회귀 검증
 
-현재 회원 관리 구현 계획은 [member-management-plan.md](member-management-plan.md)에 정의한다.
-후속 단계는 직전 단계의 계약과 테스트가 반영된 뒤 별도 계획으로 작성한다.
+현재 구현 상태와 바로 다음 작업은 [context.md](context.md)에 기록한다.
 
 ## 테스트 기준
 
