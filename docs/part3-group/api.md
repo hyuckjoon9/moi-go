@@ -99,8 +99,20 @@
     "createdAt": "2026-07-01T10:00:00",
     "myRole": "MEMBER",
     "members": [
-      { "userId": 1, "role": "LEADER", "joinedAt": "2026-07-01T10:00:00" },
-      { "userId": 2, "role": "MEMBER", "joinedAt": "2026-07-02T10:00:00" }
+      {
+        "userId": 1,
+        "nickname": "스터디장",
+        "profileImageUrl": "https://cdn.example.com/profiles/1.png",
+        "role": "LEADER",
+        "joinedAt": "2026-07-01T10:00:00"
+      },
+      {
+        "userId": 2,
+        "nickname": "모이고",
+        "profileImageUrl": null,
+        "role": "MEMBER",
+        "joinedAt": "2026-07-02T10:00:00"
+      }
     ]
   },
   "message": null
@@ -112,6 +124,16 @@
 | `status` | `ACTIVE` \| `ENDED` | 그룹 상태 |
 | `myRole` | `LEADER` \| `MANAGER` \| `MEMBER` | 호출자의 활성 그룹원 역할 |
 | `members` | array | 활성 그룹원만 포함. 리더, 매니저, 일반 멤버 순으로 정렬 |
+
+`members` 원소 필드:
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `userId` | number | 회원 ID |
+| `nickname` | string | 회원 표시 이름 |
+| `profileImageUrl` | string \| null | 프로필 이미지 URL. 설정하지 않은 경우 `null` |
+| `role` | `LEADER` \| `MANAGER` \| `MEMBER` | 그룹 내 역할 |
+| `joinedAt` | string(date-time) | 그룹 가입 시각 |
 
 ## 일정 생성
 
