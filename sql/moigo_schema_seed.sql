@@ -60,7 +60,7 @@ CREATE TABLE recruitment_posts (
     leader_id            BIGINT NOT NULL,
     title                VARCHAR(100) NOT NULL,
     category             VARCHAR(50) NOT NULL,
-    description          TEXT NOT NULL,
+    description          TEXT NULL,
     goal                 TEXT NULL,
     method               TEXT NULL,
     meeting_type         VARCHAR(20) NOT NULL,
