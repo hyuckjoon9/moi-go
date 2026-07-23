@@ -253,6 +253,25 @@ input:focus, select:focus, textarea:focus { outline: 3px solid #bfdbfe; border-c
 .ops-notice strong {
   font-size: 15px;
 }
+
+.ops-notice[data-kind="forbidden"],
+.ops-notice[data-kind="error"] {
+  border-color: #c2410c;
+  color: #9a3412;
+}
+
+.metric-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.metric-card strong {
+  font-size: 2rem;
+}
 .service-home { padding-top: 28px; }
 
 .workspace-hero {

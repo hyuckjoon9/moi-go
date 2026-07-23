@@ -25,7 +25,12 @@
       }
     }
     const payload = await parseResponse(response);
-    if (!response.ok) throw new Error(payload?.message || `HTTP ${response.status}`);
+    if (!response.ok) {
+      const error = new Error(payload?.message || `HTTP ${response.status}`);
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
+    }
     if (payload && Object.prototype.hasOwnProperty.call(payload, "success")) {
       if (!payload.success) throw new Error(payload.message || "요청에 실패했습니다.");
       return payload.data;

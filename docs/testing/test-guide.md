@@ -89,6 +89,14 @@ macOS / Linux:
 - [ ] `withdrawn@moigo.test` / `Password1!`로 로그인 → 401(탈퇴 회원) 확인
 - [ ] `admin@moigo.test` / `Admin1234!`로 로그인 → 200, 발급된 토큰으로 백오피스 화면(`/backoffice/**`) 접근 확인
 
+### 5.1.1 Back Office 대시보드
+
+- [ ] 비로그인 상태에서 `/backoffice/index.html` 진입 → 로그인 화면으로 이동
+- [ ] `leader@moigo.test` 로그인 후 Back Office 진입 → 권한 없음 표시, 관리자 API 미호출
+- [ ] `admin@moigo.test` 로그인 후 진입 → 회원·모집글·그룹 집계 표시
+- [ ] ADMIN 토큰으로 `GET /api/admin/dashboard` → 200과 `ApiResponse` 확인
+- [ ] USER 토큰으로 같은 API 호출 → 403과 `관리자 권한이 필요합니다.` 확인
+
 ### 5.2 Part2 모집글·지원
 
 - [ ] 모집글 목록(`GET /api/recruitment-posts`)에서 4건(RECRUITING/CLOSED/ACTIVE/ENDED) 모두 노출되는지 확인
