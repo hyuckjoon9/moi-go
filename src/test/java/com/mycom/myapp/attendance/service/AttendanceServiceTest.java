@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import com.mycom.myapp.attendance.dto.request.AttendanceAnswerRequest;
 import com.mycom.myapp.attendance.dto.request.AttendanceCheckRequest;
+import com.mycom.myapp.attendance.dto.response.AttendanceAnswerSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.AttendanceSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.MyAttendanceRateResponse;
 import com.mycom.myapp.attendance.entity.AttendanceAnswer;
@@ -455,6 +456,63 @@ class AttendanceServiceTest {
         stubManager(10L, 1L, GroupRole.MEMBER);
 
         assertThatThrownBy(() -> attendanceService.getSummary(10L, 1L))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN));
+    }
+
+    @Test
+    void getAnswerSummaryFillsUndecidedForMembersWithoutAnswer() {
+        StudyGroup group = group();
+        stubManager(10L, 1L, GroupRole.LEADER);
+        AttendanceAnswer submittedAnswer =
+                AttendanceAnswer.builder()
+                        .scheduleId(10L)
+                        .userId(20L)
+                        .response(AttendanceResponse.ATTEND)
+                        .build();
+        given(attendanceResponseRepository.findByScheduleId(10L))
+                .willReturn(List.of(submittedAnswer));
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(
+                        List.of(
+                                GroupMember.join(group, 20L, GroupRole.MEMBER),
+                                GroupMember.join(group, 21L, GroupRole.MEMBER)));
+
+        AttendanceAnswerSummaryResponse summary = attendanceService.getAnswerSummary(10L, 1L);
+
+        assertThat(summary.getTotalMemberCount()).isEqualTo(2);
+        assertThat(summary.getAttendCount()).isEqualTo(1);
+        assertThat(summary.getUndecidedCount()).isEqualTo(1);
+        assertThat(summary.getAbsentCount()).isEqualTo(0);
+
+        AttendanceAnswerSummaryResponse.MemberAnswer respondedMember =
+                summary.getMembers().stream()
+                        .filter(m -> m.getUserId().equals(20L))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(respondedMember.getResponse()).isEqualTo(AttendanceResponse.ATTEND);
+        assertThat(respondedMember.getRespondedAt()).isNotNull();
+
+        AttendanceAnswerSummaryResponse.MemberAnswer unrespondedMember =
+                summary.getMembers().stream()
+                        .filter(m -> m.getUserId().equals(21L))
+                        .findFirst()
+                        .orElseThrow();
+        assertThat(unrespondedMember.getResponse()).isEqualTo(AttendanceResponse.UNDECIDED);
+        assertThat(unrespondedMember.getRespondedAt()).isNull();
+    }
+
+    @Test
+    void getAnswerSummaryThrowsWhenRequesterIsPlainMember() {
+        stubManager(10L, 1L, GroupRole.MEMBER);
+
+        assertThatThrownBy(() -> attendanceService.getAnswerSummary(10L, 1L))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception ->

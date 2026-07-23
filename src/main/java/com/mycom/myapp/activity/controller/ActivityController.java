@@ -97,6 +97,17 @@ public class ActivityController {
         return ResponseEntity.noContent().build();
     }
 
+    /** 활동 기록 리뷰 삭제 (모집장/매니저, 부적절한 리뷰 대상 지정 삭제) */
+    @DeleteMapping("/records/{activityRecordId}/reviews/{reviewId}")
+    public ResponseEntity<Void> deleteReviewByManager(
+            @PathVariable("activityRecordId") Long activityRecordId,
+            @PathVariable("reviewId") Long reviewId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+        Long requesterId = requireAuthenticatedId(authenticatedMember);
+        activityService.deleteReviewByManager(activityRecordId, reviewId, requesterId);
+        return ResponseEntity.noContent().build();
+    }
+
     /** 활동 기록 리뷰 목록 조회 */
     @GetMapping("/records/{activityRecordId}/reviews")
     public ResponseEntity<List<ActivityReviewResponse>> getReviews(
