@@ -12,6 +12,7 @@ import com.mycom.myapp.member.entity.Member;
 import com.mycom.myapp.member.repository.MemberRepository;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
+import com.mycom.myapp.recruitment.entity.RecruitmentVisibility;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
 import com.mycom.myapp.study.service.AddStudyGroupMemberCommand;
 import com.mycom.myapp.study.service.port.StudyGroupProvisioningPort;
@@ -38,6 +39,9 @@ public class JoinApplicationService {
                         .orElseThrow(() -> new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND));
         if (post.getLeader().getId().equals(applicantId)) {
             throw new BusinessException(ErrorCode.SELF_APPLICATION_NOT_ALLOWED);
+        }
+        if (post.getVisibility() != RecruitmentVisibility.VISIBLE) {
+            throw new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND);
         }
         if (post.getStatus() != RecruitmentStatus.RECRUITING) {
             throw new BusinessException(ErrorCode.RECRUITMENT_CLOSED);

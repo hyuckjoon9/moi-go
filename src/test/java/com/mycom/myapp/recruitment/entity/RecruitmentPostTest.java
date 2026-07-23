@@ -26,4 +26,12 @@ class RecruitmentPostTest {
         assertThat(post.getCapacity()).isEqualTo(5);
         assertThat(post.getStatus()).isEqualTo(RecruitmentStatus.RECRUITING);
     }
+
+    @Test
+    void createsVisibleRecruitmentPostByDefault() {
+        RecruitmentPost post =
+                RecruitmentPost.builder().status(RecruitmentStatus.RECRUITING).build();
+
+        assertThat(post.getVisibility()).isEqualTo(RecruitmentVisibility.VISIBLE);
+    }
 }

@@ -94,6 +94,7 @@ CREATE TABLE recruitment_posts (
     expected_duration    VARCHAR(50) NULL,
     conditions           TEXT NULL,
     status               VARCHAR(20) NOT NULL DEFAULT 'RECRUITING',
+    visibility           VARCHAR(20) NOT NULL DEFAULT 'VISIBLE',
     created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                                            ON UPDATE CURRENT_TIMESTAMP,
@@ -107,7 +108,9 @@ CREATE TABLE recruitment_posts (
     CONSTRAINT chk_recruitment_posts_capacity
         CHECK (capacity > 0),
     CONSTRAINT chk_recruitment_posts_status
-        CHECK (status IN ('RECRUITING', 'CLOSED', 'ACTIVE', 'ENDED'))
+        CHECK (status IN ('RECRUITING', 'CLOSED', 'ACTIVE', 'ENDED')),
+    CONSTRAINT chk_recruitment_posts_visibility
+        CHECK (visibility IN ('VISIBLE', 'HIDDEN'))
 ) ENGINE = InnoDB;
 
 CREATE INDEX idx_recruitment_posts_status_category
