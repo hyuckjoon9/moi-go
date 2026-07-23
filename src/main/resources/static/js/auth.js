@@ -7,6 +7,7 @@
   function clearTokens() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("memberId");
     localStorage.removeItem("memberNickname");
     localStorage.removeItem("memberProfileImageUrl");
     localStorage.removeItem("memberProfilePreview");

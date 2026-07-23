@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>모집글 - Moi-Go</title>
-    <link rel="stylesheet" href="/css/style.css?v=20260721-nav-left" />
+    <link rel="stylesheet" href="/css/style.css?v=20260723-api-actions" />
   </head>
   <body data-page="recruitments" data-protected="true">
     <header class="app-header">
-      <a class="brand" href="/index.html" aria-label="Moi-Go 홈"><img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" /></a>
+      <a class="brand text-brand" href="/index.html" aria-label="Moi-Go 홈"><span class="brand-word">Moi-Go</span></a>
       <nav class="main-nav" aria-label="주요 메뉴"><a href="/group.html" data-protected-link="true">내 그룹</a><a href="/recruitments.html" data-protected-link="true">모집글</a></nav>
       <div class="header-actions"><a class="header-profile" href="/mypage.html" data-protected-link="true">내 정보</a><span id="authStatus" class="auth-chip">로그인 필요</span><a id="headerAuthLink" class="button ghost" href="/login.html">로그인</a></div>
     </header>
@@ -66,10 +66,9 @@
           <button id="closeCreateRecruitmentButton" class="button ghost small" type="button">닫기</button>
         </div>
         <form id="createRecruitmentForm" class="form-grid two">
-          <label class="span-2"><span class="field-label">모집할 그룹 <em class="field-tag required">필수</em></span><select id="recruitmentLeaderGroupId" name="leaderGroupId" required></select></label>
           <label class="span-2"><span class="field-label">스터디 이름 <em class="field-tag required">필수</em></span><input name="title" placeholder="예: 프론트엔드 스터디 모집" required maxlength="100" /></label>
           <label><span class="field-label">카테고리 <em class="field-tag required">필수</em></span><input name="category" placeholder="예: 개발, 어학, 취업" required maxlength="50" /></label>
-          <label><span class="field-label">모임 방식 <em class="field-tag optional">선택</em></span><select name="meetingType"><option value="ONLINE">온라인</option><option value="OFFLINE">오프라인</option><option value="HYBRID">온오프라인 병행</option></select></label>
+          <label><span class="field-label">모임 방식 <em class="field-tag required">필수</em></span><select name="meetingType" required><option value="ONLINE">온라인</option><option value="OFFLINE">오프라인</option><option value="HYBRID">온오프라인 병행</option></select></label>
           <label><span class="field-label">활동 지역 <em class="field-tag optional">선택</em></span><input name="location" placeholder="예: 서울 강남" /></label>
           <label><span class="field-label">온라인 링크 <em class="field-tag optional">선택</em></span><input name="onlineLink" placeholder="예: https://meet.google.com/..." /></label>
           <label><span class="field-label">정기 모임 요일 <em class="field-tag optional">선택</em></span><input name="meetingDay" placeholder="예: 매주 화요일" maxlength="50" /></label>
@@ -99,8 +98,8 @@
         </div>
       </article>    </main>
 
-    <script src="/js/api.js?v=20260721-nav-left"></script>
-    <script src="/js/auth.js?v=20260721-nav-left"></script>
-    <script src="/js/app.js?v=20260721-nav-left"></script>
+    <script src="/js/api.js?v=20260723-api-actions"></script>
+    <script src="/js/auth.js?v=20260723-api-actions"></script>
+    <script src="/js/app.js?v=20260723-api-actions"></script>
   </body>
 </html>
