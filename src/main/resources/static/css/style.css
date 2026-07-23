@@ -1750,3 +1750,121 @@ body.modal-open {
 .metric-toggle-icon.expanded {
   transform: rotate(180deg);
 }
+.attendance-manager-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.attendance-summary-list {
+  display: grid;
+  gap: 10px;
+  padding: 16px 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.attendance-rate-list {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.attendance-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.attendance-summary-header strong,
+.attendance-summary-header p {
+  margin: 0;
+}
+
+.attendance-summary-card,
+.attendance-rate-card {
+  min-height: auto;
+  padding: 14px 16px;
+  box-shadow: none;
+}
+
+.activity-review-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.activity-review-card > div {
+  min-width: 0;
+}
+.activity-workspace {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+}
+
+.compact-heading {
+  margin-bottom: 0;
+}
+
+.activity-record-card {
+  display: grid;
+  gap: 10px;
+}
+
+.activity-record-form {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.activity-review-area {
+  display: grid;
+  gap: 14px;
+}
+
+.compact-info {
+  margin: 0;
+}
+
+.activity-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.modal-panel.edit-panel.activity-record-panel {
+  max-width: 860px;
+}
+
+.activity-record-panel .activity-record-form {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.attendance-answer-badge.attend {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.attendance-answer-badge.absent {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.attendance-answer-badge.undecided {
+  color: #475569;
+  background: #e2e8f0;
+}
