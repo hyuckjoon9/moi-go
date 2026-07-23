@@ -117,6 +117,30 @@ public class RecruitmentService {
         studyGroupProvisioningPort.endGroup(postId);
         return RecruitmentResponse.from(post);
     }
+    
+    @Transactional
+    public RecruitmentResponse reopen(
+            Long postId, Long requesterId, RecruitmentUpdateRequest request) {
+        RecruitmentPost post = getPostAsLeader(postId, requesterId);
+        if (post.getStatus() != RecruitmentStatus.CLOSED) { // 추가: CLOSED 상태가 아니면 재모집 불가
+            throw new BusinessException(ErrorCode.RECRUITMENT_REOPEN_NOT_ALLOWED);
+        }
+        post.reopen(
+                request.title(),
+                request.category(),
+                request.description(),
+                request.goal(),
+                request.method(),
+                request.meetingType(),
+                request.location(),
+                request.onlineLink(),
+                request.meetingDay(),
+                request.capacity(),
+                request.recruitmentDeadline(),
+                request.expectedDuration(),
+                request.conditions());
+        return RecruitmentResponse.from(post);
+    }
 
     private RecruitmentPost getPostAsLeader(Long postId, Long requesterId) {
         RecruitmentPost post =

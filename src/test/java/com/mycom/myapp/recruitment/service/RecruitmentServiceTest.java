@@ -201,4 +201,113 @@ class RecruitmentServiceTest {
         assertThat(response.status()).isEqualTo("ENDED");
         verify(studyGroupProvisioningPort).endGroup(1L);
     }
+    
+    @Test
+    @DisplayName("리더가 마감된 모집글을 재모집하면 내용이 갱신되고 상태가 RECRUITING으로 바뀐다")
+    void reopen_success() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .title("원래 제목")
+                        .capacity(5)
+                        .status(RecruitmentStatus.CLOSED)
+                        .build();
+
+        RecruitmentUpdateRequest request =
+                new RecruitmentUpdateRequest(
+                        "재모집 제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        6, // 추가: 재모집하면서 인원도 같이 늘림
+                        java.time.LocalDate.now().plusDays(7),
+                        "8주",
+                        "조건");
+
+        when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
+
+        var response = recruitmentService.reopen(1L, 1L, request);
+
+        assertThat(response.status()).isEqualTo("RECRUITING");
+        assertThat(response.title()).isEqualTo("재모집 제목");
+        assertThat(response.capacity()).isEqualTo(6);
+    }
+
+    @Test
+    @DisplayName("CLOSED 상태가 아닌 모집글은 재모집할 수 없다")
+    void reopen_fail_notClosed() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .capacity(5)
+                        .status(RecruitmentStatus.RECRUITING) // 추가: CLOSED가 아닌 상태
+                        .build();
+
+        RecruitmentUpdateRequest request =
+                new RecruitmentUpdateRequest(
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        java.time.LocalDate.now().plusDays(7),
+                        "8주",
+                        "조건");
+
+        when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
+
+        assertThatThrownBy(() -> recruitmentService.reopen(1L, 1L, request))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("리더가 아닌 사용자가 재모집을 시도하면 예외가 발생한다")
+    void reopen_fail_notLeader() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .capacity(5)
+                        .status(RecruitmentStatus.CLOSED)
+                        .build();
+
+        RecruitmentUpdateRequest request =
+                new RecruitmentUpdateRequest(
+                        "제목",
+                        "개발",
+                        "설명",
+                        "목표",
+                        "방법",
+                        "ONLINE",
+                        null,
+                        "http://link",
+                        "매주 화요일",
+                        5,
+                        java.time.LocalDate.now().plusDays(7),
+                        "8주",
+                        "조건");
+
+        when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
+
+        assertThatThrownBy(() -> recruitmentService.reopen(1L, 999L, request)) // 추가: 리더(1L)가 아닌 999L로 호출
+                .isInstanceOf(BusinessException.class);
+    }
 }
