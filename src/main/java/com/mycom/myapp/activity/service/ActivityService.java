@@ -118,6 +118,22 @@ public class ActivityService {
         activityReviewRepository.delete(review);
     }
 
+    /** 활동 기록이 속한 일정 그룹의 LEADER/MANAGER가 부적절한 리뷰를 삭제한다. 작성자 본인 여부와 무관하게 삭제할 수 있다. */
+    @Transactional
+    public void deleteReviewByManager(Long activityRecordId, Long reviewId, Long requesterId) {
+        ActivityRecord record = getRecordById(activityRecordId);
+        validateManager(record.getScheduleId(), requesterId);
+        ActivityReview review =
+                activityReviewRepository
+                        .findById(reviewId)
+                        .orElseThrow(
+                                () -> new BusinessException(ErrorCode.ACTIVITY_REVIEW_NOT_FOUND));
+        if (!review.getActivityRecordId().equals(activityRecordId)) {
+            throw new BusinessException(ErrorCode.ACTIVITY_REVIEW_NOT_FOUND);
+        }
+        activityReviewRepository.delete(review);
+    }
+
     /** 활동 기록이 속한 일정 그룹의 활성 그룹원이 리뷰 목록을 조회한다. */
     public List<ActivityReviewResponse> getReviews(Long activityRecordId, Long userId) {
         ActivityRecord record = getRecordById(activityRecordId);

@@ -10,6 +10,7 @@
 | `GET` | `/api/activity/schedules/{scheduleId}/record` | 필요 (그룹 활성 멤버) | 활동 기록 조회 |
 | `POST` | `/api/activity/records/{activityRecordId}/reviews` | 필요 (그룹 활성 멤버) | 활동 기록 리뷰 작성 |
 | `DELETE` | `/api/activity/records/{activityRecordId}/reviews` | 필요 (그룹 활성 멤버 · 작성자 본인) | 리뷰 삭제 |
+| `DELETE` | `/api/activity/records/{activityRecordId}/reviews/{reviewId}` | 필요 (그룹 LEADER/MANAGER) | 부적절한 리뷰 삭제 (작성자 무관) |
 | `GET` | `/api/activity/records/{activityRecordId}/reviews` | 필요 (그룹 활성 멤버) | 리뷰 목록 조회 |
 
 ## 구현 상태 메모
@@ -18,6 +19,7 @@
 - 활동 기록 등록·수정·삭제는 `StudySchedule → StudyGroup → GroupMember` 조회로 요청자가 해당 일정 그룹의 활성 `LEADER`/`MANAGER`인지 검증한다. 원래 작성자인지는 더 이상 확인하지 않는다 — 같은 그룹의 다른 `LEADER`/`MANAGER`도 수정·삭제할 수 있다(Schedule 도메인의 일정 관리 권한과 동일한 정책). 검증 순서는 일정 없음(`SCHEDULE_NOT_FOUND`) → 그룹원 아님(`GROUP_ACCESS_DENIED`) → 탈퇴 그룹원(`WITHDRAWN_GROUP_MEMBER`) → 권한 없음(`ACTIVITY_RECORD_ACCESS_DENIED`) 순이다.
 - 리뷰 작성·삭제는 활동 기록 → `scheduleId` → `StudyGroup` → `GroupMember` 조회로 요청자가 해당 일정 그룹의 활성 그룹원인지 검증한다. 역할(`LEADER`/`MANAGER`/`MEMBER`)은 가리지 않는다 — 활동 기록과 달리 리뷰는 역할 무관하게 그룹원이면 누구나 남길 수 있도록 의도적으로 설계했다. 검증 순서는 활동 기록 없음(`ACTIVITY_RECORD_NOT_FOUND`) → 그룹원 아님(`GROUP_ACCESS_DENIED`) → 탈퇴 그룹원(`WITHDRAWN_GROUP_MEMBER`) 순이다.
 - 활동 기록 조회·리뷰 목록 조회도 다른 그룹의 기록이 노출되지 않도록 동일하게 활성 그룹원 검증을 거친다(역할 무관). 활동 기록 조회는 일정 → `StudyGroup` → `GroupMember` 순으로, 리뷰 목록 조회는 활동 기록 → `scheduleId` → `StudyGroup` → `GroupMember` 순으로 조회해 검증한다.
+- `DELETE .../reviews/{reviewId}`는 작성자 본인 삭제(`DELETE .../reviews`)와 별개 엔드포인트다. 활동 기록 등록·수정·삭제와 동일한 `validateManager` 검증을 재사용해 요청자가 그룹의 활성 `LEADER`/`MANAGER`인지 확인하며, 작성자 본인 여부와 무관하게 어떤 그룹원의 리뷰든 삭제할 수 있다(부적절한 리뷰 신고·모더레이션 목적). `reviewId`가 경로의 `activityRecordId` 소속이 아니면(다른 그룹/기록의 리뷰 id를 잘못 넣은 경우) `404`(`ACTIVITY_REVIEW_NOT_FOUND`)로 거부한다.
 - 같은 `scheduleId`로 이미 활동 기록이 있으면 등록(`POST`)은 `409`로 거부한다(`DUPLICATE_ACTIVITY_RECORD`). 수정은 `PUT`을 쓴다.
 - 같은 `(activityRecordId, userId)` 조합으로 이미 리뷰가 있으면 등록은 `409`로 거부한다(`DUPLICATE_ACTIVITY_REVIEW`).
 - 리뷰는 수정 API가 없다. `activity_reviews` 테이블에 `updated_at` 컬럼이 없어 생성 후 불변으로 설계했다. 수정이 필요하면 삭제 후 재작성한다.
@@ -198,6 +200,25 @@
 | `403` | 요청자가 일정 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
 | `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
 | `404` | 요청자가 남긴 리뷰가 없음 (`ACTIVITY_REVIEW_NOT_FOUND`) |
+
+## DELETE /api/activity/records/{activityRecordId}/reviews/{reviewId}
+
+활동 기록이 속한 일정 그룹의 활성 `LEADER`/`MANAGER`가 부적절한 리뷰를 삭제한다. 작성자 본인 여부와 무관하게 `reviewId`로 지정한 리뷰를 삭제할 수 있다.
+
+### Response 204
+
+본문 없음.
+
+### 주요 오류
+
+| 상태 | 조건 |
+| --- | --- |
+| `401` | Authorization 헤더 없음 또는 인증 실패 |
+| `404` | 해당 `activityRecordId`의 활동 기록이 없음 (`ACTIVITY_RECORD_NOT_FOUND`) |
+| `403` | 요청자가 일정 그룹의 그룹원이 아님 (`GROUP_ACCESS_DENIED`) |
+| `403` | 요청자가 탈퇴한 그룹원임 (`WITHDRAWN_GROUP_MEMBER`) |
+| `403` | 요청자가 `LEADER`/`MANAGER`가 아님 (`ACTIVITY_RECORD_ACCESS_DENIED`) |
+| `404` | 해당 `reviewId`의 리뷰가 없거나, 있어도 `activityRecordId` 소속이 아님 (`ACTIVITY_REVIEW_NOT_FOUND`) |
 
 ## GET /api/activity/records/{activityRecordId}/reviews
 

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.mycom.myapp.attendance.dto.request.AttendanceAnswerRequest;
 import com.mycom.myapp.attendance.dto.request.AttendanceCheckRequest;
 import com.mycom.myapp.attendance.dto.response.AttendanceAnswerResponse;
+import com.mycom.myapp.attendance.dto.response.AttendanceAnswerSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.AttendanceRecordResponse;
 import com.mycom.myapp.attendance.dto.response.AttendanceSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.MyAttendanceRateResponse;
@@ -107,6 +108,36 @@ class AttendanceControllerTest {
     @Test
     void deleteAnswerRejectsMissingAuthenticatedMember() {
         assertThatThrownBy(() -> controller.deleteAnswer(10L, null))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.UNAUTHORIZED));
+    }
+
+    @Test
+    void getAnswerSummaryReturnsServiceResult() {
+        AttendanceAnswerSummaryResponse summary =
+                AttendanceAnswerSummaryResponse.builder()
+                        .scheduleId(10L)
+                        .totalMemberCount(1)
+                        .attendCount(1)
+                        .absentCount(0)
+                        .undecidedCount(0)
+                        .members(List.of())
+                        .build();
+        when(attendanceService.getAnswerSummary(10L, 2L)).thenReturn(summary);
+
+        ResponseEntity<AttendanceAnswerSummaryResponse> response =
+                controller.getAnswerSummary(10L, authenticatedMember);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(summary);
+    }
+
+    @Test
+    void getAnswerSummaryRejectsMissingAuthenticatedMember() {
+        assertThatThrownBy(() -> controller.getAnswerSummary(10L, null))
                 .isInstanceOfSatisfying(
                         BusinessException.class,
                         exception ->

@@ -3,6 +3,7 @@ package com.mycom.myapp.attendance.controller;
 import com.mycom.myapp.attendance.dto.request.AttendanceAnswerRequest;
 import com.mycom.myapp.attendance.dto.request.AttendanceCheckRequest;
 import com.mycom.myapp.attendance.dto.response.AttendanceAnswerResponse;
+import com.mycom.myapp.attendance.dto.response.AttendanceAnswerSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.AttendanceRecordResponse;
 import com.mycom.myapp.attendance.dto.response.AttendanceSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.MyAttendanceRateResponse;
@@ -65,6 +66,15 @@ public class AttendanceController {
         Long userId = requireAuthenticatedId(authenticatedMember);
         attendanceService.deleteAnswer(scheduleId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    /** 그룹원별 참여 응답(RSVP) 조회 (모집장) */
+    @GetMapping("/schedules/{scheduleId}/answers/summary")
+    public ResponseEntity<AttendanceAnswerSummaryResponse> getAnswerSummary(
+            @PathVariable("scheduleId") Long scheduleId,
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+        Long requesterId = requireAuthenticatedId(authenticatedMember);
+        return ResponseEntity.ok(attendanceService.getAnswerSummary(scheduleId, requesterId));
     }
 
     /** 출석 체크 등록 (모집장) */
