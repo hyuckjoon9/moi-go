@@ -74,12 +74,12 @@ dependencies {
 jacoco {
     toolVersion = "0.8.12"
 }
- 
+
 tasks.named('test') {
     useJUnitPlatform()
-    finalizedBy jacocoTestReport 
+    finalizedBy jacocoTestReport
 }
- 
+
 
 tasks.named('jacocoTestReport') {
     dependsOn tasks.named('test')
@@ -88,7 +88,7 @@ tasks.named('jacocoTestReport') {
         html.required = true
     }
 }
- 
+
 
 tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
     dependsOn tasks.named('jacocoTestReport')
@@ -100,9 +100,7 @@ tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification) {
         }
     }
 }
- 
+
 tasks.named('check') {
-    dependsOn tasks.named('jacocoTestCoverageVerification') 
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }
-
-
