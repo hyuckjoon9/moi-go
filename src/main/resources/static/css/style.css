@@ -1970,6 +1970,7 @@ body.modal-open {
 .backoffice-app .button.ghost { border-color: var(--bo-border); background: transparent; color: var(--bo-text); }
 
 .bo-access-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(5, 11, 22, 0.7); backdrop-filter: blur(7px); }
+.bo-access-modal[hidden] { display: none; }
 .bo-access-dialog { width: min(440px, 100%); padding: 32px; border: 1px solid var(--bo-border); border-radius: 18px; background: var(--bo-surface); color: var(--bo-text); box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3); }
 .bo-access-dialog h1 { margin: 6px 0 12px; font-size: 25px; }
 .bo-access-dialog p:not(.eyebrow),
