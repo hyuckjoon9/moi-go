@@ -1887,3 +1887,98 @@ body.modal-open {
   color: #475569;
   background: #e2e8f0;
 }
+
+/* Back Office console */
+.backoffice-app {
+  --bo-bg: #f3f6fb;
+  --bo-surface: #ffffff;
+  --bo-surface-muted: #f7f9fd;
+  --bo-border: #dbe3ef;
+  --bo-text: #122033;
+  --bo-muted: #607087;
+  --bo-accent: #4f46e5;
+  --bo-accent-soft: #eef2ff;
+  --bo-success: #047857;
+  background: var(--bo-bg);
+  color: var(--bo-text);
+}
+
+:root[data-theme="dark"] .backoffice-app {
+  --bo-bg: #0b1220;
+  --bo-surface: #121c2d;
+  --bo-surface-muted: #172337;
+  --bo-border: #2a3a52;
+  --bo-text: #f2f6fc;
+  --bo-muted: #a9b8cc;
+  --bo-accent: #9b9cff;
+  --bo-accent-soft: #25265a;
+  --bo-success: #5ee3b7;
+}
+
+.backoffice-app .backoffice-header {
+  min-height: 76px;
+  border-bottom-color: var(--bo-border);
+  background: color-mix(in srgb, var(--bo-surface) 94%, transparent);
+}
+
+.backoffice-app .main-nav a,
+.backoffice-app .ops-label,
+.backoffice-app .page-title p,
+.backoffice-app .meta { color: var(--bo-muted); }
+.backoffice-app .main-nav a[aria-current="page"] { background: var(--bo-accent-soft); color: var(--bo-accent); }
+.backoffice-app .auth-chip { background: var(--bo-accent-soft); color: var(--bo-accent); }
+
+.bo-theme-toggle {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--bo-border);
+  border-radius: 10px;
+  background: var(--bo-surface-muted);
+  color: var(--bo-text);
+  cursor: pointer;
+}
+
+.bo-workspace { padding-top: 42px; }
+.bo-command-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+.bo-command-bar h1 { margin: 0; color: var(--bo-text); font-size: clamp(30px, 4vw, 44px); letter-spacing: -0.04em; }
+.bo-command-bar p:not(.eyebrow) { margin: 10px 0 0; color: var(--bo-muted); }
+.backoffice-app .eyebrow { color: var(--bo-accent); }
+.bo-command-status { display: inline-flex; align-items: center; gap: 8px; color: var(--bo-success); font-size: 13px; font-weight: 800; white-space: nowrap; }
+.bo-command-status span { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 14%, transparent); }
+
+.bo-dashboard-grid { display: grid; gap: 20px; }
+.bo-metric-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+.backoffice-app .metric-card,
+.backoffice-app .panel {
+  border-color: var(--bo-border);
+  background: var(--bo-surface);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--bo-text) 7%, transparent);
+}
+.backoffice-app .metric-card { min-height: 132px; padding: 20px; }
+.metric-label { color: var(--bo-muted); font-size: 13px; font-weight: 800; }
+.backoffice-app .metric-card strong { color: var(--bo-text); font-size: 2.15rem; }
+.backoffice-app .panel h2 { margin: 3px 0 0; color: var(--bo-text); }
+.backoffice-app .entity-card { border-color: var(--bo-border); background: var(--bo-surface-muted); color: var(--bo-text); }
+.backoffice-app .button.ghost { border-color: var(--bo-border); background: transparent; color: var(--bo-text); }
+
+.bo-access-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; background: rgba(5, 11, 22, 0.7); backdrop-filter: blur(7px); }
+.bo-access-dialog { width: min(440px, 100%); padding: 32px; border: 1px solid var(--bo-border); border-radius: 18px; background: var(--bo-surface); color: var(--bo-text); box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3); }
+.bo-access-dialog h1 { margin: 6px 0 12px; font-size: 25px; }
+.bo-access-dialog p:not(.eyebrow),
+.bo-access-dialog span { color: var(--bo-muted); line-height: 1.65; }
+.bo-access-dialog span { display: block; margin-top: 20px; font-size: 13px; font-weight: 700; }
+
+@media (max-width: 1020px) { .bo-metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .bo-command-bar { align-items: flex-start; flex-direction: column; }
+  .bo-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bo-workspace { padding-top: 28px; }
+}

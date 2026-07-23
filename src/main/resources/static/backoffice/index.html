@@ -6,41 +6,55 @@
     <title>Moi-Go Back Office</title>
     <link rel="stylesheet" href="/css/style.css?v=20260723-backoffice" />
   </head>
-  <body data-page="backoffice">
+  <body class="backoffice-app" data-page="backoffice">
     <header class="app-header backoffice-header">
       <a class="brand" href="/backoffice/index.html" aria-label="Moi-Go Back Office">
         <img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" />
         <span class="ops-label">Back Office</span>
       </a>
       <nav class="main-nav" aria-label="백오피스 메뉴">
-        <a href="/backoffice/index.html">운영 현황</a>
+        <a href="/backoffice/index.html" aria-current="page">운영 현황</a>
         <a href="/backoffice/members.html">회원 관리</a>
         <a href="/index.html">사용자 서비스</a>
       </nav>
-      <div class="header-actions"><span id="boAdminName" class="auth-chip">운영자 확인 중</span></div>
+      <div class="header-actions">
+        <button id="boThemeToggle" class="bo-theme-toggle" type="button" aria-label="다크 모드로 전환">◐</button>
+        <span id="boAdminName" class="auth-chip">운영자 확인 중</span>
+      </div>
     </header>
-    <main class="page-shell">
-      <div class="page-title">
-        <p class="eyebrow">Back Office</p>
-        <h1>운영 현황</h1>
-        <p>회원, 모집글, 그룹 현황과 최근 운영 조치를 확인합니다.</p>
+    <main id="boWorkspace" class="page-shell bo-workspace" hidden>
+      <div class="bo-command-bar">
+        <div>
+          <p class="eyebrow">Operations Console</p>
+          <h1>서비스 운영 현황</h1>
+          <p>회원과 스터디 운영 상태를 한눈에 확인하고 필요한 조치를 수행합니다.</p>
+        </div>
+        <div class="bo-command-status"><span></span>운영 시스템 정상</div>
       </div>
       <section id="boState" class="ops-notice" hidden></section>
-      <section id="boDashboard" class="dashboard-grid">
-        <article class="metric-card"><strong data-metric="members.total">-</strong><span>전체 회원</span></article>
-        <article class="metric-card"><strong data-metric="members.active">-</strong><span>활성 회원</span></article>
-        <article class="metric-card"><strong data-metric="members.suspended">-</strong><span>정지 회원</span></article>
-        <article class="metric-card"><strong data-metric="members.withdrawn">-</strong><span>탈퇴 회원</span></article>
-        <article class="metric-card"><strong data-metric="recruitments.recruiting">-</strong><span>모집 중</span></article>
-        <article class="metric-card"><strong data-metric="recruitments.active">-</strong><span>진행 중 모집글</span></article>
-        <article class="metric-card"><strong data-metric="groups.active">-</strong><span>활성 그룹</span></article>
-        <article class="metric-card"><strong data-metric="groups.ended">-</strong><span>종료 그룹</span></article>
+      <section id="boDashboard" class="bo-dashboard-grid">
+        <div class="bo-metric-grid">
+          <article class="metric-card"><span class="metric-label">전체 회원</span><strong data-metric="members.total">-</strong></article>
+          <article class="metric-card"><span class="metric-label">활성 회원</span><strong data-metric="members.active">-</strong></article>
+          <article class="metric-card"><span class="metric-label">정지 회원</span><strong data-metric="members.suspended">-</strong></article>
+          <article class="metric-card"><span class="metric-label">모집 중</span><strong data-metric="recruitments.recruiting">-</strong></article>
+          <article class="metric-card"><span class="metric-label">진행 중 모집글</span><strong data-metric="recruitments.active">-</strong></article>
+          <article class="metric-card"><span class="metric-label">활성 그룹</span><strong data-metric="groups.active">-</strong></article>
+        </div>
         <article class="panel wide">
-          <h2>최근 운영 조치</h2>
+          <div class="panel-heading"><div><p class="eyebrow">Audit Trail</p><h2>최근 운영 조치</h2></div><a class="button ghost small" href="/backoffice/members.html">회원 관리</a></div>
           <div id="boRecentActions" class="card-list"></div>
         </article>
       </section>
     </main>
+    <section id="boAccessModal" class="bo-access-modal" role="alertdialog" aria-modal="true" aria-labelledby="boAccessTitle" hidden>
+      <div class="bo-access-dialog">
+        <p class="eyebrow">Access Restricted</p>
+        <h1 id="boAccessTitle">관리자 권한이 필요합니다.</h1>
+        <p>운영 콘솔은 관리자 계정만 사용할 수 있습니다. 사용자 서비스로 이동합니다.</p>
+        <span>잠시 후 자동으로 이동합니다.</span>
+      </div>
+    </section>
     <script src="/js/api.js?v=20260723-backoffice"></script>
     <script src="/js/auth.js?v=20260723-backoffice"></script>
     <script src="/js/backoffice.js?v=20260723-backoffice"></script>

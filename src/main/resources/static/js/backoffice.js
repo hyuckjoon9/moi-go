@@ -3,11 +3,37 @@
     window.location.pathname + window.location.search
   )}`;
 
+  const THEME_KEY = "moi-go-backoffice-theme";
+
   function showState(message, kind = "info") {
     const state = document.querySelector("#boState");
     state.textContent = message;
     state.dataset.kind = kind;
     state.hidden = false;
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+    const toggle = document.querySelector("#boThemeToggle");
+    if (toggle) {
+      const dark = theme === "dark";
+      toggle.textContent = dark ? "☀" : "◐";
+      toggle.setAttribute("aria-label", dark ? "라이트 모드로 전환" : "다크 모드로 전환");
+    }
+  }
+
+  function initializeTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    applyTheme(saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+    document.querySelector("#boThemeToggle").addEventListener("click", () => {
+      applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+    });
+  }
+
+  function redirectNonAdmin() {
+    document.querySelector("#boAccessModal").hidden = false;
+    window.setTimeout(() => window.location.replace("/index.html"), 2000);
   }
 
   function setMetric(name, value) {
@@ -58,8 +84,7 @@
     }
     const member = await window.moiApi.request("/api/members/me");
     if (member.role !== "ADMIN" || member.status !== "ACTIVE") {
-      document.querySelector("#boDashboard").hidden = true;
-      showState("관리자 권한이 필요한 화면입니다.", "forbidden");
+      redirectNonAdmin();
       return null;
     }
     return member;
@@ -70,6 +95,7 @@
       const admin = await requireAdmin();
       if (!admin) return;
       document.querySelector("#boAdminName").textContent = admin.nickname;
+      document.querySelector("#boWorkspace").hidden = false;
       const dashboard = await window.moiApi.request("/api/admin/dashboard");
       renderDashboard(dashboard);
     } catch (error) {
@@ -78,13 +104,15 @@
         return;
       }
       if (error.status === 403) {
-        document.querySelector("#boDashboard").hidden = true;
-        showState("관리자 권한이 필요한 화면입니다.", "forbidden");
+        redirectNonAdmin();
         return;
       }
       showState(error.message || "운영 현황을 불러오지 못했습니다.", "error");
     }
   }
 
-  document.addEventListener("DOMContentLoaded", initialize);
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeTheme();
+    initialize();
+  });
 })();
