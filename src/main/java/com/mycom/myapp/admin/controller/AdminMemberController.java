@@ -36,11 +36,11 @@ public class AdminMemberController {
 
     @GetMapping
     public ApiResponse<AdminMemberListResponse> getMembers(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) MemberRole role,
-            @RequestParam(required = false) MemberStatus status,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "role", required = false) MemberRole role,
+            @RequestParam(name = "status", required = false) MemberStatus status,
+            @RequestParam(name = "page", defaultValue = "0") @Min(0) int page,
+            @RequestParam(name = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.success(service.getMembers(keyword, role, status, page, size));
     }
 

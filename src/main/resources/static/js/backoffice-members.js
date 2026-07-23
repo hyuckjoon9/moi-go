@@ -26,6 +26,7 @@
 
   function clearState() { $("#boState").hidden = true; }
   function label(value) { return ({ ACTIVE: "활성", SUSPENDED: "정지", WITHDRAWN: "탈퇴", USER: "일반 회원", ADMIN: "관리자", LEADER: "리더", MANAGER: "매니저", MEMBER: "멤버", ENDED: "종료" })[value] || value; }
+  function statusClass(status) { return `bo-status-${String(status || "").toLowerCase()}`; }
   function formatDate(value) { return value ? new Date(value).toLocaleString("ko-KR") : "-"; }
 
   async function requireAdmin() {
@@ -47,11 +48,12 @@
     const list = $("#memberList"); list.replaceChildren();
     if (!data.items.length) { list.innerHTML = '<p class="empty-state">조건에 맞는 회원이 없습니다.</p>'; return; }
     data.items.forEach((member) => {
-      const card = document.createElement("button"); card.type = "button"; card.className = "entity-card recruitment-card";
+      const card = document.createElement("button"); card.type = "button"; card.className = "entity-card recruitment-card bo-member-card";
       const title = document.createElement("strong"); title.textContent = member.nickname;
-      const meta = document.createElement("span"); meta.className = "meta"; meta.textContent = `${member.email} · ${label(member.role)} · ${label(member.status)}`;
+      const meta = document.createElement("span"); meta.className = "meta"; meta.textContent = `${member.email} · ${label(member.role)}`;
+      const status = document.createElement("span"); status.className = `bo-status-chip ${statusClass(member.status)}`; status.textContent = label(member.status);
       const date = document.createElement("span"); date.className = "meta"; date.textContent = `가입 ${formatDate(member.createdAt)}`;
-      card.append(title, meta, date); card.addEventListener("click", () => loadDetail(member.memberId)); list.append(card);
+      card.append(title, meta, status, date); card.addEventListener("click", () => loadDetail(member.memberId)); list.append(card);
     });
     const pagination = $("#memberPagination"); pagination.replaceChildren();
     for (let page = 0; page < data.totalPages; page += 1) { const button = document.createElement("button"); button.type = "button"; button.className = `page-number${page === data.page ? " active" : ""}`; button.textContent = String(page + 1); button.addEventListener("click", () => { state.page = page; loadMembers(); }); pagination.append(button); }
@@ -70,7 +72,7 @@
     detail.append(profile);
     const groups = document.createElement("p"); groups.className = "helper-text"; groups.textContent = member.groups.length ? `참여 그룹: ${member.groups.map((group) => `${group.name} (${label(group.role)} · ${label(group.status)})`).join(", ")}` : "참여 그룹이 없습니다."; detail.append(groups);
     const actions = document.createElement("p"); actions.className = "helper-text"; actions.textContent = member.recentActions.length ? `최근 조치: ${member.recentActions.map((action) => `${label(action.action)} · ${action.reason}`).join(" / ")}` : "최근 운영 조치가 없습니다."; detail.append(actions);
-    const badge = $("#memberStatus"); badge.textContent = label(member.status); badge.hidden = false;
+    const badge = $("#memberStatus"); badge.className = `badge ${statusClass(member.status)}`; badge.textContent = label(member.status); badge.hidden = false;
     const form = $("#memberStatusForm"); form.hidden = member.role !== "USER" || member.status === "WITHDRAWN"; form.memberId.value = member.memberId; form.expectedStatus.value = member.status; form.status.value = member.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
   }
 

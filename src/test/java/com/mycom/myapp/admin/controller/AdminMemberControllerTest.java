@@ -7,8 +7,12 @@ import static org.mockito.Mockito.when;
 import com.mycom.myapp.admin.dto.response.AdminMemberListResponse;
 import com.mycom.myapp.admin.service.AdminMemberService;
 import com.mycom.myapp.global.response.ApiResponse;
+import com.mycom.myapp.member.entity.MemberRole;
+import com.mycom.myapp.member.entity.MemberStatus;
+import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.RequestParam;
 
 class AdminMemberControllerTest {
 
@@ -25,5 +29,28 @@ class AdminMemberControllerTest {
 
         assertThat(result.success()).isTrue();
         assertThat(result.data()).isSameAs(expected);
+    }
+
+    @Test
+    void getMembersDeclaresRequestParameterNames() throws NoSuchMethodException {
+        Method method =
+                AdminMemberController.class.getMethod(
+                        "getMembers",
+                        String.class,
+                        MemberRole.class,
+                        MemberStatus.class,
+                        int.class,
+                        int.class);
+
+        assertThat(method.getParameters()[0].getAnnotation(RequestParam.class).name())
+                .isEqualTo("keyword");
+        assertThat(method.getParameters()[1].getAnnotation(RequestParam.class).name())
+                .isEqualTo("role");
+        assertThat(method.getParameters()[2].getAnnotation(RequestParam.class).name())
+                .isEqualTo("status");
+        assertThat(method.getParameters()[3].getAnnotation(RequestParam.class).name())
+                .isEqualTo("page");
+        assertThat(method.getParameters()[4].getAnnotation(RequestParam.class).name())
+                .isEqualTo("size");
     }
 }

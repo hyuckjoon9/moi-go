@@ -3,60 +3,62 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Moi-Go Back Office</title>
-    <link rel="stylesheet" href="/css/style.css?v=20260723-backoffice" />
+    <title>운영 현황 · Moi-Go Back Office</title>
+    <link rel="stylesheet" href="/css/style.css?v=20260723-backoffice-console" />
   </head>
   <body class="backoffice-app" data-page="backoffice">
-    <header class="app-header backoffice-header">
-      <a class="brand" href="/backoffice/index.html" aria-label="Moi-Go Back Office">
-        <img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" />
-        <span class="ops-label">Back Office</span>
-      </a>
-      <nav class="main-nav" aria-label="백오피스 메뉴">
-        <a href="/backoffice/index.html" aria-current="page">운영 현황</a>
-        <a href="/backoffice/members.html">회원 관리</a>
-        <a href="/index.html">사용자 서비스</a>
-      </nav>
-      <div class="header-actions">
-        <button id="boThemeToggle" class="bo-theme-toggle" type="button" aria-label="다크 모드로 전환">◐</button>
-        <span id="boAdminName" class="auth-chip">운영자 확인 중</span>
+    <div class="bo-console-layout">
+      <aside class="bo-sidebar" aria-label="Back Office 메뉴">
+        <a class="bo-sidebar-brand" href="/backoffice/index.html" aria-label="Moi-Go Back Office 홈">
+          <span class="bo-logo-frame"><img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" /></span>
+          <span><strong>Moi-Go</strong><small>BACK OFFICE</small></span>
+        </a>
+        <nav class="bo-sidebar-nav">
+          <p>운영 콘솔</p>
+          <a href="/backoffice/index.html" aria-current="page"><span class="bo-nav-icon">▦</span>운영 현황</a>
+          <a href="/backoffice/members.html"><span class="bo-nav-icon">♙</span>회원 관리</a>
+          <p>서비스</p>
+          <a href="/index.html"><span class="bo-nav-icon">↗</span>사용자 서비스</a>
+        </nav>
+        <div class="bo-sidebar-footer"><span id="boAdminName">운영자 확인 중</span><small>ADMINISTRATOR</small></div>
+      </aside>
+      <div class="bo-console-main">
+        <header class="bo-console-header">
+          <div class="bo-header-search" aria-label="현재 화면"><span>⌕</span><span>운영 현황</span></div>
+          <button id="boThemeToggle" class="bo-theme-toggle" type="button" aria-label="다크 모드로 전환">◐</button>
+        </header>
+        <main id="boWorkspace" class="page-shell bo-workspace" hidden>
+          <div class="bo-command-bar">
+            <div>
+              <p class="eyebrow">Operations Console</p>
+              <h1>서비스 운영 현황</h1>
+              <p>회원과 스터디 운영 상태를 한눈에 확인하고 필요한 조치를 수행합니다.</p>
+            </div>
+            <div class="bo-command-status"><span></span>운영 시스템 정상</div>
+          </div>
+          <section id="boState" class="ops-notice" hidden></section>
+          <section id="boDashboard" class="bo-dashboard-grid">
+            <div class="bo-metric-grid">
+              <article class="metric-card"><span class="metric-icon">♙</span><span class="metric-label">전체 회원</span><strong data-metric="members.total">-</strong></article>
+              <article class="metric-card"><span class="metric-icon success">●</span><span class="metric-label">활성 회원</span><strong data-metric="members.active">-</strong></article>
+              <article class="metric-card"><span class="metric-icon warning">!</span><span class="metric-label">정지 회원</span><strong data-metric="members.suspended">-</strong></article>
+              <article class="metric-card"><span class="metric-icon">⌁</span><span class="metric-label">모집 중</span><strong data-metric="recruitments.recruiting">-</strong></article>
+              <article class="metric-card"><span class="metric-icon">◫</span><span class="metric-label">진행 중 모집글</span><strong data-metric="recruitments.active">-</strong></article>
+              <article class="metric-card"><span class="metric-icon success">◇</span><span class="metric-label">활성 그룹</span><strong data-metric="groups.active">-</strong></article>
+            </div>
+            <article class="panel wide bo-audit-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Audit Trail</p><h2>최근 운영 조치</h2></div><a class="button ghost small" href="/backoffice/members.html">회원 관리 <span aria-hidden="true">→</span></a></div>
+              <div id="boRecentActions" class="card-list"></div>
+            </article>
+          </section>
+        </main>
       </div>
-    </header>
-    <main id="boWorkspace" class="page-shell bo-workspace" hidden>
-      <div class="bo-command-bar">
-        <div>
-          <p class="eyebrow">Operations Console</p>
-          <h1>서비스 운영 현황</h1>
-          <p>회원과 스터디 운영 상태를 한눈에 확인하고 필요한 조치를 수행합니다.</p>
-        </div>
-        <div class="bo-command-status"><span></span>운영 시스템 정상</div>
-      </div>
-      <section id="boState" class="ops-notice" hidden></section>
-      <section id="boDashboard" class="bo-dashboard-grid">
-        <div class="bo-metric-grid">
-          <article class="metric-card"><span class="metric-label">전체 회원</span><strong data-metric="members.total">-</strong></article>
-          <article class="metric-card"><span class="metric-label">활성 회원</span><strong data-metric="members.active">-</strong></article>
-          <article class="metric-card"><span class="metric-label">정지 회원</span><strong data-metric="members.suspended">-</strong></article>
-          <article class="metric-card"><span class="metric-label">모집 중</span><strong data-metric="recruitments.recruiting">-</strong></article>
-          <article class="metric-card"><span class="metric-label">진행 중 모집글</span><strong data-metric="recruitments.active">-</strong></article>
-          <article class="metric-card"><span class="metric-label">활성 그룹</span><strong data-metric="groups.active">-</strong></article>
-        </div>
-        <article class="panel wide">
-          <div class="panel-heading"><div><p class="eyebrow">Audit Trail</p><h2>최근 운영 조치</h2></div><a class="button ghost small" href="/backoffice/members.html">회원 관리</a></div>
-          <div id="boRecentActions" class="card-list"></div>
-        </article>
-      </section>
-    </main>
+    </div>
     <section id="boAccessModal" class="bo-access-modal" role="alertdialog" aria-modal="true" aria-labelledby="boAccessTitle" hidden>
-      <div class="bo-access-dialog">
-        <p class="eyebrow">Access Restricted</p>
-        <h1 id="boAccessTitle">관리자 권한이 필요합니다.</h1>
-        <p>운영 콘솔은 관리자 계정만 사용할 수 있습니다. 사용자 서비스로 이동합니다.</p>
-        <span>잠시 후 자동으로 이동합니다.</span>
-      </div>
+      <div class="bo-access-dialog"><p class="eyebrow">Access Restricted</p><h1 id="boAccessTitle">관리자 권한이 필요합니다.</h1><p>운영 콘솔은 관리자 계정만 사용할 수 있습니다. 사용자 서비스로 이동합니다.</p><span>잠시 후 자동으로 이동합니다.</span></div>
     </section>
     <script src="/js/api.js?v=20260723-backoffice"></script>
     <script src="/js/auth.js?v=20260723-backoffice"></script>
-    <script src="/js/backoffice.js?v=20260723-backoffice"></script>
+    <script src="/js/backoffice.js?v=20260723-backoffice-console"></script>
   </body>
 </html>

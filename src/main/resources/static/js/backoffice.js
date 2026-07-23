@@ -38,7 +38,11 @@
 
   function setMetric(name, value) {
     const target = document.querySelector(`[data-metric="${name}"]`);
-    if (target) target.textContent = String(value ?? 0);
+    if (target) target.textContent = value == null ? "-" : new Intl.NumberFormat("ko-KR").format(value);
+  }
+
+  function formatDate(value) {
+    return value ? new Date(value).toLocaleString("ko-KR") : "-";
   }
 
   function renderDashboard(data) {
@@ -64,15 +68,19 @@
     }
     data.recentActions.forEach((action) => {
       const item = document.createElement("article");
-      item.className = "entity-card";
+      item.className = "entity-card bo-audit-entry";
       const title = document.createElement("strong");
-      title.textContent = `${action.targetLabel} · ${action.action}`;
+      title.textContent = action.targetLabel;
       const meta = document.createElement("div");
       meta.className = "meta";
-      meta.textContent = `${action.targetType} #${action.targetId} · 관리자 #${action.adminId}`;
+      meta.textContent = `${action.action} · ${action.targetType} #${action.targetId} · 관리자 #${action.adminId}`;
       const reason = document.createElement("p");
       reason.textContent = action.reason;
-      item.append(title, meta, reason);
+      const timestamp = document.createElement("time");
+      timestamp.className = "meta";
+      timestamp.dateTime = action.createdAt || "";
+      timestamp.textContent = formatDate(action.createdAt);
+      item.append(title, meta, reason, timestamp);
       list.append(item);
     });
   }
