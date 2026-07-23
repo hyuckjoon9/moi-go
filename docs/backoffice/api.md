@@ -1,7 +1,7 @@
-# Back Office API 명세 초안
+# Back Office API 명세
 
-> 이 문서는 팀 협의를 위한 미확정 API 제안이다. 현재 구현된 API를 설명하는 문서가 아니다.
-> 다른 프로젝트 문서에서 이 문서를 참조하지 않으며, 폐기할 때는 `docs/backoffice/` 폴더만 삭제한다.
+> 이 문서는 Back Office 1차 구현의 HTTP 계약이다.
+> 구현 순서와 모듈 경계는 [architecture.md](architecture.md)를 참고한다.
 > 업무 규칙과 협의 항목은 [feature-spec.md](feature-spec.md)를 참고한다.
 
 ## 공통 규칙
@@ -45,7 +45,7 @@
 | `404` | 도메인별 `*_NOT_FOUND` | 대상이 존재하지 않음 |
 | `409` | `ADMIN_OPERATION_CONFLICT` | 현재 상태에서 요청한 운영 조치를 수행할 수 없음 |
 
-`ADMIN_ACCESS_DENIED`, `ADMIN_OPERATION_CONFLICT`는 현재 `ErrorCode`에 없는 제안 값이다.
+구현 시 `ErrorCode`에 `ADMIN_ACCESS_DENIED`, `ADMIN_OPERATION_CONFLICT`를 추가한다.
 
 ## API 빠른 목록
 
@@ -58,11 +58,9 @@
 | 모집글 목록 조회 | `GET` | `/recruitments` |
 | 모집글 상세 조회 | `GET` | `/recruitments/{recruitmentId}` |
 | 모집글 숨김 | `PATCH` | `/recruitments/{recruitmentId}/visibility` |
-| 모집글 운영 종료 | `POST` | `/recruitments/{recruitmentId}/end` |
 | 그룹 목록 조회 | `GET` | `/groups` |
 | 그룹 상세 조회 | `GET` | `/groups/{groupId}` |
 | 그룹 일정 목록 조회 | `GET` | `/groups/{groupId}/schedules` |
-| 그룹 운영 종료 | `POST` | `/groups/{groupId}/end` |
 | 일정 출석 요약 조회 | `GET` | `/schedules/{scheduleId}/attendance-summary` |
 | 활동 기록 조회 | `GET` | `/schedules/{scheduleId}/activity` |
 | 활동 리뷰 목록 조회 | `GET` | `/activity-records/{activityRecordId}/reviews` |
@@ -83,7 +81,8 @@
   "data": {
     "members": {
       "total": 120,
-      "active": 116,
+      "active": 114,
+      "suspended": 2,
       "withdrawn": 4
     },
     "recruitments": {
@@ -102,6 +101,7 @@
         "action": "RECRUITMENT_HIDDEN",
         "targetType": "RECRUITMENT",
         "targetId": 37,
+        "targetLabel": "스프링 스터디원 모집",
         "adminId": 1,
         "reason": "운영 정책 위반 확인",
         "createdAt": "2026-07-23T14:30:00"
@@ -122,7 +122,7 @@
 | --- | --- | --- | --- |
 | `keyword` | string | 아니요 | 이메일 또는 닉네임 부분 일치 검색 |
 | `role` | `USER` \| `ADMIN` | 아니요 | 시스템 역할 필터 |
-| `status` | `ACTIVE` \| `WITHDRAWN` | 아니요 | 회원 상태 필터. `SUSPENDED` 채택 시 값 추가 |
+| `status` | `ACTIVE` \| `SUSPENDED` \| `WITHDRAWN` | 아니요 | 회원 상태 필터 |
 | `page` | number | 아니요 | 기본값 `0` |
 | `size` | number | 아니요 | 기본값 `20`, 최대 `100` |
 
@@ -170,7 +170,16 @@
     "role": "USER",
     "status": "ACTIVE",
     "createdAt": "2026-07-20T09:00:00",
-    "updatedAt": "2026-07-22T11:00:00"
+    "updatedAt": "2026-07-22T11:00:00",
+    "groups": [
+      {
+        "groupId": 18,
+        "name": "스프링 스터디",
+        "role": "MEMBER",
+        "status": "ACTIVE"
+      }
+    ],
+    "recentActions": []
   },
   "message": null
 }
@@ -184,15 +193,17 @@
 
 ```json
 {
-  "status": "WITHDRAWN",
+  "expectedStatus": "ACTIVE",
+  "status": "SUSPENDED",
   "reason": "운영 정책 위반에 따른 이용 제한"
 }
 ```
 
 | Body | 타입 | 필수 | 규칙 |
 | --- | --- | --- | --- |
-| `status` | `ACTIVE` \| `WITHDRAWN` | 예 | `SUSPENDED` 채택 시 값 추가 |
-| `reason` | string | 예 | 공백 제외 10~500자 제안 |
+| `expectedStatus` | `ACTIVE` \| `SUSPENDED` | 예 | 관리자가 화면에서 확인한 현재 상태 |
+| `status` | `ACTIVE` \| `SUSPENDED` | 예 | `WITHDRAWN`은 관리자 조치 값으로 사용하지 않음 |
+| `reason` | string | 예 | 앞뒤 공백 제거 후 5~500자 |
 
 #### 성공 — 200
 
@@ -202,26 +213,34 @@
 
 | HTTP 상태 | 오류 기준 | 상황 |
 | --- | --- | --- |
-| `403` | `ADMIN_SELF_OPERATION_NOT_ALLOWED` | 운영자가 자기 상태를 변경함 |
-| `409` | `LAST_ACTIVE_ADMIN_REQUIRED` | 마지막 활성 관리자를 비활성화하려 함 |
+| `403` | `ADMIN_MEMBER_OPERATION_NOT_ALLOWED` | `ADMIN` 계정 상태 변경을 요청함 |
+| `409` | `ADMIN_OPERATION_CONFLICT` | 현재 상태가 `expectedStatus`와 다르고 요청 상태와도 다름 |
 
-두 오류 기준은 관리자 상태 변경을 허용할 경우에만 필요하다.
+- 현재 상태가 요청한 `status`와 같으면 `200`으로 현재 상세를 반환하고 이력을 생성하지 않는다.
+- 실제 상태가 변경되면 대상 회원의 refresh token을 모두 삭제하고 운영 이력을 생성한다.
 
 ## 모집글 관리
 
 ### 모집글 목록 조회
 
-`GET /api/admin/recruitments?keyword=스프링&leaderId=12&status=RECRUITING&visibility=VISIBLE&page=0&size=20`
+`GET /api/admin/recruitments?keyword=스프링&authorKeyword=김스터디&leaderId=12&status=RECRUITING&visibility=VISIBLE&hiddenFrom=2026-07-01T00:00:00&hiddenTo=2026-07-31T23:59:59&page=0&size=20`
 
 | Query | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `keyword` | string | 아니요 | 제목 부분 일치 검색 |
+| `authorKeyword` | string | 아니요 | 작성자 닉네임 또는 이메일 부분 일치 검색 |
 | `leaderId` | number | 아니요 | 작성자 회원 ID |
 | `category` | string | 아니요 | 카테고리 필터 |
 | `status` | `RECRUITING` \| `CLOSED` \| `ACTIVE` \| `ENDED` | 아니요 | 모집 상태 |
-| `visibility` | `VISIBLE` \| `HIDDEN` | 아니요 | 제안된 노출 상태 |
+| `visibility` | `VISIBLE` \| `HIDDEN` | 아니요 | 노출 상태 |
+| `recruitmentId` | number | 아니요 | ID 직접 검색용 보조 조건 |
+| `hiddenFrom` | datetime | 아니요 | 숨김 처리 시작 시각, 포함 |
+| `hiddenTo` | datetime | 아니요 | 숨김 처리 종료 시각, 포함 |
 | `page` | number | 아니요 | 기본값 `0` |
 | `size` | number | 아니요 | 기본값 `20`, 최대 `100` |
+
+`visibility=HIDDEN`이고 별도 정렬을 지정하지 않으면 최근 숨김 처리 시각 내림차순,
+동일 시각에는 모집글 ID 내림차순으로 정렬한다. 그 외에는 공통 기본 정렬을 사용한다.
 
 #### 성공 — 200
 
@@ -291,6 +310,7 @@
 
 ```json
 {
+  "expectedVisibility": "VISIBLE",
   "visibility": "HIDDEN",
   "reason": "운영 정책 위반 콘텐츠 확인"
 }
@@ -298,29 +318,17 @@
 
 | Body | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
+| `expectedVisibility` | `VISIBLE` \| `HIDDEN` | 예 | 관리자가 화면에서 확인한 현재 노출 상태 |
 | `visibility` | `VISIBLE` \| `HIDDEN` | 예 | 모집 상태와 별도로 관리 |
-| `reason` | string | 예 | 공백 제외 10~500자 제안 |
+| `reason` | string | 예 | 앞뒤 공백 제거 후 5~500자 |
 
 #### 성공 — 200
 
 응답 `data`는 모집글 상세 조회와 같다.
 
-### 모집글 운영 종료
-
-`POST /api/admin/recruitments/{recruitmentId}/end`
-
-```json
-{
-  "reason": "운영 정책 위반으로 스터디 종료"
-}
-```
-
-- 모집글과 연결 그룹을 함께 `ENDED`로 변경한다.
-- 이미 종료된 경우 현재 상태를 반환하고 운영 이력을 중복 생성하지 않는다.
-
-#### 성공 — 200
-
-응답 `data`는 모집글 상세 조회와 같다.
+- 현재 상태가 요청한 `visibility`와 같으면 `200`으로 현재 상세를 반환하고 이력을 생성하지 않는다.
+- 현재 상태가 `expectedVisibility`와 다르고 요청 상태와도 다르면 `409`를 반환한다.
+- `HIDDEN`으로 변경하면 일반 사용자 목록·상세에서 제외하고 신규 지원을 차단한다.
 
 ## 그룹 관리
 
@@ -357,6 +365,7 @@
     "members": [
       {
         "memberId": 12,
+        "nickname": "김스터디",
         "role": "LEADER",
         "status": "ACTIVE",
         "joinedAt": "2026-07-21T10:00:00"
@@ -380,23 +389,6 @@
 | `size` | number | 아니요 | 기본값 `20`, 최대 `100` |
 
 일정 항목에는 `scheduleId`, `title`, `scheduledAt`, `location`, `onlineLink`, `responseDeadline`을 포함한다.
-
-### 그룹 운영 종료
-
-`POST /api/admin/groups/{groupId}/end`
-
-```json
-{
-  "reason": "운영 정책 위반으로 그룹 종료"
-}
-```
-
-- 연결 모집글이 있으면 모집글도 `ENDED`로 변경한다.
-- 이미 종료된 경우 현재 상태를 반환하고 운영 이력을 중복 생성하지 않는다.
-
-#### 성공 — 200
-
-응답 `data`는 그룹 상세 조회와 같다.
 
 ## 출석 관리
 
@@ -430,7 +422,7 @@
 }
 ```
 
-이 API는 조회만 제공한다. 관리자용 출석 생성·수정·삭제 API는 이번 초안에 포함하지 않는다.
+이 API는 조회만 제공한다. 관리자용 출석 생성·수정·삭제 API는 1차 구현에 포함하지 않는다.
 
 ## 활동 관리
 
@@ -483,7 +475,7 @@
 }
 ```
 
-리뷰가 없으면 빈 배열을 반환한다. 이 초안은 조회만 제공하고 부적절한 리뷰를 숨기거나 삭제하는 조치는 포함하지 않는다 — 필요하면 모집글 노출 숨김과 같은 방식의 조치를 팀 협의 후 후속 기능으로 추가한다.
+리뷰가 없으면 빈 배열을 반환한다. 1차 구현은 조회만 제공하고 부적절한 리뷰를 숨기거나 삭제하는 조치는 포함하지 않는다.
 
 ## 운영 이력
 
@@ -494,7 +486,7 @@
 | Query | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `action` | string | 아니요 | 운영 작업 종류 |
-| `targetType` | `MEMBER` \| `RECRUITMENT` \| `GROUP` | 아니요 | 대상 종류 |
+| `targetType` | `MEMBER` \| `RECRUITMENT` | 아니요 | 대상 종류 |
 | `targetId` | number | 아니요 | 대상 ID |
 | `adminId` | number | 아니요 | 조치한 운영자 ID |
 | `from` | datetime | 아니요 | 조회 시작 시각, 포함 |
@@ -502,7 +494,7 @@
 | `page` | number | 아니요 | 기본값 `0` |
 | `size` | number | 아니요 | 기본값 `20`, 최대 `100` |
 
-목록 응답은 공통 페이지 형식을 사용하며 각 항목에 `auditLogId`, `action`, `targetType`, `targetId`, `adminId`, `reason`, `createdAt`을 포함한다.
+목록 응답은 공통 페이지 형식을 사용하며 각 항목에 `auditLogId`, `action`, `targetType`, `targetId`, `targetLabel`, `adminId`, `reason`, `createdAt`을 포함한다.
 
 ### 운영 이력 상세 조회
 
@@ -518,6 +510,7 @@
     "action": "RECRUITMENT_HIDDEN",
     "targetType": "RECRUITMENT",
     "targetId": 37,
+    "targetLabel": "스프링 스터디원 모집",
     "adminId": 1,
     "before": {
       "visibility": "VISIBLE"
@@ -533,13 +526,13 @@
 ```
 
 운영 이력 생성·수정·삭제 API는 제공하지 않는다. 운영 조치가 성공할 때 서버 내부에서만 생성한다.
+운영 이력의 보존 기간과 자동 삭제 정책은 1차 구현에서 정의하지 않는다.
 
-## 팀 협의 시 API 확정 항목
+## 1차 API 결정
 
-1. 회원 제재 상태로 `SUSPENDED`를 도입할지
-2. 모집글 노출 상태 `VISIBLE`, `HIDDEN`을 별도 필드로 도입할지
-3. 관리자 조치 성공 상태를 모두 `200`으로 통일할지, 상태 변경에 `204`를 사용할지
-4. 페이지 응답을 이 문서의 `items` 형식으로 통일할지 Spring Data `Page` 직렬화를 유지할지
-5. 운영 이력의 `before`, `after`를 JSON으로 저장할지 정규화된 필드로 저장할지
-6. 활동 리뷰(코멘트)에 운영자 숨김·삭제 조치를 도입할지
-
+1. 회원 제재 상태는 `SUSPENDED`를 사용한다.
+2. 모집글은 별도 노출 상태 `VISIBLE`, `HIDDEN`을 사용한다.
+3. 상태 변경 성공 응답은 변경된 상세 데이터를 포함한 `200`으로 통일한다.
+4. 페이지 응답은 `items`, `page`, `size`, `totalElements`, `totalPages` 형식을 사용한다.
+5. 운영 이력의 `before`, `after`는 JSON 스냅샷으로 저장하고 객체로 응답한다.
+6. 활동 리뷰는 조회만 제공한다.
