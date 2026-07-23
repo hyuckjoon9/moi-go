@@ -195,7 +195,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid #bfdbfe; border-c
 
 .toast {
   position: fixed;
-  top: 96px;
+  top: 32px;
   left: 50%;
   z-index: 120;
   transform: translate(-50%, -12px);
@@ -1171,7 +1171,7 @@ body.modal-open {
 }
 
 .modal-panel.edit-panel.recruitment-create-panel {
-  width: min(960px, calc(100% - 40px));
+  width: min(1120px, calc(100% - 40px));
   max-height: calc(100vh - 36px);
 }
 
@@ -1344,4 +1344,409 @@ body.modal-open {
 
 .notice-actions {
   padding: 0;
+}
+
+/* recruitment application actions */
+.application-panel {
+  display: grid;
+  gap: 14px;
+  padding: 0 32px 32px;
+}
+
+.application-panel h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.application-list {
+  display: grid;
+  gap: 12px;
+}
+
+.application-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.application-card p {
+  margin: 8px 0;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.application-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.application-modal {
+  width: min(640px, calc(100% - 40px));
+}
+
+@media (max-width: 720px) {
+  .application-panel {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .application-card {
+    grid-template-columns: 1fr;
+  }
+}
+.attendance-rate-card strong {
+  font-size: 24px;
+}
+/* service page alignment */
+.recruitment-page,
+.mypage-page,
+.group-page {
+  width: min(1180px, calc(100% - 36px));
+}
+
+.group-page {
+  display: block;
+}
+
+.recruitment-page > .action-title,
+.mypage-page > .action-title,
+.group-page > .action-title {
+  min-height: 126px;
+  margin-bottom: 24px;
+}
+
+.recruitment-page > .action-title + *,
+.mypage-page > .action-title + *,
+.group-page > .action-title + * {
+  margin-top: 0;
+}
+
+.group-page > .metric-row,
+.group-page > .group-layout {
+  margin-top: 18px;
+}
+
+.page-actions-placeholder {
+  width: 100px;
+  min-height: 42px;
+  pointer-events: none;
+}
+
+.recruitment-page > .panel,
+.mypage-page > .mypage-layout,
+.group-page > .group-selector-panel {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .recruitment-page > .action-title,
+  .mypage-page > .action-title,
+  .group-page > .action-title {
+    min-height: auto;
+  }
+
+  .page-actions-placeholder {
+    display: none;
+  }
+}
+/* text brand logo */
+.text-brand {
+  min-width: 156px;
+  text-decoration: none;
+  overflow: visible;
+}
+
+.brand-word {
+  display: inline-block;
+  color: #2563eb;
+  font-size: 34px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.brand-word::first-letter {
+  color: #1d4ed8;
+}
+
+@media (max-width: 620px) {
+  .text-brand {
+    min-width: auto;
+  }
+
+  .brand-word {
+    font-size: 28px;
+  }
+}
+/* exact title-to-card rhythm */
+.recruitment-page > .action-title,
+.mypage-page > .action-title,
+.group-page > .action-title {
+  height: 126px;
+  min-height: 126px;
+  margin-bottom: 24px;
+  align-items: end;
+}
+
+.recruitment-page > .action-title > div:first-child,
+.mypage-page > .action-title > div:first-child,
+.group-page > .action-title > div:first-child {
+  display: grid;
+  gap: 10px;
+}
+
+.recruitment-page > .action-title .eyebrow,
+.mypage-page > .action-title .eyebrow,
+.group-page > .action-title .eyebrow,
+.recruitment-page > .action-title h1,
+.mypage-page > .action-title h1,
+.group-page > .action-title h1,
+.recruitment-page > .action-title p,
+.mypage-page > .action-title p,
+.group-page > .action-title p {
+  margin: 0;
+}
+
+.recruitment-page > .action-title h1,
+.mypage-page > .action-title h1,
+.group-page > .action-title h1 {
+  line-height: 1.05;
+}
+
+.recruitment-page > .action-title p:not(.eyebrow),
+.mypage-page > .action-title p:not(.eyebrow),
+.group-page > .action-title p:not(.eyebrow) {
+  min-height: 26px;
+  line-height: 1.6;
+}
+
+.recruitment-page > .action-title .page-actions,
+.group-page > .action-title .page-actions,
+.mypage-page > .action-title .page-actions-placeholder {
+  align-self: end;
+  margin-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .recruitment-page > .action-title,
+  .mypage-page > .action-title,
+  .group-page > .action-title {
+    height: auto;
+    min-height: auto;
+  }
+}
+.group-operation-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.group-operation-panel.hidden {
+  display: none !important;
+}
+
+.group-operation-panel .application-list {
+  margin-top: 4px;
+}
+
+.schedule-card {
+  cursor: pointer;
+}
+
+.schedule-card:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+/* group workspace schedule flow */
+.group-members-toggle-panel,
+.group-schedule-workspace-panel {
+  margin-top: 18px;
+}
+
+.group-members-toggle-panel #groupMemberList {
+  margin-top: 12px;
+}
+
+.group-schedule-workspace-panel {
+  display: grid;
+  gap: 18px;
+  min-height: 520px;
+}
+
+.schedule-create-form.hidden,
+.schedule-detail-panel.hidden {
+  display: none !important;
+}
+
+.schedule-create-form {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.schedule-board-list {
+  display: grid;
+  gap: 12px;
+}
+
+.selectable-card {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.selectable-card:hover {
+  border-color: #9ec5ff;
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.schedule-detail-panel {
+  display: grid;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.attendance-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.attendance-actions-grid .form-stack {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.attendance-actions-grid h4 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+@media (max-width: 900px) {
+  .attendance-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* group member profile cards */
+.member-profile-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.member-avatar {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 14px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  overflow: hidden;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-profile-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+/* metric card member toggle */
+.metric-member-toggle {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.metric-member-toggle:hover,
+.metric-member-toggle:focus-visible {
+  border-color: #9ec5ff;
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.metric-member-list {
+  grid-column: 1 / -1;
+  margin-top: 14px;
+  gap: 10px;
+}
+
+.metric-member-list.hidden {
+  display: none !important;
+}
+
+.metric-member-list .member-profile-card {
+  padding: 12px;
+  background: #f8fafc;
+  box-shadow: none;
+}
+/* compact group schedule panel */
+.group-schedule-workspace-panel {
+  min-height: 0;
+  gap: 14px;
+  padding-bottom: 24px;
+}
+
+.group-schedule-workspace-panel .panel-heading {
+  align-items: center;
+}
+
+.group-schedule-workspace-panel .page-actions {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.group-schedule-workspace-panel .page-actions select {
+  min-width: 180px;
+}
+
+.group-schedule-workspace-panel .page-actions .button {
+  min-width: 86px;
+  white-space: nowrap;
+}
+
+.group-schedule-workspace-panel #groupLoadSchedulesButton {
+  min-width: 104px;
+}
+
+.group-schedule-workspace-panel #openGroupScheduleCreateButton {
+  min-width: 82px;
+}
+
+.group-schedule-workspace-panel .schedule-board-list {
+  margin-top: 10px;
+}
+
+.group-schedule-workspace-panel .schedule-card {
+  min-height: 138px;
+}
+.metric-member-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metric-toggle-icon {
+  display: inline-block;
+  color: #2563eb;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.metric-toggle-icon.expanded {
+  transform: rotate(180deg);
 }
