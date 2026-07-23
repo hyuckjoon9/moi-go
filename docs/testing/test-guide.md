@@ -1,8 +1,7 @@
 # moi-go 테스트 가이드
 
-> 대상 위치 제안: `docs/testing/test-guide.md` (특정 파트 소유가 아닌 팀 공용 문서)
 > 대상 독자: QA·PM·백오피스 담당자 등 API를 직접 호출하며 테스트하는 모든 사람
-> 함께 쓰는 파일: [`moigo_schema_seed.sql`](moigo_schema_seed.sql) — 이 문서에서 설명하는 계정·데이터가 전부 이 파일 기준이다.
+> 함께 쓰는 파일: [`moigo_schema_seed.sql`](../../sql/moigo_schema_seed.sql) — 이 문서에서 설명하는 계정·데이터가 전부 이 파일 기준이다.
 
 ## 1. 목적
 
@@ -13,7 +12,7 @@
 ### 2.1 DB 스키마 + 샘플 데이터 적용
 
 ```powershell
-mysql -u <계정> -p moigo < moigo_schema_seed.sql
+mysql -u <계정> -p moigo < sql/moigo_schema_seed.sql
 ```
 
 - 파일 맨 위에서 기존 테이블을 `DROP TABLE IF EXISTS`로 정리한 뒤 11개 테이블을 `CREATE TABLE`로 새로 만들고, 이어서 샘플 데이터를 `INSERT`한다. 재실행해도 항상 같은 상태로 초기화된다.
@@ -22,8 +21,16 @@ mysql -u <계정> -p moigo < moigo_schema_seed.sql
 
 ### 2.2 앱 실행
 
+Windows:
+
 ```powershell
 .\gradlew.bat bootRun --args='--spring.profiles.active=local'
+```
+
+macOS / Linux:
+
+```bash
+./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
 ## 3. 테스트 계정 목록
@@ -51,10 +58,10 @@ mysql -u <계정> -p moigo < moigo_schema_seed.sql
 
 | Part | 문서 | 대표 엔드포인트 |
 | --- | --- | --- |
-| Part1 인증·회원 | `docs/part1-auth/api.md` | `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/reissue` |
-| Part2 모집글·지원 | `docs/part2-recruitment/api.md` | `POST /api/recruitment-posts`, `PATCH .../applications/{id}/approve` 등 |
-| Part3 그룹·일정 | `docs/part3-group/api.md` | `GET /api/groups/me`, `GET /api/groups/{groupId}`, `.../schedules` |
-| Part4 출석·활동 | `docs/part4-attendance/attendance-api.md`, `activity-api.md` | 출석 응답·체크, 활동 기록·리뷰 |
+| Part1 인증·회원 | <a href="../part1-auth/api.md" target="_blank">API 문서</a> | `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/reissue` |
+| Part2 모집글·지원 | <a href="../part2-recruitment/api.md" target="_blank">API 문서</a> | `POST /api/recruitment-posts`, `PATCH .../applications/{id}/approve` 등 |
+| Part3 그룹·일정 | <a href="../part3-group/api.md" target="_blank">API 문서</a> | `GET /api/groups/me`, `GET /api/groups/{groupId}`, `.../schedules` |
+| Part4 출석·활동 | <a href="../part4-attendance/attendance-api.md" target="_blank">출석 API</a>, <a href="../part4-attendance/activity-api.md" target="_blank">활동 API</a> | 출석 응답·체크, 활동 기록·리뷰 |
 
 인증이 필요한 모든 요청은 `POST /api/auth/login`으로 받은 `accessToken`을 `Authorization: Bearer <token>` 헤더에 담아 호출한다(로그인·회원가입·토큰 재발급 제외).
 

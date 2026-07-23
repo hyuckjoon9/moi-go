@@ -100,7 +100,7 @@ copy src\main\resources\application-local.example.properties ^
 
 ## 테스트
 
-테스트 실행 환경과 방법은 [테스트 가이드](docs/test-guide.md)를 참고합니다.
+테스트 실행 환경과 방법은 [테스트 가이드](docs/testing/test-guide.md)를 참고합니다.
 
 전체 테스트에는 로컬 MySQL 테스트 DB가 필요합니다. 테스트용 DB 계정 정보는 파일에 저장하지 않고 환경변수로 전달합니다.
 
