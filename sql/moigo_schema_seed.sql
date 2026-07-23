@@ -5,6 +5,7 @@
 USE moigo;
 
 -- 재실행 가능하도록 자식 테이블부터 삭제
+DROP TABLE IF EXISTS admin_audit_logs;
 DROP TABLE IF EXISTS activity_reviews;
 DROP TABLE IF EXISTS activity_records;
 DROP TABLE IF EXISTS attendance_records;
@@ -38,6 +39,27 @@ CREATE TABLE users (
     CONSTRAINT chk_users_status
         CHECK (status IN ('ACTIVE', 'WITHDRAWN'))
 ) ENGINE = InnoDB;
+
+CREATE TABLE admin_audit_logs (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    admin_id        BIGINT NOT NULL,
+    action          VARCHAR(50) NOT NULL,
+    target_type     VARCHAR(30) NOT NULL,
+    target_id       BIGINT NOT NULL,
+    target_label    VARCHAR(255) NOT NULL,
+    before_snapshot TEXT NOT NULL,
+    after_snapshot  TEXT NOT NULL,
+    reason          VARCHAR(500) NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_admin_audit_logs_admin
+        FOREIGN KEY (admin_id) REFERENCES users(id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+CREATE INDEX idx_admin_audit_logs_created
+    ON admin_audit_logs (created_at DESC, id DESC);
 
 CREATE TABLE refresh_tokens (
     id         BIGINT AUTO_INCREMENT PRIMARY KEY,
