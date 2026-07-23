@@ -1983,3 +1983,25 @@ body.modal-open {
   .bo-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bo-workspace { padding-top: 28px; }
 }
+
+.bo-console-layout { display: flex; min-height: 100vh; background: var(--bo-bg); }
+.bo-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 20; display: flex; width: 252px; flex-direction: column; border-right: 1px solid var(--bo-border); background: var(--bo-surface); }
+.bo-sidebar-brand { display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 0 22px; border-bottom: 1px solid var(--bo-border); color: var(--bo-text); }
+.bo-sidebar-brand .brand-logo { width: 34px; height: 34px; border-radius: 10px; object-fit: cover; }
+.bo-sidebar-brand strong, .bo-sidebar-brand small { display: block; }
+.bo-sidebar-brand small, .bo-sidebar-nav p, .bo-sidebar-footer small { color: var(--bo-muted); font-size: 10px; font-weight: 800; letter-spacing: .1em; }
+.bo-sidebar-nav { display: grid; gap: 4px; padding: 22px 14px; }
+.bo-sidebar-nav p { margin: 12px 10px 5px; text-transform: uppercase; }
+.bo-sidebar-nav a { padding: 11px 12px; border-radius: 10px; color: var(--bo-muted); font-size: 14px; font-weight: 800; }
+.bo-sidebar-nav a:hover, .bo-sidebar-nav a[aria-current="page"] { background: var(--bo-accent-soft); color: var(--bo-accent); }
+.bo-sidebar-footer { display: grid; gap: 5px; margin-top: auto; padding: 18px 22px; border-top: 1px solid var(--bo-border); color: var(--bo-text); font-size: 13px; font-weight: 800; }
+.bo-console-main { width: calc(100% - 252px); margin-left: 252px; }
+.bo-console-header { position: sticky; top: 0; z-index: 10; display: flex; min-height: 76px; align-items: center; justify-content: space-between; padding: 0 34px; border-bottom: 1px solid var(--bo-border); background: color-mix(in srgb, var(--bo-surface) 92%, transparent); backdrop-filter: blur(16px); color: var(--bo-text); }
+.bo-console-header .eyebrow { margin: 0 0 3px; }
+.bo-console-header strong { font-size: 14px; }
+.backoffice-app .split-layout .panel, .backoffice-app .detail-view, .backoffice-app .form-grid input, .backoffice-app .form-grid select, .backoffice-app .form-stack input, .backoffice-app .form-stack select, .backoffice-app .form-stack textarea { border-color: var(--bo-border); background: var(--bo-surface); color: var(--bo-text); }
+.backoffice-app label, .backoffice-app .helper-text, .backoffice-app .empty-state { color: var(--bo-muted); }
+.backoffice-app .detail-view, .backoffice-app .profile-details div, .backoffice-app .entity-card { background: var(--bo-surface-muted); }
+.backoffice-app .profile-details div { border-color: var(--bo-border); }
+@media (max-width: 900px) { .bo-sidebar { width: 206px; } .bo-console-main { width: calc(100% - 206px); margin-left: 206px; } }
+@media (max-width: 700px) { .bo-sidebar { position: static; width: 100%; } .bo-console-layout { display: block; } .bo-console-main { width: 100%; margin-left: 0; } .bo-sidebar-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bo-sidebar-footer { display: none; } }

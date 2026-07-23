@@ -6,13 +6,16 @@
     <title>회원 관리 · Moi-Go Back Office</title>
     <link rel="stylesheet" href="/css/style.css?v=20260723-backoffice-members" />
   </head>
-  <body data-page="backoffice-members">
-    <header class="app-header backoffice-header">
-      <a class="brand" href="/backoffice/index.html" aria-label="Moi-Go Back Office"><img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" /><span class="ops-label">Back Office</span></a>
-      <nav class="main-nav" aria-label="백오피스 메뉴"><a href="/backoffice/index.html">운영 현황</a><a href="/backoffice/members.html" aria-current="page">회원 관리</a><a href="/index.html">사용자 서비스</a></nav>
-      <div class="header-actions"><span id="boAdminName" class="auth-chip">운영자 확인 중</span></div>
-    </header>
-    <main class="page-shell">
+  <body class="backoffice-app" data-page="backoffice-members">
+    <div class="bo-console-layout">
+      <aside class="bo-sidebar" aria-label="Back Office 메뉴">
+        <a class="bo-sidebar-brand" href="/backoffice/index.html"><img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" /><span><strong>Moi-Go</strong><small>OPERATIONS</small></span></a>
+        <nav class="bo-sidebar-nav"><p>운영</p><a href="/backoffice/index.html">운영 현황</a><a href="/backoffice/members.html" aria-current="page">회원 관리</a><p>서비스</p><a href="/index.html">사용자 서비스</a></nav>
+        <div class="bo-sidebar-footer"><span id="boAdminName">운영자 확인 중</span><small>Administrator</small></div>
+      </aside>
+      <div class="bo-console-main">
+        <header class="bo-console-header"><div><p class="eyebrow">Member Directory</p><strong>회원 관리</strong></div><button id="boThemeToggle" class="bo-theme-toggle" type="button" aria-label="다크 모드로 전환">◐</button></header>
+    <main class="page-shell bo-workspace">
       <div class="page-title"><p class="eyebrow">Back Office</p><h1>회원 관리</h1><p>회원 정보를 조회하고 이용 상태를 관리합니다.</p></div>
       <section id="boState" class="ops-notice" hidden></section>
       <section id="boMembers" class="split-layout">
@@ -40,6 +43,8 @@
         </article>
       </section>
     </main>
+      </div>
+    </div>
     <script src="/js/api.js?v=20260723-backoffice"></script><script src="/js/auth.js?v=20260723-backoffice"></script><script src="/js/backoffice-members.js?v=20260723-backoffice-members"></script>
   </body>
 </html>

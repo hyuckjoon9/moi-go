@@ -2,6 +2,20 @@
   const state = { page: 0, size: 20, filters: {}, selectedId: null };
   const loginUrl = `/login.html?returnUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`;
   const $ = (selector) => document.querySelector(selector);
+  const themeKey = "moi-go-backoffice-theme";
+
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(themeKey, theme);
+    const dark = theme === "dark";
+    $("#boThemeToggle").textContent = dark ? "☀" : "◐";
+    $("#boThemeToggle").setAttribute("aria-label", dark ? "라이트 모드로 전환" : "다크 모드로 전환");
+  }
+
+  function initializeTheme() {
+    applyTheme(localStorage.getItem(themeKey) || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+    $("#boThemeToggle").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+  }
 
   function showState(message, kind = "info") {
     const target = $("#boState");
@@ -76,5 +90,5 @@
     $("#memberStatusForm").addEventListener("submit", async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const memberId = form.get("memberId"); try { await window.moiApi.request(`/api/admin/members/${memberId}/status`, { method: "PATCH", body: window.moiApi.toJsonBody({ expectedStatus: form.get("expectedStatus"), status: form.get("status"), reason: String(form.get("reason")).trim() }) }); event.currentTarget.reason.value = ""; await Promise.all([loadMembers(), loadDetail(memberId)]); } catch (error) { if (error.status === 409) { await loadDetail(memberId); showState("최신 상태를 불러왔습니다. 다시 확인해 주세요.", "info"); return; } handleError(error, "회원 상태를 변경하지 못했습니다."); } });
   }
 
-  document.addEventListener("DOMContentLoaded", async () => { try { if (await requireAdmin()) { bindEvents(); loadMembers(); } } catch (error) { handleError(error, "관리자 정보를 확인하지 못했습니다."); } });
+  document.addEventListener("DOMContentLoaded", async () => { try { initializeTheme(); if (await requireAdmin()) { bindEvents(); loadMembers(); } } catch (error) { handleError(error, "관리자 정보를 확인하지 못했습니다."); } });
 })();
