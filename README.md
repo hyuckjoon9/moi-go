@@ -16,6 +16,7 @@ Moi-Go는 스터디원 모집부터 실제 스터디 운영, 출석 및 활동 �
 ## 기술 스택
 
 * Backend: Java, Spring Boot, Spring Security, Spring Data JPA
+* Frontend: HTML, CSS, JavaScript
 * Database: MySQL
 * Test: JUnit 5, MySQL
 * Quality: Spotless, GitHub Actions
@@ -28,6 +29,7 @@ Moi-Go는 스터디원 모집부터 실제 스터디 운영, 출석 및 활동 �
 | Spring Boot     | 4.1.0                                          |
 | Spring Security | Spring Boot 4.1.0 의존성 관리 버전                    |
 | Spring Data JPA | Spring Boot 4.1.0 의존성 관리 버전                    |
+| Frontend        | HTML5, CSS3, JavaScript                         |
 | JUnit           | JUnit 5                                        |
 | Gradle          | 9.5.1                                          |
 | MySQL           | 8 이상                                           |
@@ -223,6 +225,6 @@ chore: Spotless 및 CI 설정
 | 이름  | 역할      |
 | --- | ------- |
 | 권혁준 | Backend |
-| 임수환 | Backend |
+| 임수환 | Backend, Frontend |
 | 장지원 | Backend |
 | 정자비 | Backend |
