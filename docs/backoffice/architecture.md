@@ -26,8 +26,8 @@ AdminQueryRepository -> JdbcClient projection -> 관리자 DTO
 - `style.css`에 남아 있는 Back Office 호환 규칙은 같은 CSS 변수(`--bo-sidebar-width`,
   `--bo-layout-space`, `--bo-content-space`)를 사용해야 한다. 이 규칙이 별도 폭·여백을
   지정하면 화면 토큰을 덮어쓰므로 금지한다.
-- 정적 CSS 변경 시 `index.html`의 stylesheet 버전 문자열을 함께 갱신해 브라우저 캐시가
-  이전 레이아웃을 재사용하지 않게 한다.
+- 정적 CSS 또는 JS 변경 시 `index.html`의 해당 캐시 버전 문자열을 함께 갱신해 브라우저 캐시가
+  이전 자산을 재사용하지 않게 한다.
 
 ## 보안과 상태 변경
 
@@ -36,17 +36,10 @@ AdminQueryRepository -> JdbcClient projection -> 관리자 DTO
 실제 변경일 때만 운영 이력을 저장한다. 기대 상태 충돌은 `409`를 반환한다. 그룹·일정·출석·활동·
 운영 이력 조회 API는 읽기 전용 JDBC projection으로 처리한다.
 
-## 기존 코드 통합 기준
+## 통합 기준
 
-Back Office를 포함하지 않는 변경을 병합할 때도 다음 구성 요소는 함께 유지한다.
-
-- 회원 관리: `Member.changeStatus`, `MemberAdministrationPort`, refresh token 폐기 흐름
-- 모집글 관리: `RecruitmentVisibility`, `RecruitmentAdministrationPort`, 일반 사용자 조회의
-  `VISIBLE` 필터
-- 화면 충돌 처리: `moiApi.request`가 실패한 HTTP 상태를 `error.status`로 보존하는 계약
-- 데이터: `recruitment_posts.visibility`, `admin_audit_logs`와 관련 제약·인덱스
-
-세부 병합 절차와 검증 항목은 [integration-guide.md](integration-guide.md)를 따른다.
+기존 도메인과의 상태·오류·감사 이력 계약, 병합 전 점검 항목은
+[integration-guide.md](integration-guide.md)를 단일 기준으로 따른다.
 
 ## 검증 기준
 
