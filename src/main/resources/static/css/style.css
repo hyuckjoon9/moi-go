@@ -1875,3 +1875,16 @@ body.modal-open {
   color: #475569;
   background: #e2e8f0;
 }
+.preview-card {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.preview-card:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}

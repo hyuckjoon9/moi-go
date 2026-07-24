@@ -1,6 +1,7 @@
 package com.mycom.myapp.global.exception;
 
 import com.mycom.myapp.global.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -41,8 +42,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolationException(
-            DataIntegrityViolationException exception) {
-        return ResponseEntity.status(ErrorCode.RECRUITMENT_DELETE_NOT_ALLOWED.getStatus())
-                .body(ApiResponse.error(ErrorCode.RECRUITMENT_DELETE_NOT_ALLOWED.getMessage()));
+            DataIntegrityViolationException exception, HttpServletRequest request) {
+        if ("DELETE".equalsIgnoreCase(request.getMethod())
+                && request.getRequestURI().startsWith("/api/recruitments/")) {
+            return ResponseEntity.status(ErrorCode.RECRUITMENT_DELETE_NOT_ALLOWED.getStatus())
+                    .body(ApiResponse.error(ErrorCode.RECRUITMENT_DELETE_NOT_ALLOWED.getMessage()));
+        }
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(
+                        "요청 데이터가 현재 상태와 충돌합니다. 입력값이나 연관 데이터를 확인해주세요."));
     }
 }
