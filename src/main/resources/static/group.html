@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>그룹 홈 - Moi-Go</title>
-    <link rel="stylesheet" href="/css/style.css?v=20260723-answer-badge-colors" />
+    <link rel="stylesheet" href="/css/style.css?v=20260724-activity-delete-fix" />
   </head>
   <body data-page="group" data-protected="true">
     <header class="app-header">
@@ -88,7 +88,7 @@
           <section id="groupActivityPanel" class="activity-workspace hidden">
             <div class="panel-heading compact-heading">
               <div><p class="eyebrow">Activity</p><h4>활동 회고</h4></div>
-              <div class="activity-actions"><button id="openActivityRecordCreateButton" class="button small hidden" type="button">회고 작성</button><button id="openActivityRecordEditButton" class="button ghost small hidden" type="button">회고 수정</button><button id="reloadActivityRecordButton" class="button ghost small" type="button">회고 조회</button></div>
+              <div class="activity-actions"><button id="openActivityRecordCreateButton" class="button small hidden" type="button">회고 작성</button><button id="openActivityRecordEditButton" class="button ghost small hidden" type="button">회고 수정</button><button id="deleteActivityRecordButton" class="button ghost small hidden" type="button">회고 삭제</button><button id="reloadActivityRecordButton" class="button ghost small" type="button">회고 조회</button></div>
             </div>
             <article id="activityRecordView" class="entity-card activity-record-card">
               <p class="meta">일정을 선택하면 회고 기록을 확인할 수 있습니다.</p>
@@ -136,8 +136,8 @@
       </article>
     </main>
 
-    <script src="/js/api.js?v=20260723-answer-badge-colors"></script>
-    <script src="/js/auth.js?v=20260723-answer-badge-colors"></script>
-    <script src="/js/app.js?v=20260724-attendance-wording"></script>
+    <script src="/js/api.js?v=20260724-activity-delete-fix"></script>
+    <script src="/js/auth.js?v=20260724-activity-delete-fix"></script>
+    <script src="/js/app.js?v=20260724-activity-delete-fix"></script>
   </body>
 </html>

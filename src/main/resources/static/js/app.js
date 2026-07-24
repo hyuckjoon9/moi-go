@@ -972,6 +972,7 @@
     const manager = canManageCurrentGroupActivity();
     $("#openActivityRecordCreateButton")?.classList.toggle("hidden", !scheduleId || !manager || !!record);
     $("#openActivityRecordEditButton")?.classList.toggle("hidden", !scheduleId || !manager || !record);
+    $("#deleteActivityRecordButton")?.classList.toggle("hidden", !scheduleId || !manager || !record);
   }
   function renderActivityRecord(record, scheduleId) {
     const panel = $("#groupActivityPanel");
@@ -1005,12 +1006,21 @@
   }
   function renderActivityReviews(reviews = []) {
     const manager = canManageCurrentGroupActivity();
-    renderCards("#activityReviewList", reviews, "아직 회고 리뷰가 없습니다.", (review) => `<article class="entity-card activity-review-card" data-review-id="${escapeHtml(review.id)}"><div><span class="badge">${escapeHtml(groupMemberLabelForUserId(review.userId))}</span><p>${escapeHtml(review.comment || "내용이 없습니다.")}</p><div class="meta">작성일 ${escapeHtml(formatDate(review.createdAt) || "-")}</div></div>${manager ? `<button class="button ghost small" type="button" data-review-delete="true">리뷰 삭제</button>` : ""}</article>`);
+    const ownId = currentMemberId();
+    renderCards("#activityReviewList", reviews, "아직 회고 리뷰가 없습니다.", (review) => {
+      const ownReview = ownId && String(review.userId) === String(ownId);
+      const canDelete = manager || ownReview;
+      const deleteMode = manager && !ownReview ? "manager" : "owner";
+      return `<article class="entity-card activity-review-card" data-review-id="${escapeHtml(review.id)}"><div><span class="badge">${escapeHtml(groupMemberLabelForUserId(review.userId))}</span><p>${escapeHtml(review.comment || "내용이 없습니다.")}</p><div class="meta">작성일 ${escapeHtml(formatDate(review.createdAt) || "-")}</div></div>${canDelete ? `<button class="button ghost small" type="button" data-review-delete="${escapeHtml(deleteMode)}">리뷰 삭제</button>` : ""}</article>`;
+    });
     document.querySelectorAll("[data-review-delete]").forEach((button) => {
       button.addEventListener("click", async () => {
         const reviewId = button.closest("[data-review-id]")?.dataset.reviewId;
         if (!currentActivityRecord?.id || !reviewId) return;
-        await run(() => window.moiApi.request(`/api/activity/records/${currentActivityRecord.id}/reviews/${reviewId}`, { method: "DELETE" }), "리뷰를 삭제했습니다.");
+        const endpoint = button.dataset.reviewDelete === "manager"
+          ? `/api/activity/records/${currentActivityRecord.id}/reviews/${reviewId}`
+          : `/api/activity/records/${currentActivityRecord.id}/reviews`;
+        await run(() => window.moiApi.request(endpoint, { method: "DELETE" }), "리뷰를 삭제했습니다.");
         await loadActivityReviews();
       });
     });
@@ -1034,6 +1044,11 @@
   function renderGroup(group) {
     currentGroupDetail = group;
     currentGroupMembers = group.members || [];
+    currentGroupSchedules = [];
+    closeGroupAnswerSummary();
+    if ($("#groupScheduleSelect")) $("#groupScheduleSelect").value = "";
+    $("#groupScheduleDetailPanel")?.classList.add("hidden");
+    renderActivityRecord(null, null);
     if ($("#groupTitle")) $("#groupTitle").textContent = group.name || "그룹 홈";
     if ($("#groupDescription")) $("#groupDescription").textContent = `${groupStatusLabel(group.status)} 그룹 · 일정과 출석을 한 화면에서 관리합니다.`;
     if ($("#groupSummary")) $("#groupSummary").innerHTML = `<article><strong>${escapeHtml(groupStatusLabel(group.status))}</strong><span>그룹 상태</span></article><article><strong>${escapeHtml(groupRoleLabel(group.myRole))}</strong><span>내 역할</span></article><article id="toggleGroupMembersButton" class="metric-member-toggle" role="button" tabindex="0" aria-expanded="false"><strong>${currentGroupMembers.length}명</strong><span class="metric-member-label">활성 그룹원 <span class="metric-toggle-icon" aria-hidden="true">▾</span></span><div id="groupMemberList" class="card-list metric-member-list hidden"></div></article><article><strong>${escapeHtml(formatDate(group.createdAt) || "-")}</strong><span>생성일</span></article>`;
@@ -1126,6 +1141,18 @@
       await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "PUT", body }), "참석 여부를 수정했습니다.");
     }
   }
+  async function saveGroupAttendanceCheck(scheduleId, userId, status) {
+    const body = window.moiApi.toJsonBody({ userId: asNumber(userId), status });
+    try {
+      await window.moiApi.request(`/api/attendance/schedules/${scheduleId}/records`, { method: "POST", body });
+      toast("출석을 체크했습니다.");
+    } catch (error) {
+      const duplicate = error.status === 409 && String(error.message || "").includes("이미 출석 체크");
+      if (!duplicate) throw error;
+      await window.moiApi.request(`/api/attendance/schedules/${scheduleId}/records`, { method: "PUT", body });
+      toast("출석 상태를 수정했습니다.");
+    }
+  }
   async function bindGroup() {
     const params = new URLSearchParams(window.location.search);
     const groups = await fetchMyGroups().catch(() => []);
@@ -1144,11 +1171,20 @@
     $("#groupCreateScheduleForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; } if (!canManageCurrentGroupAttendance()) { toast("일정 생성 권한이 없습니다.", true); return; } const form = event.currentTarget; const schedule = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules`, { method: "POST", body: window.moiApi.toJsonBody(compact(formData(form))) }), "일정을 생성했습니다."); const createdId = schedule?.scheduleId; form.reset(); setDefaultScheduleTime(); toggleScheduleCreateForm(false); await loadGroupSchedules(); if (createdId) selectGroupSchedule(createdId); });
     $("#groupAnswerAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); if (!payload.scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await submitAttendanceAnswer(payload.scheduleId, payload.response); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
     $("#deleteAttendanceAnswerButton")?.addEventListener("click", async () => { const scheduleId = $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "DELETE" }), "참석 여부를 삭제했습니다."); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
-    $("#groupCheckAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!canManageCurrentGroupAttendance()) return; const payload = formData(event.currentTarget); if (!payload.scheduleId || !payload.userId) { toast("일정과 그룹원을 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${payload.scheduleId}/records`, { method: "POST", body: window.moiApi.toJsonBody({ userId: asNumber(payload.userId), status: payload.status }) }), "출석을 체크했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
+    $("#groupCheckAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!canManageCurrentGroupAttendance()) return; const payload = formData(event.currentTarget); if (!payload.scheduleId || !payload.userId) { toast("일정과 그룹원을 선택하세요.", true); return; } await run(() => saveGroupAttendanceCheck(payload.scheduleId, payload.userId, payload.status), null); await loadGroupAttendanceRates().catch(() => {}); });
     $("#groupLoadAnswerSummaryButton")?.addEventListener("click", loadGroupAnswerSummary);
     $("#groupLoadAttendanceSummaryButton")?.addEventListener("click", async () => { const scheduleId = $("#groupSummaryScheduleSelect")?.value || $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } if (!canManageCurrentGroupAttendance()) return; await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/records/summary`), "출석 체크 현황을 조회했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
     $("#openActivityRecordCreateButton")?.addEventListener("click", () => openActivityRecordModal("create"));
     $("#openActivityRecordEditButton")?.addEventListener("click", () => openActivityRecordModal("edit"));
+    $("#deleteActivityRecordButton")?.addEventListener("click", async () => {
+      const scheduleId = $("#groupScheduleSelect")?.value;
+      if (!scheduleId || !currentActivityRecord) { toast("삭제할 회고가 없습니다.", true); return; }
+      const confirmed = await confirmAction({ title: "회고 삭제", message: "회고를 삭제하시겠습니까?", warning: "삭제된 회고와 연결된 리뷰는 복구할 수 없습니다.", confirmText: "회고 삭제" });
+      if (!confirmed) return;
+      await run(() => window.moiApi.request(`/api/activity/schedules/${scheduleId}/record`, { method: "DELETE" }), "회고를 삭제했습니다.");
+      renderActivityRecord(null, scheduleId);
+      await loadActivityReviews(null).catch(() => {});
+    });
     $("#closeActivityRecordButton")?.addEventListener("click", closeActivityRecordModal);
     $("#activityRecordBackdrop")?.addEventListener("click", closeActivityRecordModal);
     $("#reloadActivityRecordButton")?.addEventListener("click", () => loadActivityRecord());
