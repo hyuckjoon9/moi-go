@@ -1,8 +1,8 @@
 # 출석 체크 시간 정책 & 자동 결석 처리 설계
 
-작성일: 2026-07-23 / 출석 체크·자동 결석 처리 구현 완료: 2026-07-24
+작성일: 2026-07-23 / 전체 구현 완료: 2026-07-24
 
-`docs/part4-attendance/qa-fixes.md`에서 나온 "출석 체크에 시간 제약이 없다", "회고 작성이 스케줄 시작 전에도 가능하다" 항목을 어떻게 풀지 논의하고 정리한 결과. 아래 정책 중 출석 체크(2·3·4번)는 구현이 끝났고, 회고 작성(1번)은 아직 남아 있다.
+`docs/part4-attendance/qa-fixes.md`에서 나온 "출석 체크에 시간 제약이 없다", "회고 작성이 스케줄 시작 전에도 가능하다" 항목을 어떻게 풀지 논의하고 정리한 결과. 아래 정책 1~4번 모두 구현 완료.
 
 ## 배경
 
@@ -12,7 +12,7 @@
 
 ## 결론 (정책)
 
-1. **회고 작성**: 스케줄 시작(`scheduledAt`) 이후로는 제한 없이 허용한다. `createRecord`/`updateRecord`에 `now >= scheduledAt` 검증만 추가하면 된다. — *미구현, 다음 작업.*
+1. **회고 작성**: 스케줄 시작(`scheduledAt`) 이후로는 제한 없이 허용한다. — ✅ 구현 완료 (`createRecord`에만 `now >= scheduledAt` 검증 추가, `updateRecord`는 출석 체크와 동일한 논리로 제외)
 2. **출석 체크**: 스케줄 시작 전에는 불가능하다. — ✅ 구현 완료
 3. **자동 결석 처리**: 시작 후 2시간이 지나도 체크되지 않은 그룹원은 시스템이 자동으로 상태를 채운다. — ✅ 구현 완료
    - 사전에 참여 응답(RSVP)에서 `ABSENT`(불참)로 응답한 사람 → 자동으로 `EXCUSED`(사유 결석)
@@ -21,6 +21,12 @@
 4. 자동 처리 이후에도 모집장은 `updateAttendance`로 언제든 정정할 수 있다 — 별도 시간 제한을 두지 않는다. (정상적으로 참석을 체크했다면 2시간 안에 끝났을 일이라 정정이 필요한 경우는 드물지만, 안전장치로 열어둔다.)
 
 ## 구현 방식
+
+### 회고(활동 기록) 시작 시각 검증
+
+- `ActivityService.createRecord`에서 `validateManager` 다음으로 `validateScheduleStarted(scheduleId)`를 호출한다. `now < schedule.getScheduledAt()`이면 `409`(`ErrorCode.ACTIVITY_RECORD_NOT_STARTED`)로 거부한다.
+- `updateRecord`(수정)에는 이 검증을 적용하지 않는다 — 출석 체크와 동일한 논리로, 기록이 존재한다는 것 자체가 이미 시작 시각이 지났음을 보장한다.
+- `ActivityService`에 `Clock clock` 필드를 새로 추가했다 (기존에는 시간 관련 로직이 없어 주입받지 않고 있었음). `AttendanceService`/`ScheduleService`가 쓰는 것과 같은 `scheduleClock` 빈을 그대로 사용한다.
 
 ### 출석 체크 시작 시각 검증
 
@@ -42,7 +48,3 @@
     - `sql/moigo_schema_seed.sql:239` — `checked_by BIGINT NOT NULL` → `NULL`
     - `AttendanceRecord.java:33` — `@Column(name = "checked_by", nullable = false)` → `@Column(name = "checked_by")`(nullable)
     - `AttendanceRecordResponse.checkedBy`는 이미 `Long`(래퍼 타입)이라 `null`이 들어와도 그대로 JSON에 `null`로 나가며 별도 수정은 필요 없다(확인 완료).
-
-## 남은 작업
-
-- 회고 작성(`ActivityService.createRecord`/`updateRecord`)에 `now >= scheduledAt` 검증 추가
