@@ -882,7 +882,8 @@
     renderCards("#groupAttendanceRateList", rates || [], "표시할 출석률이 없습니다.", renderAttendanceRate);
   }
   function canManageCurrentGroupAttendance() {
-    return ["LEADER", "MANAGER"].includes(String(currentGroupDetail?.myRole || "").toUpperCase());
+    const activeGroup = String(currentGroupDetail?.status || "").toUpperCase() === "ACTIVE";
+    return activeGroup && ["LEADER", "MANAGER"].includes(String(currentGroupDetail?.myRole || "").toUpperCase());
   }
   function setGroupManagerControlsVisibility() {
     const manager = canManageCurrentGroupAttendance();
