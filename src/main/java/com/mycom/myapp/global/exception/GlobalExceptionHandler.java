@@ -50,7 +50,6 @@ public class GlobalExceptionHandler {
         }
 
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(
-                        "요청 데이터가 현재 상태와 충돌합니다. 입력값이나 연관 데이터를 확인해주세요."));
+                .body(ApiResponse.error("요청 데이터가 현재 상태와 충돌합니다. 입력값이나 연관 데이터를 확인해주세요."));
     }
 }
