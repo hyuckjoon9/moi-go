@@ -1163,6 +1163,20 @@ body.modal-open {
   white-space: pre-wrap;
 }
 
+.action-placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.detail-action-message {
+  margin-top: -18px;
+  padding: 0 32px 30px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+}
+
 .detail-actions {
   display: flex;
   justify-content: flex-end;
@@ -1192,7 +1206,8 @@ body.modal-open {
   .board-detail-header,
   .board-meta-list,
   .board-body,
-  .detail-actions {
+  .detail-actions,
+  .detail-action-message {
     padding-left: 18px;
     padding-right: 18px;
   }
@@ -1887,4 +1902,62 @@ body.modal-open {
   background: #eff6ff;
   box-shadow: 0 12px 26px rgba(37, 99, 235, 0.12);
   transform: translateY(-1px);
+}
+/* compact confirm dialog */
+.confirm-panel.modal-panel.edit-panel {
+  width: min(420px, calc(100% - 40px));
+  max-height: none;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.confirm-panel .panel-heading,
+.confirm-panel .panel-heading.confirm-heading {
+  position: static;
+  display: block;
+  margin: 0;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.confirm-panel .panel-heading h2 {
+  margin: 4px 0 0;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.confirm-content {
+  display: grid;
+  gap: 8px;
+  padding: 22px 28px 0;
+}
+
+.confirm-content p {
+  margin: 0;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.confirm-content .confirm-warning {
+  color: #dc2626;
+}
+
+.confirm-actions.detail-actions {
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 28px 28px;
+}
+
+.button.danger {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.button.danger:hover {
+  border-color: #b91c1c;
+  background: #b91c1c;
 }

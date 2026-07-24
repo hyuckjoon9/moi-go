@@ -61,6 +61,40 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => element.classList.remove("visible"), 3200);
   }
+  function confirmAction({ title, message, warning, confirmText = "확인", cancelText = "취소" }) {
+    return new Promise((resolve) => {
+      const backdrop = document.createElement("div");
+      backdrop.className = "modal-backdrop confirm-backdrop";
+      const panel = document.createElement("article");
+      panel.className = "panel edit-panel modal-panel confirm-panel";
+      panel.setAttribute("role", "dialog");
+      panel.setAttribute("aria-modal", "true");
+      panel.innerHTML = `
+        <div class="panel-heading confirm-heading">
+          <div><p class="eyebrow">Confirm</p><h2>${escapeHtml(title)}</h2></div>
+        </div>
+        <div class="confirm-content">
+          <p>${escapeHtml(message)}</p>
+          ${warning ? `<p class="confirm-warning">${escapeHtml(warning)}</p>` : ""}
+        </div>
+        <div class="detail-actions confirm-actions">
+          <button class="button ghost" type="button" data-confirm-cancel>${escapeHtml(cancelText)}</button>
+          <button class="button danger" type="button" data-confirm-ok>${escapeHtml(confirmText)}</button>
+        </div>`;
+      const close = (value) => {
+        backdrop.remove();
+        panel.remove();
+        document.body.classList.remove("modal-open");
+        resolve(value);
+      };
+      document.body.append(backdrop, panel);
+      document.body.classList.add("modal-open");
+      backdrop.addEventListener("click", () => close(false));
+      panel.querySelector("[data-confirm-cancel]")?.addEventListener("click", () => close(false));
+      panel.querySelector("[data-confirm-ok]")?.addEventListener("click", () => close(true));
+      setTimeout(() => panel.querySelector("[data-confirm-cancel]")?.focus(), 0);
+    });
+  }
   async function run(action, successMessage) {
     try {
       const result = await action();
@@ -233,13 +267,15 @@
   function getPageContent(pageData) { return Array.isArray(pageData) ? pageData : (pageData?.content || []); }
   function statusLabel(status) {
     const value = String(status || "RECRUITING").toUpperCase();
-    if (["RECRUITING", "ACTIVE"].includes(value)) return "모집 중";
-    if (["CLOSED", "ENDED"].includes(value)) return "모집 종료";
+    if (value === "RECRUITING") return "모집 중";
+    if (value === "CLOSED") return "모집 종료";
+    if (value === "ACTIVE") return "활동 중";
+    if (value === "ENDED") return "활동 종료";
     return "상태 미정";
   }
   function statusGroup(status) {
     const value = String(status || "RECRUITING").toUpperCase();
-    return ["RECRUITING", "ACTIVE"].includes(value) ? "OPEN" : "CLOSED";
+    return value === "RECRUITING" ? "OPEN" : "CLOSED";
   }
   function meetingTypeLabel(value) {
     const labels = { ONLINE: "온라인", OFFLINE: "오프라인", HYBRID: "온·오프라인 병행" };
@@ -481,6 +517,7 @@
     const owner = isOwnRecruitment(detail);
     const detailStatus = String(detail.status || "RECRUITING").toUpperCase();
     let actionButtons = "";
+    let actionMessage = "";
     if (owner) {
       const recruitmentStateButton = detailStatus === "CLOSED"
         ? `<button class="button ghost" type="button" data-recruitment-action="reopen">모집 재개</button>`
@@ -490,9 +527,12 @@
       const endButton = detailStatus === "ENDED" ? "" : `<button class="button ghost" type="button" data-recruitment-action="end">활동 종료</button>`;
       actionButtons = `<button class="button ghost" type="button" data-recruitment-action="edit">수정</button>${recruitmentStateButton}${endButton}<button class="button" type="button" data-recruitment-action="applications">신청자 관리</button>`;
     } else {
-      actionButtons = statusGroup(detail.status) === "OPEN"
-        ? `<button class="button" type="button" data-recruitment-action="apply">참가 신청</button>`
-        : `<span class="meta action-note">모집이 종료된 글입니다.</span>`;
+      if (statusGroup(detail.status) === "OPEN") {
+        actionButtons = `<button class="button" type="button" data-recruitment-action="apply">참가 신청</button>`;
+      } else {
+        actionButtons = `<span class="button action-placeholder" aria-hidden="true">참가 신청</span>`;
+        actionMessage = `<div class="detail-action-message">모집이 종료된 글입니다.</div>`;
+      }
     }
     view.innerHTML = `
       <header class="board-detail-header">
@@ -505,14 +545,24 @@
       <div class="board-body">
         ${detailTextSection("소개", detail.description)}${detailTextSection("목표", detail.goal)}${detailTextSection("진행 방식", detail.method)}${detailTextSection("참가 조건", detail.conditions)}
       </div>
-      <div class="detail-actions"><a class="button ghost" href="/recruitments.html">목록으로</a>${actionButtons}</div>`;
+      <div class="detail-actions"><a class="button ghost" href="/recruitments.html">목록으로</a>${actionButtons}</div>${actionMessage}`;
     view.querySelectorAll("[data-recruitment-action]").forEach((button) => {
       button.addEventListener("click", async () => {
         const action = button.dataset.recruitmentAction;
         if (action === "edit") openRecruitmentEditModal(detail);
         if (action === "close") { const updated = await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/close`, { method: "PATCH" }), "모집을 종료했습니다."); await loadRecruitmentDetail(updated?.id || detail.id); }
         if (action === "reopen") { const updated = await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/reopen`, { method: "PATCH", body: window.moiApi.toJsonBody(recruitmentPayloadFromDetail(detail)) }), "모집을 다시 시작했습니다."); await loadRecruitmentDetail(updated?.id || detail.id); }
-        if (action === "end") { await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/end`, { method: "PATCH" }), "활동을 종료했습니다."); await loadRecruitmentDetail(detail.id); }
+        if (action === "end") {
+          const confirmed = await confirmAction({
+            title: "활동 종료",
+            message: "활동을 종료하시겠습니까?",
+            warning: "모집 재개와 참가 신청이 제한됩니다.",
+            confirmText: "활동 종료",
+          });
+          if (!confirmed) return;
+          await run(() => window.moiApi.request(`/api/recruitment-posts/${detail.id}/end`, { method: "PATCH" }), "활동을 종료했습니다.");
+          await loadRecruitmentDetail(detail.id);
+        }
         if (action === "applications") await loadRecruitmentApplications(detail.id);
         if (action === "apply") openJoinApplicationModal(detail.id);
       });
