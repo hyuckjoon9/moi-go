@@ -92,3 +92,17 @@
 - `reason`은 앞뒤 공백을 제거한 5~500자다.
 - 이미 요청한 노출 상태면 현재 상세를 반환하고 이력을 추가하지 않는다.
 - 실제 변경은 모집글 소유 도메인의 관리 포트 호출과 운영 이력 저장을 같은 트랜잭션에서 처리한다.
+
+## 읽기 전용 운영 조회
+
+모든 목록은 `page`, `size`(기본 20, 최대 100)를 받고, 0-기반 페이지 메타데이터를 반환한다.
+
+| 경로 | 조회 범위 | 필터 |
+| --- | --- | --- |
+| `GET /api/admin/groups` | 그룹, 연결 모집글 ID, 활성 인원 수 | `keyword`(그룹명), `status`(`ACTIVE`, `ENDED`) |
+| `GET /api/admin/schedules` | 일정, 그룹명, 등록자, 응답 마감 | `keyword`(그룹명·일정 제목) |
+| `GET /api/admin/attendance-records` | 출석 기록, 일정·그룹·회원, 체크 관리자 | `keyword`(그룹·일정·회원), `status` |
+| `GET /api/admin/activity-records` | 활동 기록, 일정·그룹, 작성자, 갱신 시각 | `keyword`(그룹·일정·활동 주제) |
+| `GET /api/admin/audit-logs` | 불변 운영 이력 | `action`, `targetType`, `keyword`(대상·사유) |
+
+이 API들은 조회 전용이다. 그룹·일정·출석·활동 또는 이력 데이터를 변경·삭제하는 관리자 API는 제공하지 않는다.

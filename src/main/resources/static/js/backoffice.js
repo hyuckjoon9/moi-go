@@ -11,6 +11,8 @@
     dashboardData: null,
     membersData: { page: 0, size: 10, filters: {}, items: [], totalElements: 0, totalPages: 0 },
     recruitmentsData: { page: 0, size: 10, filters: {}, items: [], totalElements: 0, totalPages: 0 },
+    operationsFilters: {},
+    auditFilters: {},
     selectedMemberId: null,
     notifications: [],
     theme: "dark"
@@ -70,7 +72,7 @@
      SPA Navigation Router
      ========================================================================== */
   function switchView(viewName) {
-    if (!["dashboard", "members", "recruitments", "audit", "settings"].includes(viewName)) {
+    if (!["dashboard", "members", "recruitments", "operations", "audit", "settings"].includes(viewName)) {
       viewName = "dashboard";
     }
     appState.currentView = viewName;
@@ -87,6 +89,8 @@
     // Load View Data
     if (viewName === "members") loadMembers();
     if (viewName === "recruitments") loadRecruitments();
+    if (viewName === "operations") loadOperations();
+    if (viewName === "audit") loadAuditLogs();
   }
 
   function initRouter() {
@@ -714,6 +718,52 @@
     });
   }
 
+  function adminQuery(filters) {
+    const params = new URLSearchParams({ page: "0", size: "20" });
+    Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+    return params.toString();
+  }
+
+  function renderOperationRows(selector, items, template) {
+    const tbody = $(selector);
+    if (!tbody) return;
+    tbody.replaceChildren();
+    if (!items.length) { renderEmptyTableRow(tbody, 3, "◌", "표시할 데이터가 없습니다.", "검색 조건을 조정해 다시 확인하세요."); return; }
+    items.forEach((item) => { const row = document.createElement("tr"); row.innerHTML = template(item); tbody.appendChild(row); });
+  }
+
+  async function loadOperations() {
+    const filters = appState.operationsFilters;
+    try {
+      const [groups, schedules, attendance, activities] = await Promise.all([
+        window.moiApi.request(`/api/admin/groups?${adminQuery({ keyword: filters.keyword, status: filters.groupStatus })}`),
+        window.moiApi.request(`/api/admin/schedules?${adminQuery(filters)}`),
+        window.moiApi.request(`/api/admin/attendance-records?${adminQuery({ keyword: filters.keyword, status: filters.attendanceStatus })}`),
+        window.moiApi.request(`/api/admin/activity-records?${adminQuery(filters)}`)
+      ]);
+      renderOperationRows("#boGroupListTable", groups.items, (g) => `<td><strong>${g.name}</strong><br><small>#${g.groupId}</small></td><td>${g.status}</td><td>${g.activeMemberCount}명</td>`);
+      renderOperationRows("#boScheduleListTable", schedules.items, (s) => `<td>${s.groupName}</td><td><strong>${s.title}</strong></td><td>${formatDate(s.scheduledAt)}</td>`);
+      renderOperationRows("#boAttendanceListTable", attendance.items, (a) => `<td>${a.scheduleTitle}</td><td>${a.memberNickname}</td><td>${a.status}</td>`);
+      renderOperationRows("#boActivityListTable", activities.items, (a) => `<td>${a.scheduleTitle}</td><td><strong>${a.topic}</strong></td><td>${formatDate(a.updatedAt)}</td>`);
+    } catch (error) { showToast("운영 조회 데이터를 불러오지 못했습니다.", "error"); }
+  }
+
+  async function loadAuditLogs() {
+    try {
+      const data = await window.moiApi.request(`/api/admin/audit-logs?${adminQuery(appState.auditFilters)}`);
+      const tbody = $("#boAuditTableBody");
+      if (!tbody) return;
+      tbody.replaceChildren();
+      if (!data.items.length) { renderEmptyTableRow(tbody, 5, "◌", "표시할 운영 이력이 없습니다.", "필터를 조정하거나 새 조치 후 다시 확인하세요."); return; }
+      data.items.forEach((item) => { const row = document.createElement("tr"); row.innerHTML = `<td>${formatDate(item.createdAt)}</td><td><code>#${item.adminId}</code></td><td><strong>${item.targetLabel}</strong><small> (${item.targetType} #${item.targetId})</small></td><td>${formatAuditAction(item.action)}</td><td>${item.reason}</td>`; tbody.appendChild(row); });
+    } catch (error) { showToast("운영 이력을 불러오지 못했습니다.", "error"); }
+  }
+
+  function initOperationsEvents() {
+    $("#boOperationsFilterForm")?.addEventListener("submit", (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); appState.operationsFilters = { keyword: String(form.get("keyword") || "").trim(), groupStatus: String(form.get("groupStatus") || ""), attendanceStatus: String(form.get("attendanceStatus") || "") }; loadOperations(); });
+    $("#boAuditFilterForm")?.addEventListener("submit", (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); appState.auditFilters = { keyword: String(form.get("keyword") || "").trim(), action: String(form.get("action") || ""), targetType: String(form.get("targetType") || "") }; loadAuditLogs(); });
+  }
+
   /* ==========================================================================
      Command Palette (Cmd + K)
      ========================================================================== */
@@ -726,6 +776,7 @@
       { label: "▦ 대시보드 개요 이동", action: () => switchView("dashboard") },
       { label: "♙ 회원 디렉토리 관리 이동", action: () => switchView("members") },
       { label: "◫ 모집 & 스터디 현황 보기", action: () => switchView("recruitments") },
+      { label: "▤ 그룹 운영 조회", action: () => switchView("operations") },
       { label: "🛡 보안 감사 로그 스트림", action: () => switchView("audit") },
       { label: "⚙ 시스템 설정 및 테마", action: () => switchView("settings") },
       { label: "🌓 테마 토글 (Dark / Light)", action: () => applyTheme(appState.theme === "dark" ? "light" : "dark") }
@@ -805,6 +856,7 @@
     initRouter();
     initMemberEvents();
     initRecruitmentEvents();
+    initOperationsEvents();
     initCommandPalette();
     initNotifications();
 

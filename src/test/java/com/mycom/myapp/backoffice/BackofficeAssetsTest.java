@@ -25,7 +25,10 @@ class BackofficeAssetsTest {
         String commonStyle = Files.readString(COMMON_STYLE);
 
         assertThat(html).doesNotContain("<img class=\"brand-logo\"");
-        assertThat(html).contains("/css/backoffice.css?v=20260724-layout");
+        assertThat(html)
+                .contains("/css/backoffice.css?v=20260724-operations")
+                .contains("id=\"view-operations\"")
+                .contains("id=\"boAuditFilterForm\"");
         assertThat(html)
                 .contains(
                         "<h3 class=\"bo-panel-title\"><span class=\"bo-panel-icon\">○</span> 회원 상태 구성 비율</h3>")
@@ -36,6 +39,11 @@ class BackofficeAssetsTest {
         assertThat(script)
                 .contains(
                         "${formatAuditAction(a.action)} · ${formatDate(a.createdAt)} · ${a.reason}");
+        assertThat(script)
+                .contains("/api/admin/groups")
+                .contains("/api/admin/attendance-records")
+                .contains("/api/admin/activity-records")
+                .contains("/api/admin/audit-logs");
         assertThat(style)
                 .contains("--bo-layout-space: clamp(1rem, 2vw, 2.5rem);")
                 .contains("--bo-content-space: clamp(1.25rem, 2.5vw, 2.5rem);")

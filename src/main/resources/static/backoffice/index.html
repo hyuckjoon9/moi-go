@@ -6,7 +6,7 @@
     <title>Moi-Go Back Office · Modern Indigo Glassmorphism Console</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/style.css?v=20260724-layout" />
-    <link rel="stylesheet" href="/css/backoffice.css?v=20260724-layout" />
+    <link rel="stylesheet" href="/css/backoffice.css?v=20260724-operations" />
   </head>
   <body class="backoffice-app" data-page="backoffice">
     <div class="bo-console-layout">
@@ -32,6 +32,10 @@
           <a class="bo-nav-item" data-view="recruitments">
             <span class="bo-nav-icon">◫</span>
             <span>모집 & 스터디</span>
+          </a>
+          <a class="bo-nav-item" data-view="operations">
+            <span class="bo-nav-icon">▤</span>
+            <span>그룹 운영 조회</span>
           </a>
 
           <div class="bo-nav-section-title">Audit & System</div>
@@ -345,6 +349,19 @@
             </article>
           </section>
 
+          <section id="view-operations" class="bo-view">
+            <div class="bo-command-bar"><div><p style="font-size: .75rem; font-weight: 700; color: var(--bo-accent-cyan); text-transform: uppercase; margin: 0;">Read-only operations</p><h1>그룹 · 일정 · 출석 · 활동 조회</h1><p>운영 데이터는 조회만 가능하며, 여기서 상태를 변경할 수 없습니다.</p></div></div>
+            <article class="bo-glass-panel bo-panel">
+              <form id="boOperationsFilterForm" class="bo-filter-bar"><input name="keyword" class="bo-input form-control" type="search" placeholder="그룹, 일정, 회원 또는 활동 주제 검색" style="flex:1; min-width:200px"><select name="groupStatus" class="bo-select form-select"><option value="">전체 그룹 상태</option><option value="ACTIVE">진행</option><option value="ENDED">종료</option></select><select name="attendanceStatus" class="bo-select form-select"><option value="">전체 출석</option><option value="PRESENT">출석</option><option value="LATE">지각</option><option value="ABSENT">결석</option><option value="EXCUSED">인정 결석</option></select><button class="bo-btn btn btn-primary">검색 적용</button></form>
+              <div class="bo-grid-two">
+                <div class="bo-table-container"><h3 class="bo-panel-title">그룹</h3><table class="bo-table table"><thead><tr><th>그룹</th><th>상태</th><th>활성 인원</th></tr></thead><tbody id="boGroupListTable"></tbody></table></div>
+                <div class="bo-table-container"><h3 class="bo-panel-title">일정</h3><table class="bo-table table"><thead><tr><th>그룹</th><th>일정</th><th>일시</th></tr></thead><tbody id="boScheduleListTable"></tbody></table></div>
+                <div class="bo-table-container"><h3 class="bo-panel-title">출석 기록</h3><table class="bo-table table"><thead><tr><th>일정</th><th>회원</th><th>상태</th></tr></thead><tbody id="boAttendanceListTable"></tbody></table></div>
+                <div class="bo-table-container"><h3 class="bo-panel-title">활동 기록</h3><table class="bo-table table"><thead><tr><th>일정</th><th>주제</th><th>갱신</th></tr></thead><tbody id="boActivityListTable"></tbody></table></div>
+              </div>
+            </article>
+          </section>
+
           <!-- 4) 보안 감사 로그 View -->
           <section id="view-audit" class="bo-view">
             <div class="bo-command-bar">
@@ -356,6 +373,7 @@
             </div>
 
             <article class="bo-glass-panel bo-panel">
+              <form id="boAuditFilterForm" class="bo-filter-bar" role="search"><input name="keyword" class="bo-input form-control" type="search" placeholder="대상 또는 사유 검색" style="flex:1; min-width:180px"><select name="action" class="bo-select form-select"><option value="">전체 조치</option><option value="MEMBER_STATUS_CHANGED">회원 상태 변경</option><option value="RECRUITMENT_HIDDEN">모집글 숨김</option><option value="RECRUITMENT_RESTORED">모집글 복구</option></select><select name="targetType" class="bo-select form-select"><option value="">전체 대상</option><option value="MEMBER">회원</option><option value="RECRUITMENT">모집글</option></select><button class="bo-btn btn btn-primary" type="submit">검색 적용</button></form>
               <div class="bo-table-container">
                 <table class="bo-table table table-hover align-middle mb-0">
                   <thead>
@@ -480,6 +498,6 @@
 
     <script src="/js/api.js?v=20260723"></script>
     <script src="/js/auth.js?v=20260723"></script>
-    <script src="/js/backoffice.js?v=20260723-glassmorphism"></script>
+    <script src="/js/backoffice.js?v=20260724-operations"></script>
   </body>
 </html>
