@@ -21,9 +21,12 @@ import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupRole;
 import com.mycom.myapp.study.entity.StudyGroup;
 import com.mycom.myapp.study.repository.GroupMemberRepository;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,12 +37,21 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 class ActivityServiceTest {
 
+    private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 7, 24, 12, 0);
+
     @Mock private ActivityRecordRepository activityRecordRepository;
     @Mock private ActivityReviewRepository activityReviewRepository;
     @Mock private StudyScheduleRepository studyScheduleRepository;
     @Mock private GroupMemberRepository groupMemberRepository;
 
     @InjectMocks private ActivityService activityService;
+
+    @BeforeEach
+    void fixClock() {
+        ReflectionTestUtils.setField(
+                activityService, "clock", Clock.fixed(NOW.atZone(ZONE).toInstant(), ZONE));
+    }
 
     @Test
     void createRecordSavesNewRecord() {
@@ -83,6 +95,40 @@ class ActivityServiceTest {
                         exception ->
                                 assertThat(exception.getErrorCode())
                                         .isEqualTo(ErrorCode.DUPLICATE_ACTIVITY_RECORD));
+    }
+
+    @Test
+    void createRecordThrowsWhenScheduleNotStarted() {
+        stubManager(10L, 1L, GroupRole.LEADER, NOW.plusHours(1));
+
+        assertThatThrownBy(
+                        () ->
+                                activityService.createRecord(
+                                        10L,
+                                        1L,
+                                        new ActivityRecordCreateRequest(
+                                                "토픽", "내용", null, null, null)))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ACTIVITY_RECORD_NOT_STARTED));
+    }
+
+    @Test
+    void createRecordAllowsExactlyAtScheduledStart() {
+        stubManager(10L, 1L, GroupRole.LEADER, NOW);
+        given(activityRecordRepository.findByScheduleId(10L)).willReturn(Optional.empty());
+        given(activityRecordRepository.save(any(ActivityRecord.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        ActivityRecord result =
+                activityService.createRecord(
+                        10L,
+                        1L,
+                        new ActivityRecordCreateRequest("토픽", "내용", "과제", "다음 준비물", "참고 링크"));
+
+        assertThat(result.getScheduleId()).isEqualTo(10L);
     }
 
     @Test
@@ -185,6 +231,27 @@ class ActivityServiceTest {
 
         assertThat(result.getTopic()).isEqualTo("수정된 토픽");
         assertThat(result.getContent()).isEqualTo("수정된 내용");
+    }
+
+    @Test
+    void updateRecordAllowsCorrectionRegardlessOfScheduledTime() {
+        stubManager(10L, 2L, GroupRole.MANAGER, NOW.plusDays(1));
+        ActivityRecord existing =
+                ActivityRecord.builder()
+                        .scheduleId(10L)
+                        .authorId(1L)
+                        .topic("토픽")
+                        .content("내용")
+                        .build();
+        given(activityRecordRepository.findByScheduleId(10L)).willReturn(Optional.of(existing));
+
+        ActivityRecord result =
+                activityService.updateRecord(
+                        10L,
+                        2L,
+                        new ActivityRecordCreateRequest("수정된 토픽", "수정된 내용", null, null, null));
+
+        assertThat(result.getTopic()).isEqualTo("수정된 토픽");
     }
 
     @Test
@@ -549,9 +616,14 @@ class ActivityServiceTest {
     }
 
     private void stubManager(Long scheduleId, Long userId, GroupRole role) {
+        stubManager(scheduleId, userId, role, NOW.minusHours(3));
+    }
+
+    private void stubManager(
+            Long scheduleId, Long userId, GroupRole role, LocalDateTime scheduledAt) {
         StudyGroup group = group();
         given(studyScheduleRepository.findById(scheduleId))
-                .willReturn(Optional.of(schedule(group, scheduleId)));
+                .willReturn(Optional.of(schedule(group, scheduleId, scheduledAt)));
         given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, userId))
                 .willReturn(Optional.of(GroupMember.join(group, userId, role)));
     }
@@ -574,17 +646,12 @@ class ActivityServiceTest {
     }
 
     private StudySchedule schedule(StudyGroup group, Long scheduleId) {
+        return schedule(group, scheduleId, NOW.minusHours(3));
+    }
+
+    private StudySchedule schedule(StudyGroup group, Long scheduleId, LocalDateTime scheduledAt) {
         StudySchedule schedule =
-                StudySchedule.create(
-                        group,
-                        1L,
-                        "일정",
-                        LocalDateTime.of(2026, 7, 25, 19, 0),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null);
+                StudySchedule.create(group, 1L, "일정", scheduledAt, null, null, null, null, null);
         ReflectionTestUtils.setField(schedule, "id", scheduleId);
         return schedule;
     }

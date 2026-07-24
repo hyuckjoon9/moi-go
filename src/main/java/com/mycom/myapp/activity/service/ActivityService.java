@@ -16,6 +16,8 @@ import com.mycom.myapp.study.entity.GroupMember;
 import com.mycom.myapp.study.entity.GroupMemberStatus;
 import com.mycom.myapp.study.entity.GroupRole;
 import com.mycom.myapp.study.repository.GroupMemberRepository;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,12 +36,14 @@ public class ActivityService {
     private final ActivityReviewRepository activityReviewRepository;
     private final StudyScheduleRepository studyScheduleRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final Clock clock;
 
-    /** 일정 그룹의 LEADER/MANAGER가 활동 기록을 처음 작성한다. 이미 기록이 있으면 거부한다. */
+    /** 일정 그룹의 LEADER/MANAGER가 활동 기록을 처음 작성한다. 일정 시작 전이거나 이미 기록이 있으면 거부한다. */
     @Transactional
     public ActivityRecord createRecord(
             Long scheduleId, Long authorId, ActivityRecordCreateRequest request) {
         validateManager(scheduleId, authorId);
+        validateScheduleStarted(scheduleId);
         if (activityRecordRepository.findByScheduleId(scheduleId).isPresent()) {
             throw new BusinessException(ErrorCode.DUPLICATE_ACTIVITY_RECORD);
         }
@@ -162,6 +166,20 @@ public class ActivityService {
         GroupMember member = validateActiveMember(scheduleId, requesterId);
         if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
             throw new BusinessException(ErrorCode.ACTIVITY_RECORD_ACCESS_DENIED);
+        }
+    }
+
+    /**
+     * 일정 시작 전에는 활동 기록을 새로 생성할 수 없다. 이미 존재하는 기록의 수정(updateRecord)에는 적용하지 않는다 — 기록이 존재한다는 것 자체가 이미 시작
+     * 시각이 지났음을 보장한다.
+     */
+    private void validateScheduleStarted(Long scheduleId) {
+        StudySchedule schedule =
+                studyScheduleRepository
+                        .findById(scheduleId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        if (LocalDateTime.now(clock).isBefore(schedule.getScheduledAt())) {
+            throw new BusinessException(ErrorCode.ACTIVITY_RECORD_NOT_STARTED);
         }
     }
 
