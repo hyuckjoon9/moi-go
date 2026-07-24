@@ -32,7 +32,7 @@ public final class AdminOperationsResponse {
             long memberId,
             String memberNickname,
             String status,
-            long checkedBy,
+            Long checkedBy,
             LocalDateTime checkedAt) {}
 
     public record ActivityItem(

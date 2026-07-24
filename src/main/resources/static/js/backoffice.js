@@ -692,7 +692,10 @@
       const item = await window.moiApi.request(`/api/admin/recruitments/${recruitmentId}`);
       const panel = $("#boRecruitmentDetailPanel"); const body = $("#boRecruitmentDetailBody");
       if (!panel || !body) return;
-      body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"><div><p><strong>${item.title}</strong></p><p>모집장 ID: ${item.leaderId}</p><p>모집 상태: ${item.status}</p><p>노출 상태: ${visibilityChip(item.visibility)}</p><p>${item.description || "상세 내용 없음"}</p></div><form id="boRecruitmentVisibilityForm"><input type="hidden" name="recruitmentId" value="${item.recruitmentId}"><input type="hidden" name="expectedVisibility" value="${item.visibility}"><label class="form-label">조치 사유<textarea name="reason" class="bo-input form-control" minlength="5" maxlength="500" required></textarea></label><button class="bo-btn ${item.visibility === "VISIBLE" ? "danger" : ""}" type="submit">${item.visibility === "VISIBLE" ? "모집글 숨김" : "모집글 복구"}</button></form></div>`;
+      const recentActions = item.recentActions?.length
+        ? item.recentActions.map((action) => `${formatAuditAction(action.action)} · ${formatDate(action.createdAt)} · ${action.reason}`).join("<br>")
+        : "조치 이력 없음";
+      body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"><div><p><strong>${item.title}</strong></p><p>모집장 ID: ${item.leaderId}</p><p>모집 상태: ${item.status}</p><p>노출 상태: ${visibilityChip(item.visibility)}</p><p>${item.description || "상세 내용 없음"}</p><div style="margin-top:1rem;"><span style="font-size:.8rem;color:var(--bo-text-muted);">최근 운영 조치 이력</span><div style="font-size:.85rem;color:var(--bo-text-secondary);margin-top:.35rem;">${recentActions}</div></div></div><form id="boRecruitmentVisibilityForm"><input type="hidden" name="recruitmentId" value="${item.recruitmentId}"><input type="hidden" name="expectedVisibility" value="${item.visibility}"><label class="form-label">조치 사유<textarea name="reason" class="bo-input form-control" minlength="5" maxlength="500" required></textarea></label><button class="bo-btn ${item.visibility === "VISIBLE" ? "danger" : ""}" type="submit">${item.visibility === "VISIBLE" ? "모집글 숨김" : "모집글 복구"}</button></form></div>`;
       panel.hidden = false;
       if (focusReason) body.querySelector("textarea")?.focus();
       panel.scrollIntoView({ behavior: "smooth" });
@@ -734,18 +737,28 @@
 
   async function loadOperations() {
     const filters = appState.operationsFilters;
-    try {
-      const [groups, schedules, attendance, activities] = await Promise.all([
+    const results = await Promise.allSettled([
         window.moiApi.request(`/api/admin/groups?${adminQuery({ keyword: filters.keyword, status: filters.groupStatus })}`),
         window.moiApi.request(`/api/admin/schedules?${adminQuery(filters)}`),
         window.moiApi.request(`/api/admin/attendance-records?${adminQuery({ keyword: filters.keyword, status: filters.attendanceStatus })}`),
         window.moiApi.request(`/api/admin/activity-records?${adminQuery(filters)}`)
-      ]);
-      renderOperationRows("#boGroupListTable", groups.items, (g) => `<td><strong>${g.name}</strong><br><small>#${g.groupId}</small></td><td>${g.status}</td><td>${g.activeMemberCount}명</td>`);
-      renderOperationRows("#boScheduleListTable", schedules.items, (s) => `<td>${s.groupName}</td><td><strong>${s.title}</strong></td><td>${formatDate(s.scheduledAt)}</td>`);
-      renderOperationRows("#boAttendanceListTable", attendance.items, (a) => `<td>${a.scheduleTitle}</td><td>${a.memberNickname}</td><td>${a.status}</td>`);
-      renderOperationRows("#boActivityListTable", activities.items, (a) => `<td>${a.scheduleTitle}</td><td><strong>${a.topic}</strong></td><td>${formatDate(a.updatedAt)}</td>`);
-    } catch (error) { showToast("운영 조회 데이터를 불러오지 못했습니다.", "error"); }
+    ]);
+    const views = [
+      ["그룹", "#boGroupListTable", (g) => `<td><strong>${g.name}</strong><br><small>#${g.groupId}</small></td><td>${g.status}</td><td>${g.activeMemberCount}명</td>`],
+      ["일정", "#boScheduleListTable", (s) => `<td>${s.groupName}</td><td><strong>${s.title}</strong></td><td>${formatDate(s.scheduledAt)}</td>`],
+      ["출석 기록", "#boAttendanceListTable", (a) => `<td>${a.scheduleTitle}</td><td>${a.memberNickname}</td><td>${a.status}</td>`],
+      ["활동 기록", "#boActivityListTable", (a) => `<td>${a.scheduleTitle}</td><td><strong>${a.topic}</strong></td><td>${formatDate(a.updatedAt)}</td>`]
+    ];
+    results.forEach((result, index) => {
+      const [label, selector, template] = views[index];
+      if (result.status === "fulfilled") {
+        renderOperationRows(selector, result.value.items, template);
+        return;
+      }
+      renderOperationRows(selector, [], template);
+      showToast(`${label} 운영 조회 API를 불러오지 못했습니다: ${result.reason.message || "알 수 없는 오류"}`, "error");
+      console.error(`${label} 운영 조회 API 실패`, result.reason);
+    });
   }
 
   async function loadAuditLogs() {

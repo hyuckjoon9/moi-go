@@ -59,14 +59,33 @@ class AdminOperationsQueryRepositoryTest {
                                 (select id from users where email = 'admin-operations@example.com'), '운영 조회 일정', now(), now(), now())
                         """)
                 .update();
+        jdbcClient
+                .sql(
+                        """
+                        insert into attendance_records (schedule_id, user_id, status, checked_by, checked_at)
+                        values ((select id from study_schedules where title = '운영 조회 일정'),
+                                (select id from users where email = 'member-operations@example.com'), 'ABSENT', null, now())
+                        """)
+                .update();
 
         Object groups = invoke("findGroups", "운영 조회", "ACTIVE", 0, 20);
         Object schedules = invoke("findSchedules", "운영 조회", 0, 20);
+        Object attendance = invoke("findAttendanceRecords", "운영 조회", "ABSENT", 0, 20);
 
         assertThat(items(groups)).hasSize(1);
         assertThat(read(items(groups).getFirst(), "name")).isEqualTo("운영 조회 그룹");
         assertThat(items(schedules)).hasSize(1);
         assertThat(read(items(schedules).getFirst(), "title")).isEqualTo("운영 조회 일정");
+        assertThat(items(attendance))
+                .singleElement()
+                .satisfies(
+                        item -> {
+                            try {
+                                assertThat(read(item, "checkedBy")).isNull();
+                            } catch (Exception exception) {
+                                throw new AssertionError(exception);
+                            }
+                        });
     }
 
     @Test

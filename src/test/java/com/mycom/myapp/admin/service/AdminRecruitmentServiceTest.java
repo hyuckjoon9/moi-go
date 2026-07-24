@@ -85,6 +85,7 @@ class AdminRecruitmentServiceTest {
                 visibility,
                 20L,
                 LocalDateTime.of(2026, 7, 23, 10, 0),
-                LocalDateTime.of(2026, 7, 23, 10, 0));
+                LocalDateTime.of(2026, 7, 23, 10, 0),
+                java.util.List.of());
     }
 }

@@ -76,7 +76,8 @@
 
 ### `GET /api/admin/recruitments/{recruitmentId}`
 
-모집글 본문·모집 조건·모집장 ID·모집 상태·노출 상태·연결 그룹 ID와 생성·수정 시각을 반환한다.
+모집글 본문·모집 조건·모집장 ID·모집 상태·노출 상태·연결 그룹 ID와 생성·수정 시각, 최근 운영 조치
+최대 10건을 반환한다. 최근 조치는 `action`, `reason`, `createdAt`을 포함한다.
 
 ### `PATCH /api/admin/recruitments/{recruitmentId}/visibility`
 
@@ -106,3 +107,5 @@
 | `GET /api/admin/audit-logs` | 불변 운영 이력 | `action`, `targetType`, `keyword`(대상·사유) |
 
 이 API들은 조회 전용이다. 그룹·일정·출석·활동 또는 이력 데이터를 변경·삭제하는 관리자 API는 제공하지 않는다.
+
+출석 기록의 `checkedBy`는 사람이 처리한 경우 관리자 ID이며, 자동 결석 처리 기록은 `null`이다.

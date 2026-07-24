@@ -117,7 +117,7 @@ public class AdminOperationsQueryRepository {
                                                 row.getLong("user_id"),
                                                 row.getString("nickname"),
                                                 row.getString("status"),
-                                                row.getLong("checked_by"),
+                                                row.getObject("checked_by", Long.class),
                                                 time(row.getTimestamp("checked_at"))))
                         .list();
         return AdminPageResponse.of(items, page, size, total);

@@ -2,6 +2,8 @@ package com.mycom.myapp.admin.repository;
 
 import com.mycom.myapp.admin.dto.response.AdminRecruitmentDetailResponse;
 import com.mycom.myapp.admin.dto.response.AdminRecruitmentListResponse;
+import com.mycom.myapp.admin.entity.AdminAction;
+import com.mycom.myapp.admin.entity.AdminTargetType;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
 import com.mycom.myapp.recruitment.entity.RecruitmentVisibility;
 import java.util.List;
@@ -77,9 +79,10 @@ public class AdminRecruitmentQueryRepository {
     }
 
     public AdminRecruitmentDetailResponse findRecruitment(Long recruitmentId) {
-        return jdbcClient
-                .sql(
-                        """
+        AdminRecruitmentDetailResponse detail =
+                jdbcClient
+                        .sql(
+                                """
                         select r.id, r.leader_id, r.title, r.category, r.description, r.goal, r.method,
                                r.meeting_type, r.location, r.online_link, r.meeting_day, r.capacity,
                                r.recruitment_deadline, r.expected_duration, r.conditions, r.status,
@@ -88,33 +91,80 @@ public class AdminRecruitmentQueryRepository {
                         left join study_groups g on g.post_id = r.id
                         where r.id = :recruitmentId
                         """)
-                .param("recruitmentId", recruitmentId)
-                .query(
-                        (row, rowNum) ->
-                                new AdminRecruitmentDetailResponse(
-                                        row.getLong("id"),
-                                        row.getLong("leader_id"),
-                                        row.getString("title"),
-                                        row.getString("category"),
-                                        row.getString("description"),
-                                        row.getString("goal"),
-                                        row.getString("method"),
-                                        row.getString("meeting_type"),
-                                        row.getString("location"),
-                                        row.getString("online_link"),
-                                        row.getString("meeting_day"),
-                                        row.getInt("capacity"),
-                                        row.getObject(
-                                                "recruitment_deadline", java.time.LocalDate.class),
-                                        row.getString("expected_duration"),
-                                        row.getString("conditions"),
-                                        RecruitmentStatus.valueOf(row.getString("status")),
-                                        RecruitmentVisibility.valueOf(row.getString("visibility")),
-                                        row.getObject("group_id", Long.class),
-                                        row.getTimestamp("created_at").toLocalDateTime(),
-                                        row.getTimestamp("updated_at").toLocalDateTime()))
-                .optional()
-                .orElse(null);
+                        .param("recruitmentId", recruitmentId)
+                        .query(
+                                (row, rowNum) ->
+                                        new AdminRecruitmentDetailResponse(
+                                                row.getLong("id"),
+                                                row.getLong("leader_id"),
+                                                row.getString("title"),
+                                                row.getString("category"),
+                                                row.getString("description"),
+                                                row.getString("goal"),
+                                                row.getString("method"),
+                                                row.getString("meeting_type"),
+                                                row.getString("location"),
+                                                row.getString("online_link"),
+                                                row.getString("meeting_day"),
+                                                row.getInt("capacity"),
+                                                row.getObject(
+                                                        "recruitment_deadline",
+                                                        java.time.LocalDate.class),
+                                                row.getString("expected_duration"),
+                                                row.getString("conditions"),
+                                                RecruitmentStatus.valueOf(row.getString("status")),
+                                                RecruitmentVisibility.valueOf(
+                                                        row.getString("visibility")),
+                                                row.getObject("group_id", Long.class),
+                                                row.getTimestamp("created_at").toLocalDateTime(),
+                                                row.getTimestamp("updated_at").toLocalDateTime(),
+                                                List.of()))
+                        .optional()
+                        .orElse(null);
+        if (detail == null) {
+            return null;
+        }
+        List<AdminRecruitmentDetailResponse.RecentAction> recentActions =
+                jdbcClient
+                        .sql(
+                                """
+                                select action, reason, created_at
+                                from admin_audit_logs
+                                where target_type = :targetType and target_id = :recruitmentId
+                                order by created_at desc, id desc
+                                limit 10
+                                """)
+                        .param("targetType", AdminTargetType.RECRUITMENT.name())
+                        .param("recruitmentId", recruitmentId)
+                        .query(
+                                (row, rowNum) ->
+                                        new AdminRecruitmentDetailResponse.RecentAction(
+                                                AdminAction.valueOf(row.getString("action")),
+                                                row.getString("reason"),
+                                                row.getTimestamp("created_at").toLocalDateTime()))
+                        .list();
+        return new AdminRecruitmentDetailResponse(
+                detail.recruitmentId(),
+                detail.leaderId(),
+                detail.title(),
+                detail.category(),
+                detail.description(),
+                detail.goal(),
+                detail.method(),
+                detail.meetingType(),
+                detail.location(),
+                detail.onlineLink(),
+                detail.meetingDay(),
+                detail.capacity(),
+                detail.recruitmentDeadline(),
+                detail.expectedDuration(),
+                detail.conditions(),
+                detail.status(),
+                detail.visibility(),
+                detail.groupId(),
+                detail.createdAt(),
+                detail.updatedAt(),
+                recentActions);
     }
 
     private JdbcClient.StatementSpec bind(

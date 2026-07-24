@@ -26,9 +26,10 @@ class BackofficeAssetsTest {
 
         assertThat(html).doesNotContain("<img class=\"brand-logo\"");
         assertThat(html)
-                .contains("/css/backoffice.css?v=20260724-operations")
+                .contains("/css/backoffice.css?v=20260724-operations-fix")
                 .contains("id=\"view-operations\"")
-                .contains("id=\"boAuditFilterForm\"");
+                .contains("id=\"boAuditFilterForm\"")
+                .contains("class=\"bo-table-container bo-operation-table\"");
         assertThat(html)
                 .contains(
                         "<h3 class=\"bo-panel-title\"><span class=\"bo-panel-icon\">○</span> 회원 상태 구성 비율</h3>")
@@ -43,7 +44,8 @@ class BackofficeAssetsTest {
                 .contains("/api/admin/groups")
                 .contains("/api/admin/attendance-records")
                 .contains("/api/admin/activity-records")
-                .contains("/api/admin/audit-logs");
+                .contains("/api/admin/audit-logs")
+                .contains("운영 조회 API를 불러오지 못했습니다");
         assertThat(style)
                 .contains("--bo-layout-space: clamp(1rem, 2vw, 2.5rem);")
                 .contains("--bo-content-space: clamp(1.25rem, 2.5vw, 2.5rem);")
@@ -53,6 +55,7 @@ class BackofficeAssetsTest {
                 .contains("margin-left: calc(var(--bo-sidebar-width) + var(--bo-layout-space));")
                 .contains("padding: var(--bo-content-space);")
                 .contains("gap: var(--bo-content-space);");
+        assertThat(style).contains(".bo-operation-table");
         assertThat(commonStyle)
                 .contains(
                         "width: auto; margin-left: calc(var(--bo-sidebar-width) + var(--bo-layout-space));")

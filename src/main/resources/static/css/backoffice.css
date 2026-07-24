@@ -740,6 +740,18 @@ body.backoffice-app {
   border: 1px solid var(--bo-glass-border);
 }
 
+.bo-operation-table {
+  padding: 1rem;
+}
+
+.bo-operation-table .bo-panel-title {
+  margin-bottom: 0.75rem;
+}
+
+.bo-operation-table .bo-table {
+  margin-bottom: 0;
+}
+
 .bo-table {
   --bs-table-bg: var(--bo-table-bg);
   --bs-table-color: var(--bo-text-secondary);
