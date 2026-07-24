@@ -1,4 +1,3 @@
-
 <div align="center">
 
   # 스터디 모집부터 운영과 기록까지 한곳에서, Moi-Go 
