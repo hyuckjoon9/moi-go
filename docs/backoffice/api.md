@@ -59,3 +59,36 @@
 - `USER`만 변경할 수 있다. `ADMIN`, `WITHDRAWN`, 자기 자신의 상태 변경은 거부한다.
 - 이미 요청한 상태면 현재 상세를 반환하고 이력을 추가하지 않는다.
 - 실제 상태 변경은 refresh token 폐기와 운영 이력 저장을 같은 트랜잭션에서 처리한다.
+
+## 모집글
+
+### `GET /api/admin/recruitments`
+
+| Query | 설명 |
+| --- | --- |
+| `keyword` | 모집글 제목 또는 모집장 닉네임 부분 일치 |
+| `status` | `RECRUITING`, `CLOSED`, `ACTIVE`, `ENDED` |
+| `visibility` | `VISIBLE`, `HIDDEN` |
+| `page`, `size` | 페이지 번호와 크기 |
+
+응답 항목은 `recruitmentId`, `leaderId`, `leaderNickname`, `title`, `category`, `status`,
+`visibility`, `createdAt`을 포함한다. 기본 정렬은 모집글 ID 내림차순이다.
+
+### `GET /api/admin/recruitments/{recruitmentId}`
+
+모집글 본문·모집 조건·모집장 ID·모집 상태·노출 상태·연결 그룹 ID와 생성·수정 시각을 반환한다.
+
+### `PATCH /api/admin/recruitments/{recruitmentId}/visibility`
+
+```json
+{
+  "expectedVisibility": "VISIBLE",
+  "visibility": "HIDDEN",
+  "reason": "운영 정책 위반으로 숨김 처리"
+}
+```
+
+- `expectedVisibility`, `visibility`는 `VISIBLE` 또는 `HIDDEN`이다.
+- `reason`은 앞뒤 공백을 제거한 5~500자다.
+- 이미 요청한 노출 상태면 현재 상세를 반환하고 이력을 추가하지 않는다.
+- 실제 변경은 모집글 소유 도메인의 관리 포트 호출과 운영 이력 저장을 같은 트랜잭션에서 처리한다.

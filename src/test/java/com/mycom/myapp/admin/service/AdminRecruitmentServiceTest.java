@@ -45,6 +45,25 @@ class AdminRecruitmentServiceTest {
         verify(auditLogRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
+    @Test
+    void hidesRecruitmentAndRecordsAuditLog() {
+        AdminRecruitmentDetailResponse current = detail(RecruitmentVisibility.VISIBLE);
+        AdminRecruitmentDetailResponse changed = detail(RecruitmentVisibility.HIDDEN);
+        when(queryRepository.findRecruitment(10L)).thenReturn(current, changed);
+
+        AdminRecruitmentDetailResponse result =
+                service.changeVisibility(
+                        1L,
+                        10L,
+                        RecruitmentVisibility.VISIBLE,
+                        RecruitmentVisibility.HIDDEN,
+                        "운영 정책 위반으로 숨김 처리");
+
+        assertThat(result.visibility()).isEqualTo(RecruitmentVisibility.HIDDEN);
+        verify(recruitmentAdministrationPort).changeVisibility(10L, RecruitmentVisibility.HIDDEN);
+        verify(auditLogRepository).save(org.mockito.ArgumentMatchers.any());
+    }
+
     private AdminRecruitmentDetailResponse detail(RecruitmentVisibility visibility) {
         return new AdminRecruitmentDetailResponse(
                 10L,

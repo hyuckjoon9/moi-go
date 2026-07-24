@@ -309,6 +309,40 @@
                 </div>
               </article>
             </div>
+
+            <article class="bo-glass-panel bo-panel">
+              <div class="bo-panel-header">
+                <h3 class="bo-panel-title"><span>⌕</span> 모집글 검색 및 노출 관리</h3>
+              </div>
+              <form id="boRecruitmentFilterForm" class="bo-filter-bar" role="search">
+                <input name="keyword" class="bo-input form-control" type="search" placeholder="제목 또는 모집장 닉네임 검색..." style="flex: 1; min-width: 200px;" />
+                <select name="status" class="bo-select form-select">
+                  <option value="">전체 모집 상태</option>
+                  <option value="RECRUITING">모집 중</option>
+                  <option value="CLOSED">모집 마감</option>
+                  <option value="ACTIVE">진행 중</option>
+                  <option value="ENDED">종료</option>
+                </select>
+                <select name="visibility" class="bo-select form-select">
+                  <option value="">전체 노출 상태</option>
+                  <option value="VISIBLE">노출</option>
+                  <option value="HIDDEN">숨김</option>
+                </select>
+                <button class="bo-btn btn btn-primary" type="submit">검색 적용</button>
+              </form>
+              <div class="bo-table-container">
+                <table class="bo-table table table-hover align-middle mb-0">
+                  <thead><tr><th>ID</th><th>모집글</th><th>모집장</th><th>모집 상태</th><th>노출</th><th>생성 일시</th><th>조치</th></tr></thead>
+                  <tbody id="boRecruitmentListTable"><tr><td colspan="7" style="text-align: center; color: var(--bo-text-muted);">모집글 목록을 불러오는 중...</td></tr></tbody>
+                </table>
+              </div>
+              <div id="boRecruitmentPagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.5rem;"></div>
+            </article>
+
+            <article id="boRecruitmentDetailPanel" class="bo-glass-panel bo-panel" hidden>
+              <div class="bo-panel-header"><h3 class="bo-panel-title"><span>📝</span> 모집글 상세 및 노출 조치</h3></div>
+              <div id="boRecruitmentDetailBody"></div>
+            </article>
           </section>
 
           <!-- 4) 보안 감사 로그 View -->

@@ -1,6 +1,10 @@
 package com.mycom.myapp.admin.service;
 
 import com.mycom.myapp.admin.dto.response.AdminRecruitmentDetailResponse;
+import com.mycom.myapp.admin.dto.response.AdminRecruitmentListResponse;
+import com.mycom.myapp.admin.entity.AdminAction;
+import com.mycom.myapp.admin.entity.AdminAuditLog;
+import com.mycom.myapp.admin.entity.AdminTargetType;
 import com.mycom.myapp.admin.repository.AdminAuditLogRepository;
 import com.mycom.myapp.admin.repository.AdminRecruitmentQueryRepository;
 import com.mycom.myapp.global.exception.BusinessException;
@@ -27,6 +31,23 @@ public class AdminRecruitmentService {
         this.auditLogRepository = auditLogRepository;
     }
 
+    public AdminRecruitmentListResponse getRecruitments(
+            String keyword,
+            com.mycom.myapp.recruitment.entity.RecruitmentStatus status,
+            RecruitmentVisibility visibility,
+            int page,
+            int size) {
+        return queryRepository.findRecruitments(keyword, status, visibility, page, size);
+    }
+
+    public AdminRecruitmentDetailResponse getRecruitment(Long recruitmentId) {
+        AdminRecruitmentDetailResponse response = queryRepository.findRecruitment(recruitmentId);
+        if (response == null) {
+            throw new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND);
+        }
+        return response;
+    }
+
     @Transactional
     public AdminRecruitmentDetailResponse changeVisibility(
             Long adminId,
@@ -34,10 +55,7 @@ public class AdminRecruitmentService {
             RecruitmentVisibility expectedVisibility,
             RecruitmentVisibility visibility,
             String reason) {
-        AdminRecruitmentDetailResponse current = queryRepository.findRecruitment(recruitmentId);
-        if (current == null) {
-            throw new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND);
-        }
+        AdminRecruitmentDetailResponse current = getRecruitment(recruitmentId);
         if (current.visibility() == visibility) {
             return current;
         }
@@ -45,6 +63,22 @@ public class AdminRecruitmentService {
             throw new BusinessException(ErrorCode.ADMIN_OPERATION_CONFLICT);
         }
         recruitmentAdministrationPort.changeVisibility(recruitmentId, visibility);
-        return queryRepository.findRecruitment(recruitmentId);
+        auditLogRepository.save(
+                AdminAuditLog.create(
+                        adminId,
+                        visibility == RecruitmentVisibility.HIDDEN
+                                ? AdminAction.RECRUITMENT_HIDDEN
+                                : AdminAction.RECRUITMENT_RESTORED,
+                        AdminTargetType.RECRUITMENT,
+                        recruitmentId,
+                        current.title(),
+                        snapshot(current.visibility()),
+                        snapshot(visibility),
+                        reason));
+        return getRecruitment(recruitmentId);
+    }
+
+    private String snapshot(RecruitmentVisibility visibility) {
+        return "{\"visibility\":\"" + visibility.name() + "\"}";
     }
 }

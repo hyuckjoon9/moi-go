@@ -10,6 +10,7 @@
     adminMember: null,
     dashboardData: null,
     membersData: { page: 0, size: 10, filters: {}, items: [], totalElements: 0, totalPages: 0 },
+    recruitmentsData: { page: 0, size: 10, filters: {}, items: [], totalElements: 0, totalPages: 0 },
     selectedMemberId: null,
     notifications: [],
     theme: "dark"
@@ -85,6 +86,7 @@
 
     // Load View Data
     if (viewName === "members") loadMembers();
+    if (viewName === "recruitments") loadRecruitments();
   }
 
   function initRouter() {
@@ -633,6 +635,85 @@
     });
   }
 
+  function getRecruitmentQueryString() {
+    const params = new URLSearchParams({ page: String(appState.recruitmentsData.page), size: String(appState.recruitmentsData.size) });
+    Object.entries(appState.recruitmentsData.filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+    return params.toString();
+  }
+
+  function visibilityChip(visibility) {
+    return `<span class="bo-chip ${visibility === "VISIBLE" ? "active" : "suspended"}">${visibility === "VISIBLE" ? "노출" : "숨김"}</span>`;
+  }
+
+  function renderRecruitmentsTable(data) {
+    const tbody = $("#boRecruitmentListTable");
+    const pagination = $("#boRecruitmentPagination");
+    if (!tbody || !pagination) return;
+    tbody.replaceChildren();
+    if (!data.items?.length) {
+      renderEmptyTableRow(tbody, 7, "⌕", "조건에 맞는 모집글이 없습니다.", "검색어 또는 필터를 조정한 뒤 다시 확인하세요.");
+      pagination.replaceChildren();
+      return;
+    }
+    data.items.forEach((item) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td><code>#${item.recruitmentId}</code></td><td><strong>${item.title}</strong><br><small>${item.category || "미분류"}</small></td><td>${item.leaderNickname}</td><td>${item.status}</td><td>${visibilityChip(item.visibility)}</td><td>${formatDate(item.createdAt)}</td><td><button class="bo-btn ghost" data-action="visibility" data-id="${item.recruitmentId}">${item.visibility === "VISIBLE" ? "숨김" : "복구"}</button></td>`;
+      row.addEventListener("click", (event) => {
+        if (event.target.dataset.action === "visibility") {
+          event.stopPropagation();
+          loadRecruitmentDetail(item.recruitmentId, true);
+        } else loadRecruitmentDetail(item.recruitmentId);
+      });
+      tbody.appendChild(row);
+    });
+    pagination.replaceChildren();
+    for (let page = 0; page < data.totalPages; page++) {
+      const button = document.createElement("button");
+      button.type = "button"; button.className = `bo-btn ${page === data.page ? "" : "ghost"}`; button.textContent = String(page + 1);
+      button.addEventListener("click", () => { appState.recruitmentsData.page = page; loadRecruitments(); });
+      pagination.appendChild(button);
+    }
+  }
+
+  async function loadRecruitments() {
+    try {
+      const data = await window.moiApi.request(`/api/admin/recruitments?${getRecruitmentQueryString()}`);
+      Object.assign(appState.recruitmentsData, data);
+      renderRecruitmentsTable(data);
+    } catch (error) { showToast("모집글 목록을 불러오지 못했습니다.", "error"); }
+  }
+
+  async function loadRecruitmentDetail(recruitmentId, focusReason = false) {
+    try {
+      const item = await window.moiApi.request(`/api/admin/recruitments/${recruitmentId}`);
+      const panel = $("#boRecruitmentDetailPanel"); const body = $("#boRecruitmentDetailBody");
+      if (!panel || !body) return;
+      body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"><div><p><strong>${item.title}</strong></p><p>모집장 ID: ${item.leaderId}</p><p>모집 상태: ${item.status}</p><p>노출 상태: ${visibilityChip(item.visibility)}</p><p>${item.description || "상세 내용 없음"}</p></div><form id="boRecruitmentVisibilityForm"><input type="hidden" name="recruitmentId" value="${item.recruitmentId}"><input type="hidden" name="expectedVisibility" value="${item.visibility}"><label class="form-label">조치 사유<textarea name="reason" class="bo-input form-control" minlength="5" maxlength="500" required></textarea></label><button class="bo-btn ${item.visibility === "VISIBLE" ? "danger" : ""}" type="submit">${item.visibility === "VISIBLE" ? "모집글 숨김" : "모집글 복구"}</button></form></div>`;
+      panel.hidden = false;
+      if (focusReason) body.querySelector("textarea")?.focus();
+      panel.scrollIntoView({ behavior: "smooth" });
+    } catch (error) { showToast("모집글 상세 정보를 불러오지 못했습니다.", "error"); }
+  }
+
+  function initRecruitmentEvents() {
+    $("#boRecruitmentFilterForm")?.addEventListener("submit", (event) => {
+      event.preventDefault(); const form = new FormData(event.currentTarget);
+      appState.recruitmentsData.filters = { keyword: String(form.get("keyword") || "").trim(), status: String(form.get("status") || ""), visibility: String(form.get("visibility") || "") };
+      appState.recruitmentsData.page = 0; loadRecruitments();
+    });
+    $("#boRecruitmentDetailPanel")?.addEventListener("submit", async (event) => {
+      if (event.target.id !== "boRecruitmentVisibilityForm") return;
+      event.preventDefault(); const form = new FormData(event.target); const reason = String(form.get("reason") || "").trim();
+      if (reason.length < 5) { showToast("조치 사유를 5자 이상 입력하세요.", "error"); return; }
+      const visibility = form.get("expectedVisibility") === "VISIBLE" ? "HIDDEN" : "VISIBLE";
+      try {
+        await window.moiApi.request(`/api/admin/recruitments/${form.get("recruitmentId")}/visibility`, { method: "PATCH", body: window.moiApi.toJsonBody({ expectedVisibility: form.get("expectedVisibility"), visibility, reason }) });
+        showToast(visibility === "HIDDEN" ? "모집글을 숨겼습니다." : "모집글을 복구했습니다.", "success");
+        await Promise.all([loadRecruitments(), loadDashboard()]); loadRecruitmentDetail(form.get("recruitmentId"));
+      } catch (error) { showToast(error.message || "노출 상태 변경에 실패했습니다.", "error"); }
+    });
+  }
+
   /* ==========================================================================
      Command Palette (Cmd + K)
      ========================================================================== */
@@ -723,6 +804,7 @@
     $("#boWorkspace").hidden = false;
     initRouter();
     initMemberEvents();
+    initRecruitmentEvents();
     initCommandPalette();
     initNotifications();
 
