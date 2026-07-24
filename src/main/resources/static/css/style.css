@@ -1645,8 +1645,15 @@ body.modal-open {
 }
 
 .attendance-actions-grid h4 {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-size: 17px;
+}
+
+.attendance-actions-grid .form-helper {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 @media (max-width: 900px) {

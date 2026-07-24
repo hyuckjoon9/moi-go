@@ -72,17 +72,17 @@
           <div id="groupAnswerSummaryList" class="card-list attendance-summary-list hidden"></div><div id="groupAttendanceRateList" class="card-list attendance-rate-list hidden"></div>
           <div class="attendance-actions-grid">
             <form id="groupAnswerAttendanceForm" class="form-stack compact">
-              <h4>내 참석 응답</h4>
+              <h4>이번 일정 참석 여부</h4><p class="form-helper">일정 전에 내가 참여할 수 있는지 미리 남기는 응답입니다.</p>
               <select name="scheduleId" class="group-schedule-picker hidden"><option value="">일정을 먼저 조회하세요</option></select>
-              <label>응답<select name="response"><option value="ATTEND">참석</option><option value="ABSENT">불참</option><option value="UNDECIDED">미정</option></select></label>
-              <div class="form-actions"><button class="button" type="submit">응답 저장/수정</button><button id="deleteAttendanceAnswerButton" class="button ghost" type="button">응답 삭제</button></div>
+              <label>참석 여부<select name="response"><option value="ATTEND">참석</option><option value="ABSENT">불참</option><option value="UNDECIDED">미정</option></select></label>
+              <div class="form-actions"><button class="button" type="submit">참석 여부 저장/수정</button><button id="deleteAttendanceAnswerButton" class="button ghost" type="button">참석 여부 삭제</button></div>
             </form>
             <form id="groupCheckAttendanceForm" class="form-stack compact">
-              <h4>출석 체크</h4>
+              <h4>운영자 출석 체크</h4><p class="form-helper">리더/매니저가 실제 출석 결과를 기록합니다.</p>
               <select name="scheduleId" class="group-schedule-picker hidden"><option value="">일정을 먼저 조회하세요</option></select>
               <label>그룹원 선택<select name="userId" id="groupAttendanceMemberSelect"><option value="">그룹을 먼저 선택하세요</option></select></label>
               <label>출석 상태<select name="status"><option value="PRESENT">출석</option><option value="LATE">지각</option><option value="ABSENT">결석</option><option value="EXCUSED">인정 결석</option></select></label>
-              <button class="button secondary" type="submit">출석 체크</button>
+              <button class="button secondary" type="submit">실제 출석 체크</button>
             </form>
           </div>
           <section id="groupActivityPanel" class="activity-workspace hidden">
@@ -138,6 +138,6 @@
 
     <script src="/js/api.js?v=20260723-answer-badge-colors"></script>
     <script src="/js/auth.js?v=20260723-answer-badge-colors"></script>
-    <script src="/js/app.js?v=20260723-answer-summary-toggle"></script>
+    <script src="/js/app.js?v=20260724-attendance-wording"></script>
   </body>
 </html>
