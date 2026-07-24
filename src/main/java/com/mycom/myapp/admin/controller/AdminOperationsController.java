@@ -24,46 +24,46 @@ public class AdminOperationsController {
 
     @GetMapping("/groups")
     public ApiResponse<AdminPageResponse<AdminOperationsResponse.GroupItem>> getGroups(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "page", defaultValue = "0") @Min(0) int page,
+            @RequestParam(name = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.success(service.getGroups(keyword, status, page, size));
     }
 
     @GetMapping("/schedules")
     public ApiResponse<AdminPageResponse<AdminOperationsResponse.ScheduleItem>> getSchedules(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", defaultValue = "0") @Min(0) int page,
+            @RequestParam(name = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.success(service.getSchedules(keyword, page, size));
     }
 
     @GetMapping("/attendance-records")
     public ApiResponse<AdminPageResponse<AdminOperationsResponse.AttendanceItem>>
             getAttendanceRecords(
-                    @RequestParam(required = false) String keyword,
-                    @RequestParam(required = false) String status,
-                    @RequestParam(defaultValue = "0") @Min(0) int page,
-                    @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+                    @RequestParam(name = "keyword", required = false) String keyword,
+                    @RequestParam(name = "status", required = false) String status,
+                    @RequestParam(name = "page", defaultValue = "0") @Min(0) int page,
+                    @RequestParam(name = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.success(service.getAttendanceRecords(keyword, status, page, size));
     }
 
     @GetMapping("/activity-records")
     public ApiResponse<AdminPageResponse<AdminOperationsResponse.ActivityItem>> getActivityRecords(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", defaultValue = "0") @Min(0) int page,
+            @RequestParam(name = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.success(service.getActivityRecords(keyword, page, size));
     }
 
     @GetMapping("/audit-logs")
     public ApiResponse<AdminPageResponse<AdminOperationsResponse.AuditLogItem>> getAuditLogs(
-            @RequestParam(required = false) String action,
-            @RequestParam(required = false) String targetType,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+            @RequestParam(name = "action", required = false) String action,
+            @RequestParam(name = "targetType", required = false) String targetType,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", defaultValue = "0") @Min(0) int page,
+            @RequestParam(name = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
         return ApiResponse.success(service.getAuditLogs(action, targetType, keyword, page, size));
     }
 }
