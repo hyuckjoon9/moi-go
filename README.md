@@ -1,6 +1,6 @@
 <div align="center">
 
-  # 스터디 모집부터 운영과 기록까지 한곳에서, Moi-Go 
+  # 스터디 모집부터 운영과 기록까지 한곳에서, Moi-Go
 
 <img src="https://github.com/user-attachments/assets/4fc17a16-b28a-4d06-a43f-d6b1888786bf" alt="Moi-Go Banner" width="100%" />
 
