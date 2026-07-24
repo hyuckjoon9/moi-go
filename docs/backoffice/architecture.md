@@ -35,6 +35,18 @@ AdminQueryRepository -> JdbcClient projection -> 관리자 DTO
 대체하지 않는다. 회원 상태 변경은 대상과 현재 상태를 조회한 뒤 도메인 포트를 호출하고, 변경된
 경우에만 운영 이력을 저장한다. 충돌 시 `409`를 반환한다.
 
+## 기존 코드 통합 기준
+
+Back Office를 포함하지 않는 변경을 병합할 때도 다음 구성 요소는 함께 유지한다.
+
+- 회원 관리: `Member.changeStatus`, `MemberAdministrationPort`, refresh token 폐기 흐름
+- 모집글 관리: `RecruitmentVisibility`, `RecruitmentAdministrationPort`, 일반 사용자 조회의
+  `VISIBLE` 필터
+- 화면 충돌 처리: `moiApi.request`가 실패한 HTTP 상태를 `error.status`로 보존하는 계약
+- 데이터: `recruitment_posts.visibility`, `admin_audit_logs`와 관련 제약·인덱스
+
+세부 병합 절차와 검증 항목은 [integration-guide.md](integration-guide.md)를 따른다.
+
 ## 검증 기준
 
 - Controller: 권한, 입력값, 응답 형식

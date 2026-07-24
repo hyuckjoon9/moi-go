@@ -52,3 +52,5 @@ Desktop.ini
 
 # Runtime uploaded files
 uploads/
+
+.local/

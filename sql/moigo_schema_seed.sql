@@ -1,7 +1,8 @@
 -- moigo_schema.sql
 -- MySQL 8.0+
 -- ERD 기반 스키마 + 관계형 테스트 데이터 (확장판)
--- 원본 스키마(DDL)는 그대로 유지하고, 테스트 데이터만 여러 시나리오가 섞이도록 채웠습니다.
+-- Back Office 개발 기준 스키마와 테스트 데이터를 함께 구성합니다.
+-- 개발 DB를 재생성하는 전용 스크립트이므로, 기존 데이터를 보존해야 하는 DB에는 실행하지 않습니다.
 USE moigo;
 
 -- 재실행 가능하도록 자식 테이블부터 삭제
@@ -488,7 +489,7 @@ INSERT INTO recruitment_posts (
     leader_id, title, category, description, goal, method,
     meeting_type, location, online_link, meeting_day,
     capacity, recruitment_deadline, expected_duration,
-    conditions, status
+    conditions, status, visibility
 ) VALUES
 (
     1,
@@ -505,7 +506,8 @@ INSERT INTO recruitment_posts (
     '2026-08-10',
     '8주',
     'Java 기본 문법을 이해하고 있는 사람',
-    'ACTIVE'
+    'ACTIVE',
+    'VISIBLE'
 ),
 (
     3,
@@ -522,7 +524,8 @@ INSERT INTO recruitment_posts (
     '2026-08-20',
     '6주',
     'HTML/CSS 기본 지식',
-    'RECRUITING'
+    'RECRUITING',
+    'VISIBLE'
 ),
 (
     8,
@@ -539,7 +542,8 @@ INSERT INTO recruitment_posts (
     '2026-07-15',
     '10주',
     '자료구조 기초 지식 필요',
-    'CLOSED'
+    'CLOSED',
+    'HIDDEN'
 ),
 (
     10,
@@ -556,7 +560,8 @@ INSERT INTO recruitment_posts (
     '2026-06-01',
     '4주',
     '취업 준비생',
-    'ENDED'
+    'ENDED',
+    'VISIBLE'
 );
 
 INSERT INTO join_applications (

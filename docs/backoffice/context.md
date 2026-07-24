@@ -16,3 +16,11 @@
 
 1. 그룹·일정·출석·활동의 읽기 전용 관리자 조회
 2. 운영 이력 전용 검색·필터 화면과 전체 회귀 검증
+
+## 개발 DB 기준
+
+- 개발 환경의 Back Office 스키마와 테스트 데이터는
+  [`sql/moigo_schema_seed.sql`](../../sql/moigo_schema_seed.sql)을 기준으로 한다.
+- 이 스크립트는 테이블을 삭제하고 다시 만드는 초기화 스크립트다. 배포·운영 DB 마이그레이션 용도로
+  사용하지 않는다.
+- 통합 시 확인할 코드·DB·화면 계약은 [integration-guide.md](integration-guide.md)에 정리한다.
