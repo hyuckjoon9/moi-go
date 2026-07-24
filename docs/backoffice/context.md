@@ -1,5 +1,7 @@
 # Back Office 현재 상태
 
+문서 역할과 읽는 순서는 [README.md](README.md)를 따른다.
+
 기준일: 2026-07-24
 
 ## 구현됨
