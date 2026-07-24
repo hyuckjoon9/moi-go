@@ -19,8 +19,8 @@ AdminQueryRepository -> JdbcClient projection -> 관리자 DTO
 
 ## 화면
 
-`/backoffice/index.html`이 현재 운영 콘솔의 진입점이다. `backoffice.js`가 대시보드와 회원
-관리 뷰를 전환한다.
+`/backoffice/index.html`이 운영 콘솔의 단일 진입점이다. `backoffice.js`가 대시보드, 회원·모집글
+관리, 그룹 운영 조회, 운영 이력 뷰를 전환한다.
 
 - `backoffice.css`는 Back Office의 화면 토큰과 컴포넌트 스타일을 소유한다.
 - `style.css`에 남아 있는 Back Office 호환 규칙은 같은 CSS 변수(`--bo-sidebar-width`,
@@ -32,8 +32,9 @@ AdminQueryRepository -> JdbcClient projection -> 관리자 DTO
 ## 보안과 상태 변경
 
 `/api/admin/**`는 서버에서 `ADMIN` 권한을 검사한다. 정적 화면 접근 허용은 데이터 권한을
-대체하지 않는다. 회원 상태 변경은 대상과 현재 상태를 조회한 뒤 도메인 포트를 호출하고, 변경된
-경우에만 운영 이력을 저장한다. 충돌 시 `409`를 반환한다.
+대체하지 않는다. 회원 상태 변경과 모집글 노출 변경은 소유 도메인의 공개 관리 포트만 호출하고,
+실제 변경일 때만 운영 이력을 저장한다. 기대 상태 충돌은 `409`를 반환한다. 그룹·일정·출석·활동·
+운영 이력 조회 API는 읽기 전용 JDBC projection으로 처리한다.
 
 ## 기존 코드 통합 기준
 

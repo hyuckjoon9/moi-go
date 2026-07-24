@@ -6,12 +6,6 @@
 계약을 정리한다. Back Office는 일반 서비스와 같은 저장소를 공유하지만, 관리자 전용 조회와
 운영 조치를 별도 `admin` 모듈에서 제공한다.
 
-## PR 갱신 기준
-
-`feature/backoffice-management-integration`은 기존 `feature/backoffice-design` 변경, 모집글
-관리 기능, 최신 `develop` 병합을 포함한다. 기존 PR을 갱신할 때는 새 PR을 만들지 말고 이 브랜치의
-검증된 HEAD를 PR 소스 브랜치 `feature/backoffice-design`로 fast-forward한다.
-
 ## 코드 통합 계약
 
 ### 회원 관리
@@ -42,6 +36,12 @@
 - `src/main/resources/static/js/api.js`는 실패 응답에 `error.status`를 설정해야 한다. Back Office
   화면은 409일 때 목록·상세를 다시 읽어 최신 상태를 보여 준다.
 
+### 읽기 전용 운영 조회
+
+- 그룹·일정·출석·활동·운영 이력 조회는 `admin` 모듈의 JDBC projection만 사용한다.
+- 조회 API는 해당 도메인 Entity를 변경하거나 관리 포트를 호출하지 않는다.
+- 응답에는 인증 비밀값, 비밀번호, refresh token을 포함하지 않는다.
+
 ## 개발 DB 기준
 
 개발 DB를 처음 구성하거나 초기화할 때는 다음 파일만 실행한다.
@@ -50,14 +50,16 @@
 mysql -u <user> -p moigo < sql/moigo_schema_seed.sql
 ```
 
-이 스크립트는 `users`, `recruitment_posts`, `admin_audit_logs`를 포함한 테이블을 삭제 후 다시
-생성한다. 따라서 개발 DB 전용이다. 현재 Back Office 코드가 요구하는 핵심 구조는 다음과 같다.
+이 스크립트는 관련 테이블을 삭제 후 다시 생성하므로 개발 DB 전용이다. Back Office가 사용하는
+핵심 구조는 다음과 같다.
 
 | 대상 | 필수 구조 | 사용 위치 |
 | --- | --- | --- |
 | `users` | `role`, `status` | 관리자 권한·회원 상태 변경 |
 | `recruitment_posts` | `visibility` 기본값 `VISIBLE`, `VISIBLE/HIDDEN` 제약 | 일반 사용자 노출 필터·관리자 숨김 |
 | `admin_audit_logs` | 운영자·대상·전후 상태·사유·시각 | 회원·모집글 운영 이력 |
+| `study_groups`, `study_schedules` | 그룹 상태·일정·그룹 연결 | 관리자 읽기 전용 조회 |
+| `attendance_records`, `activity_records` | 일정별 출석·활동 기록 | 관리자 읽기 전용 조회 |
 
 시드 실행 후 아래 검증 쿼리의 결과가 0이면 노출 상태 데이터가 정상이다.
 
@@ -72,7 +74,7 @@ WHERE visibility IS NULL OR visibility NOT IN ('VISIBLE', 'HIDDEN');
 
 ## 병합 체크리스트
 
-1. `admin/**`, Back Office 정적 자산, 관리 포트가 삭제되지 않았는지 확인한다.
+1. `admin/**`, Back Office 정적 자산, 관리 포트와 읽기 전용 조회가 삭제되지 않았는지 확인한다.
 2. `RecruitmentVisibility`와 일반 사용자 `VISIBLE` 필터가 함께 남아 있는지 확인한다.
 3. `api.js`의 `error.status`와 Back Office의 409 재조회 흐름을 확인한다.
 4. `sql/moigo_schema_seed.sql`에 `visibility`와 `admin_audit_logs`가 있는지 확인한다.

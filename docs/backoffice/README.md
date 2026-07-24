@@ -10,7 +10,6 @@ Back Office 작업은 이 문서를 시작점으로 사용한다. 현재 구현 
 | [architecture.md](architecture.md) | 모듈 경계, 상태 변경, 화면 소유권 | 서버·화면 구조를 변경할 때 |
 | [api.md](api.md) | 관리자 HTTP 계약 | Controller·화면 API를 변경할 때 |
 | [integration-guide.md](integration-guide.md) | 기존 코드·`develop` 통합 계약과 검증 | 병합·PR 갱신 전 |
-| [recruitment-admin-implementation-plan.md](recruitment-admin-implementation-plan.md) | 완료된 모집글 관리 구현 기록 | 모집글 기능의 결정·검증 이력을 확인할 때 |
 
 ## 개발 DB
 
@@ -18,7 +17,7 @@ Back Office를 포함한 개발 DB 초기화는
 [`sql/moigo_schema_seed.sql`](../../sql/moigo_schema_seed.sql)을 사용한다. 이 파일은 테이블을
 삭제하고 다시 만드는 개발 전용 시드이므로 기존 데이터를 보존해야 하는 DB에는 실행하지 않는다.
 
-## 기본 검증
+## 검증
 
 ```bash
 SPRING_DATASOURCE_USERNAME=<user> \
