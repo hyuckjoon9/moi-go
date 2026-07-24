@@ -8,6 +8,7 @@ public enum ErrorCode {
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    SUSPENDED_MEMBER(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 관리자에게 문의해 주세요."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     ADMIN_ACCESS_DENIED(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),
     ADMIN_MEMBER_OPERATION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "해당 회원의 상태는 변경할 수 없습니다."),

@@ -42,8 +42,13 @@ public class AuthService {
                 memberRepository
                         .findByEmail(request.email())
                         .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
-        if (member.getStatus() != MemberStatus.ACTIVE
-                || !passwordEncoder.matches(request.password(), member.getPassword())) {
+        if (!passwordEncoder.matches(request.password(), member.getPassword())) {
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        if (member.getStatus() == MemberStatus.SUSPENDED) {
+            throw new BusinessException(ErrorCode.SUSPENDED_MEMBER);
+        }
+        if (member.getStatus() != MemberStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
         return issueTokens(member);
