@@ -7,6 +7,7 @@ import com.mycom.myapp.attendance.dto.response.AttendanceSummaryResponse;
 import com.mycom.myapp.attendance.dto.response.MyAttendanceRateResponse;
 import com.mycom.myapp.attendance.entity.AttendanceAnswer;
 import com.mycom.myapp.attendance.entity.AttendanceRecord;
+import com.mycom.myapp.attendance.entity.AttendanceResponse;
 import com.mycom.myapp.attendance.entity.AttendanceStatus;
 import com.mycom.myapp.attendance.repository.AttendanceRecordRepository;
 import com.mycom.myapp.attendance.repository.AttendanceResponseRepository;
@@ -23,8 +24,12 @@ import com.mycom.myapp.study.repository.GroupMemberRepository;
 import com.mycom.myapp.study.service.StudyGroupAttendanceRatePolicy;
 import com.mycom.myapp.study.service.port.StudyGroupAttendanceRatePolicyReader;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AttendanceService {
+
+    private static final Duration AUTO_ABSENCE_WINDOW = Duration.ofHours(2);
 
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final AttendanceResponseRepository attendanceResponseRepository;
@@ -82,11 +89,12 @@ public class AttendanceService {
         attendanceResponseRepository.delete(getAnswer(scheduleId, userId));
     }
 
-    /** 모집장이 스케줄의 특정 멤버 출석 상태를 처음 체크한다. 이미 체크된 기록이 있으면 거부한다. */
+    /** 모집장이 스케줄의 특정 멤버 출석 상태를 처음 체크한다. 일정 시작 전이거나 이미 체크된 기록이 있으면 거부한다. */
     @Transactional
     public AttendanceRecord checkAttendance(
             Long scheduleId, Long checkedBy, AttendanceCheckRequest request) {
         validateManager(scheduleId, checkedBy);
+        validateAttendanceStarted(scheduleId);
         if (attendanceRecordRepository
                 .findByScheduleIdAndUserId(scheduleId, request.getUserId())
                 .isPresent()) {
@@ -119,9 +127,67 @@ public class AttendanceService {
         attendanceRecordRepository.delete(getRecord(scheduleId, userId));
     }
 
-    /** 모집장이 스케줄 하나의 출석 현황(상태별 인원 수 + 멤버별 내역)을 조회한다. */
+    /**
+     * 시작 후 2시간이 지났지만 아직 체크되지 않은 활성 그룹원의 출석을 자동으로 채운다. 사전 참여 응답이 ABSENT(불참)면 EXCUSED(사유 결석)로, 그
+     * 외(ATTEND/UNDECIDED/무응답)는 ABSENT(무단 결석)로 기록한다. (scheduleId, userId) 유니크 제약 덕분에 이미 체크된(수동 또는 이전
+     * 자동 처리) 멤버는 건너뛰므로 반복 실행돼도 안전하다.
+     */
+    @Transactional
+    public void autoProcessOverdueAttendance() {
+        LocalDateTime windowEnd = LocalDateTime.now(clock).minus(AUTO_ABSENCE_WINDOW);
+        studyScheduleRepository.findAll().stream()
+                .filter(schedule -> !schedule.getScheduledAt().isAfter(windowEnd))
+                .forEach(this::autoProcessSchedule);
+    }
+
+    private void autoProcessSchedule(StudySchedule schedule) {
+        Long groupId = schedule.getStudyGroup().getId();
+        List<GroupMember> members =
+                groupMemberRepository
+                        .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                groupId, GroupMemberStatus.ACTIVE);
+        if (members.isEmpty()) {
+            return;
+        }
+
+        Set<Long> checkedUserIds =
+                attendanceRecordRepository.findByScheduleId(schedule.getId()).stream()
+                        .map(AttendanceRecord::getUserId)
+                        .collect(Collectors.toSet());
+        Map<Long, AttendanceResponse> responseByUserId =
+                attendanceResponseRepository.findByScheduleId(schedule.getId()).stream()
+                        .collect(
+                                Collectors.toMap(
+                                        AttendanceAnswer::getUserId,
+                                        AttendanceAnswer::getResponse));
+
+        for (GroupMember member : members) {
+            Long userId = member.getUserId();
+            if (checkedUserIds.contains(userId)) {
+                continue;
+            }
+            AttendanceStatus status =
+                    responseByUserId.get(userId) == AttendanceResponse.ABSENT
+                            ? AttendanceStatus.EXCUSED
+                            : AttendanceStatus.ABSENT;
+            attendanceRecordRepository.save(
+                    AttendanceRecord.builder()
+                            .scheduleId(schedule.getId())
+                            .userId(userId)
+                            .status(status)
+                            .checkedBy(null)
+                            .build());
+        }
+    }
+
+    /**
+     * 모집장이 스케줄 하나의 출석 현황(상태별 인원 수 + 멤버별 내역)을 조회한다. 조회 시점에 자동 결석 처리 대상(시작 후 2시간 경과 & 미체크)이 있으면 먼저 채운
+     * 뒤 집계한다.
+     */
+    @Transactional
     public AttendanceSummaryResponse getSummary(Long scheduleId, Long requesterId) {
         validateManager(scheduleId, requesterId);
+        autoProcessOverdueAttendance();
         List<AttendanceRecord> records = attendanceRecordRepository.findByScheduleId(scheduleId);
         return AttendanceSummaryResponse.of(scheduleId, records);
     }
@@ -142,11 +208,15 @@ public class AttendanceService {
         return AttendanceAnswerSummaryResponse.of(scheduleId, members, answers);
     }
 
-    /** 본인의 전체 스케줄 기준 누적 출석률(PRESENT 건수 / 전체 건수 * 100)을 계산한다. */
+    /**
+     * 본인의 전체 스케줄 기준 누적 출석률(PRESENT 건수 / 전체 건수 * 100)을 계산한다. 조회 시점에 자동 결석 처리 대상이 있으면 먼저 채운 뒤 집계한다.
+     */
+    @Transactional
     public MyAttendanceRateResponse getMyAttendanceRate(Long userId, Long requesterId) {
         if (!requesterId.equals(userId)) {
             throw new BusinessException(ErrorCode.ATTENDANCE_RATE_ACCESS_DENIED);
         }
+        autoProcessOverdueAttendance();
         long presentCount =
                 attendanceRecordRepository.countByUserIdAndStatus(userId, AttendanceStatus.PRESENT);
         long lateCount =
@@ -159,13 +229,17 @@ public class AttendanceService {
                 userId, presentCount, lateCount, absentCount, excusedCount);
     }
 
-    /** 그룹의 활성 LEADER/MANAGER가 그룹원별 출석률(이 그룹의 스케줄만 집계)을 조회한다. */
+    /**
+     * 그룹의 활성 LEADER/MANAGER가 그룹원별 출석률(이 그룹의 스케줄만 집계)을 조회한다. 조회 시점에 자동 결석 처리 대상이 있으면 먼저 채운 뒤 집계한다.
+     */
+    @Transactional
     public List<MyAttendanceRateResponse> getGroupAttendanceRates(Long groupId, Long requesterId) {
         StudyGroupAttendanceRatePolicy policy =
                 studyGroupAttendanceRatePolicyReader.getAttendanceRatePolicy(groupId, requesterId);
         if (!policy.canViewAllAttendanceRates()) {
             throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
         }
+        autoProcessOverdueAttendance();
 
         List<Long> scheduleIds =
                 studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(groupId).stream()
@@ -220,6 +294,17 @@ public class AttendanceService {
         GroupMember member = validateActiveMember(scheduleId, checkedBy);
         if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
             throw new BusinessException(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN);
+        }
+    }
+
+    /** 일정 시작 전에는 출석 체크를 새로 생성할 수 없다. 이미 체크된 기록의 정정(updateAttendance)에는 적용하지 않는다. */
+    private void validateAttendanceStarted(Long scheduleId) {
+        StudySchedule schedule =
+                studyScheduleRepository
+                        .findById(scheduleId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        if (LocalDateTime.now(clock).isBefore(schedule.getScheduledAt())) {
+            throw new BusinessException(ErrorCode.ATTENDANCE_CHECK_NOT_STARTED);
         }
     }
 

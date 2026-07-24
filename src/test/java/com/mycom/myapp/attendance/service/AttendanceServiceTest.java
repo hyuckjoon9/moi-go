@@ -3,8 +3,10 @@ package com.mycom.myapp.attendance.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.mycom.myapp.attendance.dto.request.AttendanceAnswerRequest;
@@ -36,10 +38,13 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -271,6 +276,38 @@ class AttendanceServiceTest {
     }
 
     @Test
+    void checkAttendanceThrowsWhenScheduleNotStarted() {
+        stubManager(10L, 1L, GroupRole.LEADER, NOW.plusHours(1));
+
+        assertThatThrownBy(
+                        () ->
+                                attendanceService.checkAttendance(
+                                        10L,
+                                        1L,
+                                        new AttendanceCheckRequest(20L, AttendanceStatus.PRESENT)))
+                .isInstanceOfSatisfying(
+                        BusinessException.class,
+                        exception ->
+                                assertThat(exception.getErrorCode())
+                                        .isEqualTo(ErrorCode.ATTENDANCE_CHECK_NOT_STARTED));
+    }
+
+    @Test
+    void checkAttendanceAllowsExactlyAtScheduledStart() {
+        stubManager(10L, 1L, GroupRole.LEADER, NOW);
+        given(attendanceRecordRepository.findByScheduleIdAndUserId(10L, 20L))
+                .willReturn(Optional.empty());
+        given(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        AttendanceRecord result =
+                attendanceService.checkAttendance(
+                        10L, 1L, new AttendanceCheckRequest(20L, AttendanceStatus.PRESENT));
+
+        assertThat(result.getUserId()).isEqualTo(20L);
+    }
+
+    @Test
     void checkAttendanceThrowsWhenScheduleNotFound() {
         given(studyScheduleRepository.findById(10L)).willReturn(Optional.empty());
 
@@ -351,6 +388,26 @@ class AttendanceServiceTest {
     }
 
     @Test
+    void updateAttendanceAllowsCorrectionRegardlessOfScheduledTime() {
+        stubManager(10L, 2L, GroupRole.LEADER, NOW.plusDays(1));
+        AttendanceRecord existing =
+                AttendanceRecord.builder()
+                        .scheduleId(10L)
+                        .userId(20L)
+                        .status(AttendanceStatus.ABSENT)
+                        .checkedBy(1L)
+                        .build();
+        given(attendanceRecordRepository.findByScheduleIdAndUserId(10L, 20L))
+                .willReturn(Optional.of(existing));
+
+        AttendanceRecord result =
+                attendanceService.updateAttendance(
+                        10L, 2L, new AttendanceCheckRequest(20L, AttendanceStatus.LATE));
+
+        assertThat(result.getStatus()).isEqualTo(AttendanceStatus.LATE);
+    }
+
+    @Test
     void updateAttendanceThrowsWhenRecordNotFound() {
         stubManager(10L, 2L, GroupRole.MANAGER);
         given(attendanceRecordRepository.findByScheduleIdAndUserId(10L, 20L))
@@ -414,6 +471,136 @@ class AttendanceServiceTest {
                         exception ->
                                 assertThat(exception.getErrorCode())
                                         .isEqualTo(ErrorCode.ATTENDANCE_MANAGEMENT_FORBIDDEN));
+    }
+
+    @Test
+    void autoProcessOverdueAttendanceFillsAbsentAndExcusedForUncheckedMembers() {
+        StudyGroup group = group();
+        StudySchedule overdueSchedule = schedule(group, 10L, NOW.minusHours(3));
+        given(studyScheduleRepository.findAll()).willReturn(List.of(overdueSchedule));
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(
+                        List.of(
+                                GroupMember.join(group, 20L, GroupRole.MEMBER),
+                                GroupMember.join(group, 21L, GroupRole.MEMBER),
+                                GroupMember.join(group, 22L, GroupRole.MEMBER)));
+        given(attendanceRecordRepository.findByScheduleId(10L)).willReturn(List.of());
+        given(attendanceResponseRepository.findByScheduleId(10L))
+                .willReturn(
+                        List.of(
+                                AttendanceAnswer.builder()
+                                        .scheduleId(10L)
+                                        .userId(20L)
+                                        .response(AttendanceResponse.ABSENT)
+                                        .build(),
+                                AttendanceAnswer.builder()
+                                        .scheduleId(10L)
+                                        .userId(21L)
+                                        .response(AttendanceResponse.ATTEND)
+                                        .build()));
+        given(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        attendanceService.autoProcessOverdueAttendance();
+
+        ArgumentCaptor<AttendanceRecord> captor = ArgumentCaptor.forClass(AttendanceRecord.class);
+        verify(attendanceRecordRepository, times(3)).save(captor.capture());
+        Map<Long, AttendanceStatus> statusByUserId =
+                captor.getAllValues().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        AttendanceRecord::getUserId, AttendanceRecord::getStatus));
+        assertThat(statusByUserId.get(20L)).isEqualTo(AttendanceStatus.EXCUSED);
+        assertThat(statusByUserId.get(21L)).isEqualTo(AttendanceStatus.ABSENT);
+        assertThat(statusByUserId.get(22L)).isEqualTo(AttendanceStatus.ABSENT);
+        assertThat(captor.getAllValues()).allMatch(record -> record.getCheckedBy() == null);
+    }
+
+    @Test
+    void autoProcessOverdueAttendanceSkipsAlreadyCheckedMembers() {
+        StudyGroup group = group();
+        StudySchedule overdueSchedule = schedule(group, 10L, NOW.minusHours(3));
+        given(studyScheduleRepository.findAll()).willReturn(List.of(overdueSchedule));
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(List.of(GroupMember.join(group, 20L, GroupRole.MEMBER)));
+        AttendanceRecord existing =
+                AttendanceRecord.builder()
+                        .scheduleId(10L)
+                        .userId(20L)
+                        .status(AttendanceStatus.PRESENT)
+                        .checkedBy(1L)
+                        .build();
+        given(attendanceRecordRepository.findByScheduleId(10L)).willReturn(List.of(existing));
+
+        attendanceService.autoProcessOverdueAttendance();
+
+        verify(attendanceRecordRepository, never()).save(any());
+    }
+
+    @Test
+    void autoProcessOverdueAttendanceSkipsSchedulesNotYetOverdue() {
+        StudyGroup group = group();
+        StudySchedule notOverdueSchedule = schedule(group, 10L, NOW.minusMinutes(30));
+        given(studyScheduleRepository.findAll()).willReturn(List.of(notOverdueSchedule));
+
+        attendanceService.autoProcessOverdueAttendance();
+
+        verify(groupMemberRepository, never())
+                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(any(), any());
+        verify(attendanceRecordRepository, never()).save(any());
+    }
+
+    @Test
+    void autoProcessOverdueAttendanceSkipsScheduleWithNoActiveMembers() {
+        StudyGroup group = group();
+        StudySchedule overdueSchedule = schedule(group, 10L, NOW.minusHours(3));
+        given(studyScheduleRepository.findAll()).willReturn(List.of(overdueSchedule));
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(List.of());
+
+        attendanceService.autoProcessOverdueAttendance();
+
+        verify(attendanceRecordRepository, never()).findByScheduleId(any());
+        verify(attendanceRecordRepository, never()).save(any());
+    }
+
+    @Test
+    void getSummaryAutoProcessesOverdueScheduleBeforeAggregating() {
+        stubManager(10L, 1L, GroupRole.LEADER, NOW.minusHours(3));
+        StudyGroup group = group();
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(List.of(GroupMember.join(group, 20L, GroupRole.MEMBER)));
+        AttendanceRecord autoFilledRecord =
+                AttendanceRecord.builder()
+                        .scheduleId(10L)
+                        .userId(20L)
+                        .status(AttendanceStatus.ABSENT)
+                        .checkedBy(null)
+                        .build();
+        given(studyScheduleRepository.findAll())
+                .willReturn(List.of(schedule(group, 10L, NOW.minusHours(3))));
+        given(attendanceRecordRepository.findByScheduleId(10L))
+                .willReturn(List.of(), List.of(autoFilledRecord));
+        given(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .willReturn(autoFilledRecord);
+
+        AttendanceSummaryResponse summary = attendanceService.getSummary(10L, 1L);
+
+        verify(attendanceRecordRepository).save(any(AttendanceRecord.class));
+        assertThat(summary.getTotalCount()).isEqualTo(1);
+        assertThat(summary.getAbsentCount()).isEqualTo(1);
     }
 
     @Test
@@ -548,6 +735,32 @@ class AttendanceServiceTest {
     }
 
     @Test
+    void getMyAttendanceRateAutoProcessesOverdueScheduleBeforeAggregating() {
+        StudyGroup group = group();
+        StudySchedule overdueSchedule = schedule(group, 10L, NOW.minusHours(3));
+        given(studyScheduleRepository.findAll()).willReturn(List.of(overdueSchedule));
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(List.of(GroupMember.join(group, 20L, GroupRole.MEMBER)));
+        given(attendanceRecordRepository.findByScheduleId(10L)).willReturn(List.of());
+        given(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(attendanceRecordRepository.countByUserIdAndStatus(any(), any())).willReturn(0L);
+
+        attendanceService.getMyAttendanceRate(20L, 20L);
+
+        verify(attendanceRecordRepository)
+                .save(
+                        argThat(
+                                record ->
+                                        record.getUserId().equals(20L)
+                                                && record.getStatus() == AttendanceStatus.ABSENT
+                                                && record.getCheckedBy() == null));
+    }
+
+    @Test
     void getMyAttendanceRateThrowsWhenRequesterIsNotSelf() {
         assertThatThrownBy(() -> attendanceService.getMyAttendanceRate(20L, 21L))
                 .isInstanceOfSatisfying(
@@ -603,6 +816,35 @@ class AttendanceServiceTest {
         assertThat(result.get(1).getUserId()).isEqualTo(21L);
         assertThat(result.get(1).getPresentCount()).isEqualTo(1);
         assertThat(result.get(1).getAttendanceRate()).isEqualTo(100.0);
+    }
+
+    @Test
+    void getGroupAttendanceRatesAutoProcessesOverdueScheduleBeforeAggregating() {
+        StudyGroup group = group();
+        stubCanViewAllAttendanceRates(100L, 1L, true);
+        StudySchedule overdueSchedule = schedule(group, 10L, NOW.minusHours(3));
+        given(studyScheduleRepository.findAllByStudyGroupIdOrderByScheduledAtAsc(100L))
+                .willReturn(List.of(overdueSchedule));
+        given(studyScheduleRepository.findAll()).willReturn(List.of(overdueSchedule));
+        given(
+                        groupMemberRepository
+                                .findAllByStudyGroupIdAndStatusOrderByRoleAscJoinedAtAscUserIdAsc(
+                                        100L, GroupMemberStatus.ACTIVE))
+                .willReturn(List.of(GroupMember.join(group, 20L, GroupRole.MEMBER)));
+        given(attendanceRecordRepository.findByScheduleId(10L)).willReturn(List.of());
+        given(attendanceRecordRepository.save(any(AttendanceRecord.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(attendanceRecordRepository.findByScheduleIdIn(List.of(10L))).willReturn(List.of());
+
+        attendanceService.getGroupAttendanceRates(100L, 1L);
+
+        verify(attendanceRecordRepository)
+                .save(
+                        argThat(
+                                record ->
+                                        record.getUserId().equals(20L)
+                                                && record.getStatus() == AttendanceStatus.ABSENT
+                                                && record.getCheckedBy() == null));
     }
 
     @Test
@@ -676,9 +918,14 @@ class AttendanceServiceTest {
     }
 
     private void stubManager(Long scheduleId, Long userId, GroupRole role) {
+        stubManager(scheduleId, userId, role, NOW.minusHours(3));
+    }
+
+    private void stubManager(
+            Long scheduleId, Long userId, GroupRole role, LocalDateTime scheduledAt) {
         StudyGroup group = group();
         given(studyScheduleRepository.findById(scheduleId))
-                .willReturn(Optional.of(schedule(group, scheduleId)));
+                .willReturn(Optional.of(schedule(group, scheduleId, scheduledAt)));
         given(groupMemberRepository.findByStudyGroupIdAndUserId(100L, userId))
                 .willReturn(Optional.of(GroupMember.join(group, userId, role)));
     }
@@ -690,17 +937,12 @@ class AttendanceServiceTest {
     }
 
     private StudySchedule schedule(StudyGroup group, Long scheduleId) {
+        return schedule(group, scheduleId, NOW.minusHours(3));
+    }
+
+    private StudySchedule schedule(StudyGroup group, Long scheduleId, LocalDateTime scheduledAt) {
         StudySchedule schedule =
-                StudySchedule.create(
-                        group,
-                        1L,
-                        "일정",
-                        LocalDateTime.of(2026, 7, 25, 19, 0),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null);
+                StudySchedule.create(group, 1L, "일정", scheduledAt, null, null, null, null, null);
         ReflectionTestUtils.setField(schedule, "id", scheduleId);
         return schedule;
     }

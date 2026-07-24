@@ -30,8 +30,8 @@ public class AttendanceRecord {
     @Column(nullable = false)
     private AttendanceStatus status;
 
-    @Column(name = "checked_by", nullable = false)
-    private Long checkedBy; // 체크한 모집장의 userId
+    @Column(name = "checked_by")
+    private Long checkedBy; // 체크한 모집장의 userId. 자동 결석 처리 시에는 null
 
     @Column(name = "checked_at", nullable = false)
     private LocalDateTime checkedAt;
