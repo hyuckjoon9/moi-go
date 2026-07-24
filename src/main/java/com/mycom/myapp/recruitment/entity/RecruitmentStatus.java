@@ -1,3 +1,8 @@
 package com.mycom.myapp.recruitment.entity;
 
-public enum RecruitmentStatus {}
+public enum RecruitmentStatus {
+    RECRUITING,
+    CLOSED,
+    ACTIVE,
+    ENDED
+}

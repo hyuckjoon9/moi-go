@@ -1,6 +1,7 @@
 # Gradle 및 빌드 산출물
 .gradle/
 build/
+.worktrees/
 
 
 # Java 컴파일 결과 및 애플리케이션 로그
@@ -14,7 +15,6 @@ logs/
 .env
 .env.*
 !.env.example
-*.local.properties
 application-local.properties
 application-secret.properties
 application-local.yml
@@ -49,3 +49,8 @@ application-secret.yml
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Runtime uploaded files
+uploads/
+
+.local/

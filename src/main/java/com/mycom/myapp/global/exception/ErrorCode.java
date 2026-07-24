@@ -1,3 +1,72 @@
 package com.mycom.myapp.global.exception;
 
-public enum ErrorCode {}
+import org.springframework.http.HttpStatus;
+
+public enum ErrorCode {
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
+    DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    SUSPENDED_MEMBER(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 관리자에게 문의해 주세요."),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
+    ADMIN_ACCESS_DENIED(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),
+    ADMIN_MEMBER_OPERATION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "해당 회원의 상태는 변경할 수 없습니다."),
+    ADMIN_OPERATION_CONFLICT(HttpStatus.CONFLICT, "회원 상태가 최신 정보와 다릅니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
+    WITHDRAWN_MEMBER(HttpStatus.FORBIDDEN, "탈퇴한 회원입니다."),
+    GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."),
+    GROUP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "그룹에 접근할 권한이 없습니다."),
+    WITHDRAWN_GROUP_MEMBER(HttpStatus.FORBIDDEN, "탈퇴한 그룹원은 그룹에 접근할 수 없습니다."),
+    DUPLICATE_ATTENDANCE_ANSWER(HttpStatus.CONFLICT, "이미 참석 여부를 응답했습니다."),
+    DUPLICATE_ATTENDANCE_RECORD(HttpStatus.CONFLICT, "이미 출석 체크가 등록되어 있습니다."),
+    ATTENDANCE_ANSWER_NOT_FOUND(HttpStatus.NOT_FOUND, "참석 여부 응답을 찾을 수 없습니다."),
+    ATTENDANCE_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "출석 기록을 찾을 수 없습니다."),
+    ATTENDANCE_MANAGEMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "출석을 관리할 권한이 없습니다."),
+    ATTENDANCE_RATE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "본인의 출석률만 조회할 수 있습니다."),
+    GROUP_ENDED(HttpStatus.CONFLICT, "종료된 그룹에서는 일정을 관리할 수 없습니다."),
+    GROUP_MEMBER_ADD_NOT_ALLOWED(HttpStatus.CONFLICT, "종료된 그룹에는 새 그룹원을 추가할 수 없습니다."),
+    SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "일정을 찾을 수 없습니다."),
+    SCHEDULE_MANAGEMENT_FORBIDDEN(HttpStatus.FORBIDDEN, "일정을 관리할 권한이 없습니다."),
+    SCHEDULE_UPDATE_NOT_ALLOWED(HttpStatus.CONFLICT, "이미 시작된 일정은 수정할 수 없습니다."),
+    SCHEDULE_DELETE_NOT_ALLOWED(HttpStatus.CONFLICT, "출석 또는 활동 이력이 있거나 이미 시작된 일정은 삭제할 수 없습니다."),
+    SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED(
+            HttpStatus.CONFLICT, "마감되었거나 이미 시작된 일정의 응답 마감은 변경할 수 없습니다."),
+    ATTENDANCE_RESPONSE_CLOSED(HttpStatus.CONFLICT, "참석 응답 마감 시간이 지났습니다."),
+    ATTENDANCE_CHECK_NOT_STARTED(HttpStatus.CONFLICT, "일정 시작 전에는 출석 체크를 할 수 없습니다."),
+    INVALID_SCHEDULE_TIME(HttpStatus.BAD_REQUEST, "일정 또는 응답 마감 시간이 올바르지 않습니다."),
+    RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다."),
+    DUPLICATE_ACTIVITY_RECORD(HttpStatus.CONFLICT, "이미 활동 기록이 등록되어 있습니다."),
+    ACTIVITY_RECORD_NOT_STARTED(HttpStatus.CONFLICT, "일정 시작 전에는 활동 기록을 작성할 수 없습니다."),
+    ACTIVITY_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다."),
+    ACTIVITY_RECORD_ACCESS_DENIED(HttpStatus.FORBIDDEN, "활동 기록을 관리할 권한이 없습니다."),
+    DUPLICATE_ACTIVITY_REVIEW(HttpStatus.CONFLICT, "이미 리뷰를 작성했습니다."),
+    ACTIVITY_REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."),
+    DUPLICATE_APPLICATION(HttpStatus.CONFLICT, "이미 지원한 모집글입니다."),
+    SELF_APPLICATION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "본인이 작성한 모집글에는 지원할 수 없습니다."),
+    RECRUITMENT_CLOSED(HttpStatus.BAD_REQUEST, "모집이 마감된 모집글입니다."),
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "지원 내역을 찾을 수 없습니다."),
+    APPLICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "지원자 목록을 조회할 권한이 없습니다."),
+    APPLICATION_ALREADY_PROCESSED(HttpStatus.CONFLICT, "이미 처리된 지원입니다."),
+    RECRUITMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "모집글에 대한 권한이 없습니다."),
+    RECRUITMENT_DELETE_NOT_ALLOWED(HttpStatus.CONFLICT, "연관된 그룹 또는 지원 내역이 있어 삭제할 수 없습니다."),
+    RECRUITMENT_REOPEN_NOT_ALLOWED(HttpStatus.CONFLICT, "마감 상태의 모집글만 재모집할 수 있습니다."),
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
+
+    private final HttpStatus status;
+    private final String message;
+
+    ErrorCode(HttpStatus status, String message) {
+        this.status = status;
+        this.message = message;
+    }
+
+    public HttpStatus getStatus() {
+        return status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+}

@@ -1,3 +1,6 @@
 package com.mycom.myapp.study.entity;
 
-public enum GroupStatus {}
+public enum GroupStatus {
+    ACTIVE,
+    ENDED
+}

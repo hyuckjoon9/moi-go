@@ -1,3 +1,22 @@
 package com.mycom.myapp.recruitment.dto.request;
 
-public class RecruitmentCreateRequest {}
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import java.time.LocalDate;
+
+public record RecruitmentCreateRequest(
+        @NotBlank String title,
+        @NotBlank String category,
+        String description,
+        String goal,
+        String method,
+        @NotBlank String meetingType,
+        String location,
+        String onlineLink,
+        String meetingDay,
+        @NotNull @Positive Integer capacity,
+        @NotNull @FutureOrPresent LocalDate recruitmentDeadline,
+        String expectedDuration,
+        String conditions) {}

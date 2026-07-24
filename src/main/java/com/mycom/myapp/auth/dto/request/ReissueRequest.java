@@ -1,3 +1,5 @@
 package com.mycom.myapp.auth.dto.request;
 
-public class ReissueRequest {}
+import jakarta.validation.constraints.NotBlank;
+
+public record ReissueRequest(@NotBlank String refreshToken) {}
