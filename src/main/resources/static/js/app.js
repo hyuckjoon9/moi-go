@@ -1070,10 +1070,10 @@
     const body = window.moiApi.toJsonBody({ response });
     try {
       await window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "POST", body });
-      toast("출석 응답을 저장했습니다.");
+      toast("참석 여부를 저장했습니다.");
       refreshAuthChip();
     } catch (_) {
-      await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "PUT", body }), "출석 응답을 수정했습니다.");
+      await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "PUT", body }), "참석 여부를 수정했습니다.");
     }
   }
   async function bindGroup() {
@@ -1093,7 +1093,7 @@
     $("#groupLoadSchedulesButton")?.addEventListener("click", () => loadGroupSchedules(true));
     $("#groupCreateScheduleForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; } if (!canManageCurrentGroupAttendance()) { toast("일정 생성 권한이 없습니다.", true); return; } const form = event.currentTarget; const schedule = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules`, { method: "POST", body: window.moiApi.toJsonBody(compact(formData(form))) }), "일정을 생성했습니다."); const createdId = schedule?.scheduleId; form.reset(); setDefaultScheduleTime(); toggleScheduleCreateForm(false); await loadGroupSchedules(); if (createdId) selectGroupSchedule(createdId); });
     $("#groupAnswerAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); if (!payload.scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await submitAttendanceAnswer(payload.scheduleId, payload.response); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
-    $("#deleteAttendanceAnswerButton")?.addEventListener("click", async () => { const scheduleId = $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "DELETE" }), "출석 응답을 삭제했습니다."); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
+    $("#deleteAttendanceAnswerButton")?.addEventListener("click", async () => { const scheduleId = $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "DELETE" }), "참석 여부를 삭제했습니다."); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
     $("#groupCheckAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!canManageCurrentGroupAttendance()) return; const payload = formData(event.currentTarget); if (!payload.scheduleId || !payload.userId) { toast("일정과 그룹원을 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${payload.scheduleId}/records`, { method: "POST", body: window.moiApi.toJsonBody({ userId: asNumber(payload.userId), status: payload.status }) }), "출석을 체크했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
     $("#groupLoadAnswerSummaryButton")?.addEventListener("click", loadGroupAnswerSummary);
     $("#groupLoadAttendanceSummaryButton")?.addEventListener("click", async () => { const scheduleId = $("#groupSummaryScheduleSelect")?.value || $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } if (!canManageCurrentGroupAttendance()) return; await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/records/summary`), "출석 체크 현황을 조회했습니다."); await loadGroupAttendanceRates().catch(() => {}); });
