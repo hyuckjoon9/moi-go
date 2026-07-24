@@ -33,6 +33,7 @@ public enum ErrorCode {
     SCHEDULE_DEADLINE_UPDATE_NOT_ALLOWED(
             HttpStatus.CONFLICT, "마감되었거나 이미 시작된 일정의 응답 마감은 변경할 수 없습니다."),
     ATTENDANCE_RESPONSE_CLOSED(HttpStatus.CONFLICT, "참석 응답 마감 시간이 지났습니다."),
+    ATTENDANCE_CHECK_NOT_STARTED(HttpStatus.CONFLICT, "일정 시작 전에는 출석 체크를 할 수 없습니다."),
     INVALID_SCHEDULE_TIME(HttpStatus.BAD_REQUEST, "일정 또는 응답 마감 시간이 올바르지 않습니다."),
     RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다."),
     DUPLICATE_ACTIVITY_RECORD(HttpStatus.CONFLICT, "이미 활동 기록이 등록되어 있습니다."),
