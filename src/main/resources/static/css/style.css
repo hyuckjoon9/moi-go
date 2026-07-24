@@ -1,3 +1,5 @@
+@import url("/css/backoffice.css");
+
 :root {
   --bg: #f4f7fb;
   --surface: #ffffff;
@@ -2037,12 +2039,12 @@ body.modal-open {
 
 .backoffice-app .bo-console-layout { background: var(--bo-bg); }
 .backoffice-app .bo-sidebar {
-  width: 264px;
+  width: var(--bo-sidebar-width);
   background: var(--bo-surface);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
-.backoffice-app .bo-console-main { width: calc(100% - 264px); margin-left: 264px; }
+.backoffice-app .bo-console-main { width: auto; margin-left: calc(var(--bo-sidebar-width) + var(--bo-layout-space)); }
 .backoffice-app .bo-sidebar-brand { min-height: 72px; padding: 0 22px; text-decoration: none; }
 .backoffice-app .bo-logo-frame {
   display: grid;
@@ -2090,7 +2092,7 @@ body.modal-open {
 .backoffice-app .bo-sidebar-footer { background: color-mix(in srgb, var(--bo-surface-muted) 70%, transparent); }
 .backoffice-app .bo-console-header {
   min-height: 72px;
-  padding: 0 34px;
+  padding: 0 var(--bo-content-space);
   background: color-mix(in srgb, var(--bo-surface) 88%, transparent);
 }
 .bo-header-search {
@@ -2109,8 +2111,8 @@ body.modal-open {
   color: var(--bo-text);
   background: var(--bo-surface-muted);
 }
-.backoffice-app .bo-workspace { width: min(1440px, calc(100% - 64px)); padding: 38px 0 54px; }
-.backoffice-app .bo-command-bar { margin-bottom: 30px; }
+.backoffice-app .bo-workspace { width: auto; padding: var(--bo-content-space); }
+.backoffice-app .bo-command-bar { margin: 0; }
 .backoffice-app .bo-command-bar h1 { font-size: clamp(34px, 4vw, 50px); font-weight: 800; }
 .backoffice-app .bo-command-bar p:not(.eyebrow) { max-width: 640px; font-size: 15px; line-height: 1.7; }
 .bo-command-link {
@@ -2216,10 +2218,10 @@ body.modal-open {
 }
 
 @media (max-width: 820px) {
-  .backoffice-app .bo-sidebar { width: 216px; }
-  .backoffice-app .bo-console-main { width: calc(100% - 216px); margin-left: 216px; }
-  .backoffice-app .bo-workspace { width: min(100% - 40px, 1440px); }
-  .backoffice-app .bo-console-header { padding: 0 22px; }
+  .backoffice-app .bo-sidebar { width: var(--bo-sidebar-width); }
+  .backoffice-app .bo-console-main { width: auto; margin-left: calc(var(--bo-sidebar-width) + var(--bo-layout-space)); }
+  .backoffice-app .bo-workspace { width: auto; }
+  .backoffice-app .bo-console-header { padding: 0 var(--bo-content-space); }
 }
 
 @media (max-width: 700px) {

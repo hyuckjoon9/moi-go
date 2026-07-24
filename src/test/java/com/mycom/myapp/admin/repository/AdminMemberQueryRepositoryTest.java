@@ -22,7 +22,7 @@ class AdminMemberQueryRepositoryTest {
     @Autowired private AdminMemberQueryRepository repository;
 
     @Test
-    void findsMembersByKeywordRoleAndStatusInCreatedOrder() {
+    void findsMembersByKeywordRoleAndStatusInAscendingIdOrder() {
         jdbcClient
                 .sql(
                         """
@@ -43,9 +43,28 @@ class AdminMemberQueryRepositoryTest {
                 .singleElement()
                 .satisfies(
                         member -> {
-                            assertThat(member.email()).isEqualTo("new@example.com");
+                            assertThat(member.email()).isEqualTo("old@example.com");
                             assertThat(member.status()).isEqualTo(MemberStatus.ACTIVE);
                         });
+    }
+
+    @Test
+    void listsAdministratorsBeforeUsers() {
+        jdbcClient
+                .sql(
+                        """
+                        insert into users (email, password, nickname, role, status, created_at, updated_at)
+                        values
+                          ('user@example.com', 'encoded', '일반회원', 'USER', 'ACTIVE', now(), now()),
+                          ('admin@example.com', 'encoded', '관리자', 'ADMIN', 'ACTIVE', now(), now())
+                        """)
+                .update();
+
+        AdminMemberListResponse result = repository.findMembers(null, null, null, 0, 20);
+
+        assertThat(result.items())
+                .extracting(AdminMemberListResponse.Item::role)
+                .startsWith(MemberRole.ADMIN, MemberRole.USER);
     }
 
     @Test

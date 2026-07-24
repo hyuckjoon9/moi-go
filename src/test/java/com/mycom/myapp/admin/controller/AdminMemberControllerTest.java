@@ -4,14 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.mycom.myapp.admin.dto.request.AdminMemberStatusUpdateRequest;
 import com.mycom.myapp.admin.dto.response.AdminMemberListResponse;
 import com.mycom.myapp.admin.service.AdminMemberService;
 import com.mycom.myapp.global.response.ApiResponse;
+import com.mycom.myapp.global.security.AuthenticatedMember;
 import com.mycom.myapp.member.entity.MemberRole;
 import com.mycom.myapp.member.entity.MemberStatus;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 class AdminMemberControllerTest {
@@ -52,5 +55,21 @@ class AdminMemberControllerTest {
                 .isEqualTo("page");
         assertThat(method.getParameters()[4].getAnnotation(RequestParam.class).name())
                 .isEqualTo("size");
+    }
+
+    @Test
+    void memberDetailAndStatusChangeDeclareMemberIdPathVariable() throws NoSuchMethodException {
+        Method getMember = AdminMemberController.class.getMethod("getMember", Long.class);
+        Method changeStatus =
+                AdminMemberController.class.getMethod(
+                        "changeStatus",
+                        AuthenticatedMember.class,
+                        Long.class,
+                        AdminMemberStatusUpdateRequest.class);
+
+        assertThat(getMember.getParameters()[0].getAnnotation(PathVariable.class).name())
+                .isEqualTo("memberId");
+        assertThat(changeStatus.getParameters()[1].getAnnotation(PathVariable.class).name())
+                .isEqualTo("memberId");
     }
 }

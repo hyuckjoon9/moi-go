@@ -45,7 +45,7 @@ public class AdminMemberQueryRepository {
                                         from users
                                         """
                                                 + where
-                                                + " order by created_at desc, id desc limit :size offset :offset"),
+                                                + " order by case when role = 'ADMIN' then 0 else 1 end, id asc limit :size offset :offset"),
                                 keyword,
                                 role,
                                 status)

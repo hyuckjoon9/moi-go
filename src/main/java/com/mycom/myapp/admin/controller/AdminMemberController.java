@@ -45,14 +45,15 @@ public class AdminMemberController {
     }
 
     @GetMapping("/{memberId}")
-    public ApiResponse<AdminMemberDetailResponse> getMember(@PathVariable Long memberId) {
+    public ApiResponse<AdminMemberDetailResponse> getMember(
+            @PathVariable(name = "memberId") Long memberId) {
         return ApiResponse.success(service.getMember(memberId));
     }
 
     @PatchMapping("/{memberId}/status")
     public ApiResponse<AdminMemberDetailResponse> changeStatus(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
-            @PathVariable Long memberId,
+            @PathVariable(name = "memberId") Long memberId,
             @Valid @RequestBody AdminMemberStatusUpdateRequest request) {
         if (authenticatedMember == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
