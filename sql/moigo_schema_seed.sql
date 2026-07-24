@@ -236,7 +236,7 @@ CREATE TABLE attendance_records (
     schedule_id BIGINT NOT NULL,
     user_id     BIGINT NOT NULL,
     status      VARCHAR(20) NOT NULL,
-    checked_by  BIGINT NOT NULL,
+    checked_by  BIGINT NULL,
     checked_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT uk_attendance_records_schedule_user
