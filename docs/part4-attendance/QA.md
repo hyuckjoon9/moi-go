@@ -135,3 +135,55 @@ function setActivityRecordButtons(scheduleId, record) {
 ## 제안
 
 `.activity-actions`에 `#deleteActivityRecordButton`(예: "회고 삭제") 버튼을 추가하고, `record`가 있고 관리 권한(`manager`)이 있을 때만 보이도록 `setActivityRecordButtons`에서 토글한다. 클릭 시 `DELETE /api/activity/schedules/{scheduleId}/record` 호출 후 `loadActivityRecord()`로 화면을 갱신하는 핸들러를 추가하면 해결된다.
+
+---
+
+# 그룹 전환해도 활동 회고가 그대로 보이는 문제 (QA)
+
+작성일: 2026-07-24
+작성: 정자비 (Part4: 출석·활동 기록) → 담당: 프론트엔드
+대상 코드: `static/js/app.js` (`loadCurrentGroup`, `renderGroup`, `loadGroupSchedules`, `populateGroupSchedulePickers`), `static/group.html` (`#groupScheduleSelect`)
+
+## 증상
+
+그룹 홈을 다른 그룹으로 전환해도 활동 회고 패널에는 이전 그룹에서 조회했던 회고가 그대로 남아 있다. `activity-review-bug-report.md` 증상 3번("그룹 홈을 바꿔도 활동 회고가 동일하게 보임")과 동일한 문제.
+
+## 원인
+
+백엔드(`GET /api/activity/schedules/{scheduleId}/record`)는 그룹별 활성 그룹원 검증을 정상적으로 수행한다 — 백엔드 문제가 아니다.
+
+`app.js:1058` `loadCurrentGroup()`이 그룹을 전환할 때 새 그룹 정보(`renderGroup`)와 일정 목록(`loadGroupSchedules`)만 갱신하고, 활동 회고 관련 상태는 전혀 초기화하지 않는다.
+
+```js
+async function loadCurrentGroup() {
+  if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; }
+  window.history.replaceState(null, "", `/group.html?groupId=${encodeURIComponent(currentGroupId())}`);
+  const group = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}`), "그룹 홈을 조회했습니다.");
+  renderGroup(group);
+  $(".group-schedule-workspace-panel")?.classList.remove("hidden");
+  await loadGroupSchedules().catch(() => {});
+  if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {});
+}
+```
+
+현재 선택된 일정 id를 들고 있는 `#groupScheduleSelect`는 `<input type="hidden">`(`group.html:70`)인데, `loadGroupSchedules()` → `populateGroupSchedulePickers()`(`app.js:800-806`)는 `.group-schedule-picker` 클래스가 붙은 보이는 select들만 갱신 대상으로 삼고 이 hidden input은 건드리지 않는다.
+
+```js
+function populateGroupSchedulePickers() {
+  document.querySelectorAll(".group-schedule-picker").forEach((select) => {
+    const current = select.value;
+    select.innerHTML = `<option value="">일정을 선택하세요</option>${currentGroupSchedules.map((schedule) => `<option value="${escapeHtml(schedule.scheduleId)}">${escapeHtml(scheduleDisplayName(schedule))}</option>`).join("")}`;
+    if (current && currentGroupSchedules.some((schedule) => String(schedule.scheduleId) === String(current))) select.value = current;
+  });
+}
+```
+
+그 결과 `#groupScheduleSelect`는 이전 그룹에서 선택했던 scheduleId를 그대로 유지하고, `groupActivityPanel`/`activityRecordView`/`currentActivityRecord`/`groupScheduleDetailPanel`도 그룹 전환 시 초기화·숨김 처리하는 코드가 없다. 오직 사용자가 새 그룹의 일정 카드를 직접 클릭해 `selectGroupSchedule()`을 호출해야만 `loadActivityRecord(scheduleId)`(`app.js:973`)가 실행되어 화면이 갱신된다. 그 전까지는 "회고 조회" 버튼(`reloadActivityRecordButton`)을 눌러도 기본 인자가 여전히 옛 scheduleId(`$("#groupScheduleSelect")?.value`)라 옛 그룹의 회고를 다시 불러올 뿐이다.
+
+## 제안
+
+`loadCurrentGroup()`에서 새 그룹 데이터를 받아온 직후 다음을 초기화한다.
+
+- `#groupScheduleSelect` 값 비우기
+- `renderActivityRecord(null, null)` 호출로 회고 패널과 `currentActivityRecord` 초기화
+- `#groupScheduleDetailPanel` 숨김 처리
