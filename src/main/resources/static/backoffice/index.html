@@ -1,9 +1,503 @@
 <!doctype html>
-<html lang="ko">
-  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Moi-Go Back Office</title><link rel="stylesheet" href="/css/style.css?v=20260721-service-ux" /></head>
-  <body data-page="backoffice">
-    <header class="app-header backoffice-header"><a class="brand" href="/backoffice/index.html" aria-label="Moi-Go Back Office"><img class="brand-logo" src="/assets/moi-go-logo.jpg" alt="Moi-Go" /><span class="ops-label">Back Office</span></a><nav class="main-nav" aria-label="백오피스 메뉴"><a href="/backoffice/index.html">운영 현황</a><a href="/index.html">사용자 서비스</a></nav><div class="header-actions"><span class="auth-chip">운영자 인증 필요</span></div></header>
-    <main class="page-shell"><div class="page-title"><p class="eyebrow">Back Office</p><h1>운영 현황</h1><p>사용자 서비스와 분리된 운영자용 화면입니다. admin 계정 자동 로그인이나 하드코딩 로그인은 제공하지 않습니다.</p></div><section class="ops-notice"><strong>운영자 인증 정책</strong><span>실제 운영자 로그인 API가 정해지기 전까지는 조회 중심 프로토타입으로 유지합니다.</span></section><section class="dashboard-grid"><article class="panel wide"><div class="panel-heading"><div><p class="eyebrow">Recruitments</p><h2>모집글 운영 조회</h2></div><button id="boLoadRecruitments" class="button small" type="button">조회</button></div><div id="boRecruitmentList" class="card-list"></div></article><article class="panel"><p class="eyebrow">Attendance</p><h2>출석 요약 조회</h2><label>일정 ID<input id="boSummaryScheduleId" type="number" value="1" /></label><button id="boLoadAttendanceSummary" class="button full" type="button">요약 조회</button><pre id="boOutput" class="output"></pre></article></section></main>
-    <script src="/js/api.js?v=20260721-service-ux"></script><script src="/js/auth.js?v=20260721-service-ux"></script><script src="/js/app.js?v=20260721-service-ux"></script>
+<html lang="ko" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moi-Go Back Office · Modern Indigo Glassmorphism Console</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/style.css?v=20260724-layout" />
+    <link rel="stylesheet" href="/css/backoffice.css?v=20260724-operations-fix" />
+  </head>
+  <body class="backoffice-app" data-page="backoffice">
+    <div class="bo-console-layout">
+      <!-- Glassmorphic Sidebar -->
+      <aside class="bo-sidebar" aria-label="Back Office 메뉴">
+        <a class="bo-sidebar-brand" href="/backoffice/index.html" aria-label="Moi-Go Back Office 홈">
+          <span>
+            <strong>Moi-Go</strong>
+            <small>MANAGEMENT CONSOLE</small>
+          </span>
+        </a>
+
+        <nav class="bo-sidebar-nav">
+          <div class="bo-nav-section-title">Core Management</div>
+          <a class="bo-nav-item active" data-view="dashboard">
+            <span class="bo-nav-icon">▦</span>
+            <span>대시보드 개요</span>
+          </a>
+          <a class="bo-nav-item" data-view="members">
+            <span class="bo-nav-icon">♙</span>
+            <span>회원 관리</span>
+          </a>
+          <a class="bo-nav-item" data-view="recruitments">
+            <span class="bo-nav-icon">◫</span>
+            <span>모집 & 스터디</span>
+          </a>
+          <a class="bo-nav-item" data-view="operations">
+            <span class="bo-nav-icon">▤</span>
+            <span>그룹 운영 조회</span>
+          </a>
+
+          <div class="bo-nav-section-title">Audit & System</div>
+          <a class="bo-nav-item" data-view="audit">
+            <span class="bo-nav-icon">🛡</span>
+            <span>보안 감사 로그</span>
+          </a>
+          <a class="bo-nav-item" data-view="settings">
+            <span class="bo-nav-icon">⚙</span>
+            <span>시스템 설정</span>
+          </a>
+
+          <div class="bo-nav-section-title">Services</div>
+          <a class="bo-nav-item" href="/index.html">
+            <span class="bo-nav-icon">↗</span>
+            <span>사용자 서비스</span>
+          </a>
+        </nav>
+
+        <div class="bo-sidebar-footer">
+          <span id="boAdminName">운영자 확인 중...</span>
+          <small>ADMINISTRATOR ACTIVE</small>
+        </div>
+      </aside>
+
+      <!-- Main Console Content Area -->
+      <div class="bo-console-main">
+        <!-- Top Navigation Header -->
+        <header class="bo-console-header">
+          <div class="bo-header-left">
+            <button id="boCmdTrigger" class="bo-header-search-trigger" type="button" aria-label="커맨드 패널 열기">
+              <span>⌕</span>
+              <span>빠른 명령 및 회원 검색...</span>
+              <span class="bo-kbd">⌘K</span>
+            </button>
+          </div>
+
+          <div class="bo-header-right">
+            <!-- Notification Bell & Dropdown -->
+            <div style="position: relative;">
+              <button id="boNotifBell" class="bo-icon-btn" type="button" aria-label="알림 센터">
+                <svg class="bo-icon-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+                </svg>
+                <span id="boUnreadBadge" class="bo-unread-badge" hidden></span>
+              </button>
+
+              <div id="boNotifDropdown" class="bo-dropdown-menu">
+                <div class="bo-dropdown-header">
+                  <h4>최근 운영 알림</h4>
+                  <span id="boNotifCount" class="bo-chip active">0건</span>
+                </div>
+                <div id="boNotifList" class="bo-notification-list">
+                  <p style="font-size: 0.8rem; color: var(--bo-text-muted); margin: 0.5rem 0; text-align: center;">새로운 알림이 없습니다.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Theme Toggle -->
+            <button id="boThemeToggle" class="bo-icon-btn" type="button" aria-label="테마 전환">
+              <span>◐</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main id="boWorkspace" class="bo-workspace" hidden>
+          <!-- Notice / State Container -->
+          <div id="boState" class="bo-glass-panel" style="padding: 1rem 1.5rem; display: none;" data-kind="info"></div>
+
+          <!-- 1) 대시보드 개요 View -->
+          <section id="view-dashboard" class="bo-view active">
+            <div class="bo-command-bar">
+              <div>
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--bo-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">System Overview</p>
+                <h1>서비스 운영 대시보드</h1>
+                <p>회원 현황 및 스터디 그룹 운영 상태를 한눈에 파악하고 실시간 조치를 수행합니다.</p>
+              </div>
+              <div class="bo-status-pill">
+                <span class="bo-status-dot"></span>
+                <span>운영 노드 정상 가동 중</span>
+              </div>
+            </div>
+
+            <!-- Metric KPI Grid (6 Actual Metrics) -->
+            <div class="bo-metric-grid">
+              <article class="bo-glass-panel bo-metric-card">
+                <div class="bo-metric-header">
+                  <span class="bo-metric-label">전체 회원</span>
+                  <span class="bo-metric-icon">♙</span>
+                </div>
+                <div class="bo-metric-value" data-metric="members.total">-</div>
+              </article>
+              <article class="bo-glass-panel bo-metric-card">
+                <div class="bo-metric-header">
+                  <span class="bo-metric-label">활성 회원</span>
+                  <span class="bo-metric-icon success">●</span>
+                </div>
+                <div class="bo-metric-value" data-metric="members.active">-</div>
+              </article>
+              <article class="bo-glass-panel bo-metric-card">
+                <div class="bo-metric-header">
+                  <span class="bo-metric-label">정지 회원</span>
+                  <span class="bo-metric-icon warning">!</span>
+                </div>
+                <div class="bo-metric-value" data-metric="members.suspended">-</div>
+              </article>
+              <article class="bo-glass-panel bo-metric-card">
+                <div class="bo-metric-header">
+                  <span class="bo-metric-label">모집 중 모집글</span>
+                  <span class="bo-metric-icon cyan">⌁</span>
+                </div>
+                <div class="bo-metric-value" data-metric="recruitments.recruiting">-</div>
+              </article>
+              <article class="bo-glass-panel bo-metric-card">
+                <div class="bo-metric-header">
+                  <span class="bo-metric-label">진행 중 모집글</span>
+                  <span class="bo-metric-icon">◫</span>
+                </div>
+                <div class="bo-metric-value" data-metric="recruitments.active">-</div>
+              </article>
+              <article class="bo-glass-panel bo-metric-card">
+                <div class="bo-metric-header">
+                  <span class="bo-metric-label">활성 스터디 그룹</span>
+                  <span class="bo-metric-icon success">◇</span>
+                </div>
+                <div class="bo-metric-value" data-metric="groups.active">-</div>
+              </article>
+            </div>
+
+            <!-- Charts & Visual Section -->
+            <div class="bo-grid-two">
+              <article class="bo-glass-panel bo-panel">
+                <div class="bo-panel-header">
+                  <h3 class="bo-panel-title"><span class="bo-panel-icon">○</span> 회원 상태 구성 비율</h3>
+                  <span class="bo-chip active">Actual Data</span>
+                </div>
+                <div class="bo-chart-wrapper">
+                  <svg id="memberDonutChart" class="bo-donut-chart" viewBox="0 0 42 42"></svg>
+                  <div id="memberDonutLegend" class="bo-donut-legend"></div>
+                </div>
+              </article>
+
+              <article class="bo-glass-panel bo-panel">
+                <div class="bo-panel-header">
+                  <h3 class="bo-panel-title"><span class="bo-panel-icon">▥</span> 모집 및 스터디 그룹 현황</h3>
+                  <span class="bo-chip admin">Live Status</span>
+                </div>
+                <div id="recruitmentGroupBarChart" class="bo-chart-wrapper" style="flex-direction: column; align-items: stretch; justify-content: center; padding: 0 1rem; gap: 1rem;">
+                  <!-- Dynamic SVG Bar Chart -->
+                </div>
+              </article>
+            </div>
+
+            <!-- Recent Audit Stream Panel -->
+            <article class="bo-glass-panel bo-panel">
+              <div class="bo-panel-header">
+                <h3 class="bo-panel-title"><span class="bo-panel-icon">◇</span> 최근 운영 조치 내역 (Audit Trail)</h3>
+                <button class="bo-btn ghost" data-view-trigger="audit">전체 감사 로그 보기 →</button>
+              </div>
+              <div id="boRecentActions" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <p style="color: var(--bo-text-muted); font-size: 0.85rem; text-align: center;">조치 이력을 불러오는 중입니다...</p>
+              </div>
+            </article>
+          </section>
+
+          <!-- 2) 회원 관리 디렉토리 View -->
+          <section id="view-members" class="bo-view">
+            <div class="bo-command-bar">
+              <div>
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--bo-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Member Directory</p>
+                <h1>회원 디렉토리 & 상태 관리</h1>
+                <p>전체 회원 목록을 조회하고, 검색/필터링 및 계정 이용 정지/활성화 조치를 수행합니다.</p>
+              </div>
+            </div>
+
+            <article class="bo-glass-panel bo-panel">
+              <!-- Filter Bar -->
+              <form id="boMemberFilterForm" class="bo-filter-bar" role="search">
+                <input name="keyword" class="bo-input form-control" type="search" placeholder="닉네임 또는 이메일 검색..." style="flex: 1; min-width: 200px;" />
+                <select name="role" class="bo-select form-select">
+                  <option value="">전체 역할</option>
+                  <option value="USER">일반 회원 (USER)</option>
+                  <option value="ADMIN">관리자 (ADMIN)</option>
+                </select>
+                <select name="status" class="bo-select form-select">
+                  <option value="">전체 상태</option>
+                  <option value="ACTIVE">활성 (ACTIVE)</option>
+                  <option value="SUSPENDED">정지 (SUSPENDED)</option>
+                  <option value="WITHDRAWN">탈퇴 (WITHDRAWN)</option>
+                </select>
+                <button class="bo-btn btn btn-primary" type="submit">검색 적용</button>
+              </form>
+
+              <!-- Table & Pagination -->
+              <div class="bo-table-container">
+                <table class="bo-table table table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>회원 정보</th>
+                      <th>역할</th>
+                      <th>상태</th>
+                      <th>가입 일시</th>
+                      <th>관리 조치</th>
+                    </tr>
+                  </thead>
+                  <tbody id="boMemberListTable">
+                    <tr>
+                      <td colspan="6" style="text-align: center; color: var(--bo-text-muted);">회원 목록을 불러오는 중...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div id="boMemberPagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.5rem;"></div>
+            </article>
+
+            <!-- Selected Member Detail / Action Panel -->
+            <article id="boMemberDetailPanel" class="bo-glass-panel bo-panel" hidden>
+              <div class="bo-panel-header">
+                <h3 class="bo-panel-title"><span>👤</span> 회원 상세 정보 및 상태 조치</h3>
+                <span id="boDetailStatusChip" class="bo-chip active">-</span>
+              </div>
+              <div id="boMemberDetailBody" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Filled dynamically by JS -->
+              </div>
+            </article>
+          </section>
+
+          <!-- 3) 모집 & 스터디 View -->
+          <section id="view-recruitments" class="bo-view">
+            <div class="bo-command-bar">
+              <div>
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--bo-accent-cyan); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Recruitment & Group Analytics</p>
+                <h1>모집글 및 스터디 그룹 현황</h1>
+                <p>서비스 내 모집 상태 및 활성화된 스터디 그룹 현황을 실시간 집계합니다.</p>
+              </div>
+            </div>
+
+            <div class="bo-grid-two">
+              <article class="bo-glass-panel bo-panel">
+                <div class="bo-panel-header">
+                  <h3 class="bo-panel-title"><span>📝</span> 모집글 현황 요약</h3>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: var(--bo-radius-sm);">
+                    <span>모집 진행 중 (RECRUITING)</span>
+                    <strong id="recStatRecruiting" style="font-size: 1.5rem; color: var(--bo-accent-cyan);">-</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: var(--bo-radius-sm);">
+                    <span>모집 마감 (CLOSED)</span>
+                    <strong id="recStatClosed" style="font-size: 1.5rem; color: var(--bo-text-muted);">-</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: var(--bo-radius-sm);">
+                    <span>노출 진행 (ACTIVE)</span>
+                    <strong id="recStatActive" style="font-size: 1.5rem; color: var(--bo-success);">-</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article class="bo-glass-panel bo-panel">
+                <div class="bo-panel-header">
+                  <h3 class="bo-panel-title"><span>👥</span> 스터디 그룹 현황 요약</h3>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: var(--bo-radius-sm);">
+                    <span>활성 스터디 그룹 (ACTIVE)</span>
+                    <strong id="grpStatActive" style="font-size: 1.5rem; color: var(--bo-success);">-</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: var(--bo-radius-sm);">
+                    <span>종료된 그룹 (ENDED)</span>
+                    <strong id="grpStatEnded" style="font-size: 1.5rem; color: var(--bo-text-muted);">-</strong>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <article class="bo-glass-panel bo-panel">
+              <div class="bo-panel-header">
+                <h3 class="bo-panel-title"><span>⌕</span> 모집글 검색 및 노출 관리</h3>
+              </div>
+              <form id="boRecruitmentFilterForm" class="bo-filter-bar" role="search">
+                <input name="keyword" class="bo-input form-control" type="search" placeholder="제목 또는 모집장 닉네임 검색..." style="flex: 1; min-width: 200px;" />
+                <select name="status" class="bo-select form-select">
+                  <option value="">전체 모집 상태</option>
+                  <option value="RECRUITING">모집 중</option>
+                  <option value="CLOSED">모집 마감</option>
+                  <option value="ACTIVE">진행 중</option>
+                  <option value="ENDED">종료</option>
+                </select>
+                <select name="visibility" class="bo-select form-select">
+                  <option value="">전체 노출 상태</option>
+                  <option value="VISIBLE">노출</option>
+                  <option value="HIDDEN">숨김</option>
+                </select>
+                <button class="bo-btn btn btn-primary" type="submit">검색 적용</button>
+              </form>
+              <div class="bo-table-container">
+                <table class="bo-table table table-hover align-middle mb-0">
+                  <thead><tr><th>ID</th><th>모집글</th><th>모집장</th><th>모집 상태</th><th>노출</th><th>생성 일시</th><th>조치</th></tr></thead>
+                  <tbody id="boRecruitmentListTable"><tr><td colspan="7" style="text-align: center; color: var(--bo-text-muted);">모집글 목록을 불러오는 중...</td></tr></tbody>
+                </table>
+              </div>
+              <div id="boRecruitmentPagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.5rem;"></div>
+            </article>
+
+            <article id="boRecruitmentDetailPanel" class="bo-glass-panel bo-panel" hidden>
+              <div class="bo-panel-header"><h3 class="bo-panel-title"><span>📝</span> 모집글 상세 및 노출 조치</h3></div>
+              <div id="boRecruitmentDetailBody"></div>
+            </article>
+          </section>
+
+          <section id="view-operations" class="bo-view">
+            <div class="bo-command-bar"><div><p style="font-size: .75rem; font-weight: 700; color: var(--bo-accent-cyan); text-transform: uppercase; margin: 0;">Read-only operations</p><h1>그룹 · 일정 · 출석 · 활동 조회</h1><p>운영 데이터는 조회만 가능하며, 여기서 상태를 변경할 수 없습니다.</p></div></div>
+            <article class="bo-glass-panel bo-panel">
+              <form id="boOperationsFilterForm" class="bo-filter-bar"><input name="keyword" class="bo-input form-control" type="search" placeholder="그룹, 일정, 회원 또는 활동 주제 검색" style="flex:1; min-width:200px"><select name="groupStatus" class="bo-select form-select"><option value="">전체 그룹 상태</option><option value="ACTIVE">진행</option><option value="ENDED">종료</option></select><select name="attendanceStatus" class="bo-select form-select"><option value="">전체 출석</option><option value="PRESENT">출석</option><option value="LATE">지각</option><option value="ABSENT">결석</option><option value="EXCUSED">인정 결석</option></select><button class="bo-btn btn btn-primary">검색 적용</button></form>
+              <div class="bo-grid-two">
+                <div class="bo-table-container bo-operation-table"><h3 class="bo-panel-title">그룹</h3><table class="bo-table table"><thead><tr><th>그룹</th><th>상태</th><th>활성 인원</th></tr></thead><tbody id="boGroupListTable"></tbody></table></div>
+                <div class="bo-table-container bo-operation-table"><h3 class="bo-panel-title">일정</h3><table class="bo-table table"><thead><tr><th>그룹</th><th>일정</th><th>일시</th></tr></thead><tbody id="boScheduleListTable"></tbody></table></div>
+                <div class="bo-table-container bo-operation-table"><h3 class="bo-panel-title">출석 기록</h3><table class="bo-table table"><thead><tr><th>일정</th><th>회원</th><th>상태</th></tr></thead><tbody id="boAttendanceListTable"></tbody></table></div>
+                <div class="bo-table-container bo-operation-table"><h3 class="bo-panel-title">활동 기록</h3><table class="bo-table table"><thead><tr><th>일정</th><th>주제</th><th>갱신</th></tr></thead><tbody id="boActivityListTable"></tbody></table></div>
+              </div>
+            </article>
+          </section>
+
+          <!-- 4) 보안 감사 로그 View -->
+          <section id="view-audit" class="bo-view">
+            <div class="bo-command-bar">
+              <div>
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--bo-accent-purple); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Security & Operations Log</p>
+                <h1>보안 감사 로그 스트림</h1>
+                <p>관리자 조치 이력 및 보안 관련 이벤트 로그 스트림을 실시간 확인합니다.</p>
+              </div>
+            </div>
+
+            <article class="bo-glass-panel bo-panel">
+              <form id="boAuditFilterForm" class="bo-filter-bar" role="search"><input name="keyword" class="bo-input form-control" type="search" placeholder="대상 또는 사유 검색" style="flex:1; min-width:180px"><select name="action" class="bo-select form-select"><option value="">전체 조치</option><option value="MEMBER_STATUS_CHANGED">회원 상태 변경</option><option value="RECRUITMENT_HIDDEN">모집글 숨김</option><option value="RECRUITMENT_RESTORED">모집글 복구</option></select><select name="targetType" class="bo-select form-select"><option value="">전체 대상</option><option value="MEMBER">회원</option><option value="RECRUITMENT">모집글</option></select><button class="bo-btn btn btn-primary" type="submit">검색 적용</button></form>
+              <div class="bo-table-container">
+                <table class="bo-table table table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>일시</th>
+                      <th>관리자 ID</th>
+                      <th>대상 유형 및 ID</th>
+                      <th>수행 조치</th>
+                      <th>사유 / 상세 내용</th>
+                    </tr>
+                  </thead>
+                  <tbody id="boAuditTableBody">
+                    <tr>
+                      <td colspan="5" style="text-align: center; color: var(--bo-text-muted);">감사 로그를 로딩 중입니다...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <!-- 5) 시스템 설정 View -->
+          <section id="view-settings" class="bo-view">
+            <div class="bo-command-bar">
+              <div>
+                <p style="font-size: 0.75rem; font-weight: 700; color: var(--bo-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">System Settings</p>
+                <h1>콘솔 설정 및 세션 정보</h1>
+                <p>운영 테마 설정 및 관리자 세션 상태를 관리합니다.</p>
+              </div>
+            </div>
+
+            <article class="bo-glass-panel bo-panel" style="max-width: 600px;">
+              <div class="bo-panel-header">
+                <h3 class="bo-panel-title"><span>🎨</span> UI / UX 테마 설정</h3>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: var(--bo-radius-sm);">
+                <div>
+                  <strong style="display: block;">Modern Indigo Dark Theme</strong>
+                  <span style="font-size: 0.8rem; color: var(--bo-text-muted);">Glassmorphism 딥 블루 & 글로우 스타일</span>
+                </div>
+                <button id="boSettingsThemeBtn" class="bo-btn ghost" type="button">다크 / 라이트 토글</button>
+              </div>
+
+              <div class="bo-panel-header" style="margin-top: 1rem;">
+                <h3 class="bo-panel-title"><span>🔐</span> 관리자 세션 정보</h3>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem; color: var(--bo-text-secondary); background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--bo-radius-sm);">
+                <div>권한: <strong style="color: var(--bo-accent-purple);">ADMINISTRATOR</strong></div>
+                <div>API Endpoint: <code>/api/admin/*</code></div>
+                <div>보안 규칙: JWT Refresh token 자동 무효화 및 강제 로그아웃 연동 적용 중</div>
+              </div>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- Command Palette Modal (Cmd + K) -->
+    <div id="boCmdModal" class="bo-modal-backdrop" role="dialog" aria-modal="true">
+      <div class="bo-cmd-palette">
+        <div class="bo-cmd-input-wrapper">
+          <span style="font-size: 1.2rem; color: var(--bo-primary);">⌕</span>
+          <input id="boCmdInput" class="bo-cmd-input" type="text" placeholder="명령어 입력 또는 회원 닉네임 검색... (ESC로 닫기)" />
+        </div>
+        <div id="boCmdResults" class="bo-cmd-results">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Member Status Action Modal -->
+    <div id="boStatusModal" class="bo-modal-backdrop" role="dialog" aria-modal="true">
+      <div class="bo-cmd-palette" style="max-width: 480px; padding: 1.5rem;">
+        <h3 style="margin-top: 0;">회원 상태 조치 변경</h3>
+        <form id="boStatusModalForm" style="display: flex; flex-direction: column; gap: 1rem;">
+          <input name="memberId" type="hidden" />
+          <input name="expectedStatus" type="hidden" />
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; color: var(--bo-text-muted); margin-bottom: 0.35rem;">회원 닉네임</label>
+            <strong id="boModalMemberNick" style="font-size: 1.1rem; color: var(--bo-text-primary);">-</strong>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; color: var(--bo-text-muted); margin-bottom: 0.35rem;">조치 변경 상태</label>
+            <select name="status" class="bo-select form-select" style="width: 100%;">
+              <option value="SUSPENDED">계정 이용 정지 (SUSPENDED)</option>
+              <option value="ACTIVE">계정 활성화 (ACTIVE)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; color: var(--bo-text-muted); margin-bottom: 0.35rem;">조치 사유 (5자 이상 필수)</label>
+            <textarea name="reason" class="bo-input form-control" style="width: 100%; min-height: 80px; resize: vertical;" minlength="5" maxlength="500" required placeholder="관리 조치 사유를 상세히 입력하십시오."></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+            <button id="boStatusModalClose" class="bo-btn ghost" type="button">취소</button>
+            <button class="bo-btn danger" type="submit">상태 변경 저장</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Admin Access Guard Modal -->
+    <section id="boAccessModal" class="bo-modal-backdrop" role="alertdialog" aria-modal="true" hidden style="opacity: 1; pointer-events: auto;">
+      <div class="bo-cmd-palette" style="max-width: 440px; padding: 2rem; text-align: center;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔒</div>
+        <h2 style="margin: 0 0 0.5rem 0; font-size: 1.3rem;">관리자 권한이 필요합니다</h2>
+        <p style="color: var(--bo-text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+          이 공간은 백오피스 관리자 전용 콘솔입니다.<br />잠시 후 사용자 메인 화면으로 이동합니다.
+        </p>
+        <div class="bo-status-pill" style="justify-content: center;">
+          <span class="bo-status-dot"></span>
+          <span>메인 페이지 이동 중...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toast Notification Container -->
+    <div id="boToastContainer" class="bo-toast-container"></div>
+
+    <script src="/js/api.js?v=20260723"></script>
+    <script src="/js/auth.js?v=20260723"></script>
+    <script src="/js/backoffice.js?v=20260724-operations-fix"></script>
   </body>
 </html>

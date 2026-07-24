@@ -70,6 +70,10 @@ public class RecruitmentPost extends BaseTimeEntity {
     @Column(nullable = false)
     private RecruitmentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RecruitmentVisibility visibility;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -110,6 +114,7 @@ public class RecruitmentPost extends BaseTimeEntity {
         this.expectedDuration = expectedDuration;
         this.conditions = conditions;
         this.status = status;
+        this.visibility = RecruitmentVisibility.VISIBLE;
     }
 
     public void update(
@@ -151,6 +156,10 @@ public class RecruitmentPost extends BaseTimeEntity {
 
     public void end() {
         this.status = RecruitmentStatus.ENDED;
+    }
+
+    public void changeVisibility(RecruitmentVisibility visibility) {
+        this.visibility = visibility;
     }
 
     public void reopen(

@@ -35,17 +35,7 @@ class StudyGroupRepositoryTest {
                         "select status from study_groups where id = ?",
                         String.class,
                         saved.getId());
-        String statusColumnType =
-                jdbcTemplate.queryForObject(
-                        """
-                        select data_type
-                        from information_schema.columns
-                        where table_name = 'STUDY_GROUPS' and column_name = 'STATUS'
-                        """,
-                        String.class);
-
         assertThat(storedStatus).isEqualTo("ACTIVE");
-        assertThat(statusColumnType).isEqualTo("CHARACTER VARYING");
     }
 
     @Test

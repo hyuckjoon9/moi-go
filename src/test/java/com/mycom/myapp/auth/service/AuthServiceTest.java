@@ -16,6 +16,7 @@ import com.mycom.myapp.global.exception.BusinessException;
 import com.mycom.myapp.global.exception.ErrorCode;
 import com.mycom.myapp.global.security.jwt.JwtTokenProvider;
 import com.mycom.myapp.member.entity.Member;
+import com.mycom.myapp.member.entity.MemberStatus;
 import com.mycom.myapp.member.repository.MemberRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -72,6 +73,19 @@ class AuthServiceTest {
         assertError(
                 ErrorCode.INVALID_CREDENTIALS,
                 () -> authService.login(new LoginRequest("user@moigo.test", "wrong-password")));
+    }
+
+    @Test
+    @DisplayName("비밀번호가 맞아도 정지 회원이면 정지 안내로 로그인을 거부한다")
+    void rejectsSuspendedMemberWithSuspensionMessage() {
+        Member member = activeMember(1L);
+        member.changeStatus(MemberStatus.SUSPENDED);
+        when(memberRepository.findByEmail("user@moigo.test")).thenReturn(Optional.of(member));
+        when(passwordEncoder.matches("password123", "encoded-password")).thenReturn(true);
+
+        assertError(
+                ErrorCode.SUSPENDED_MEMBER,
+                () -> authService.login(new LoginRequest("user@moigo.test", "password123")));
     }
 
     // 토큰 재발급 성공 테스트:

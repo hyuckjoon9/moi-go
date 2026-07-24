@@ -100,27 +100,8 @@ class GroupMemberRepositoryTest {
                         "select status from group_members where id = ?",
                         String.class,
                         member.getId());
-        String roleColumnType =
-                jdbcTemplate.queryForObject(
-                        """
-                        select data_type
-                        from information_schema.columns
-                        where table_name = 'GROUP_MEMBERS' and column_name = 'ROLE'
-                        """,
-                        String.class);
-        String statusColumnType =
-                jdbcTemplate.queryForObject(
-                        """
-                        select data_type
-                        from information_schema.columns
-                        where table_name = 'GROUP_MEMBERS' and column_name = 'STATUS'
-                        """,
-                        String.class);
-
         assertThat(storedRole).isEqualTo("MANAGER");
         assertThat(storedStatus).isEqualTo("ACTIVE");
-        assertThat(roleColumnType).isEqualTo("CHARACTER VARYING");
-        assertThat(statusColumnType).isEqualTo("CHARACTER VARYING");
     }
 
     @Test

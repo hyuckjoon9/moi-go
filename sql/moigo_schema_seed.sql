@@ -1,10 +1,12 @@
 -- moigo_schema.sql
 -- MySQL 8.0+
 -- ERD 기반 스키마 + 관계형 테스트 데이터 (확장판)
--- 원본 스키마(DDL)는 그대로 유지하고, 테스트 데이터만 여러 시나리오가 섞이도록 채웠습니다.
+-- Back Office 개발 기준 스키마와 테스트 데이터를 함께 구성합니다.
+-- 개발 DB를 재생성하는 전용 스크립트이므로, 기존 데이터를 보존해야 하는 DB에는 실행하지 않습니다.
 USE moigo;
 
 -- 재실행 가능하도록 자식 테이블부터 삭제
+DROP TABLE IF EXISTS admin_audit_logs;
 DROP TABLE IF EXISTS activity_reviews;
 DROP TABLE IF EXISTS activity_records;
 DROP TABLE IF EXISTS attendance_records;
@@ -36,8 +38,29 @@ CREATE TABLE users (
     CONSTRAINT chk_users_role
         CHECK (role IN ('USER', 'ADMIN')),
     CONSTRAINT chk_users_status
-        CHECK (status IN ('ACTIVE', 'WITHDRAWN'))
+        CHECK (status IN ('ACTIVE', 'SUSPENDED', 'WITHDRAWN'))
 ) ENGINE = InnoDB;
+
+CREATE TABLE admin_audit_logs (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    admin_id        BIGINT NOT NULL,
+    action          VARCHAR(50) NOT NULL,
+    target_type     VARCHAR(30) NOT NULL,
+    target_id       BIGINT NOT NULL,
+    target_label    VARCHAR(255) NOT NULL,
+    before_snapshot TEXT NOT NULL,
+    after_snapshot  TEXT NOT NULL,
+    reason          VARCHAR(500) NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_admin_audit_logs_admin
+        FOREIGN KEY (admin_id) REFERENCES users(id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+CREATE INDEX idx_admin_audit_logs_created
+    ON admin_audit_logs (created_at DESC, id DESC);
 
 CREATE TABLE refresh_tokens (
     id         BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -72,6 +95,7 @@ CREATE TABLE recruitment_posts (
     expected_duration    VARCHAR(50) NULL,
     conditions           TEXT NULL,
     status               VARCHAR(20) NOT NULL DEFAULT 'RECRUITING',
+    visibility           VARCHAR(20) NOT NULL DEFAULT 'VISIBLE',
     created_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                                            ON UPDATE CURRENT_TIMESTAMP,
@@ -85,7 +109,9 @@ CREATE TABLE recruitment_posts (
     CONSTRAINT chk_recruitment_posts_capacity
         CHECK (capacity > 0),
     CONSTRAINT chk_recruitment_posts_status
-        CHECK (status IN ('RECRUITING', 'CLOSED', 'ACTIVE', 'ENDED'))
+        CHECK (status IN ('RECRUITING', 'CLOSED', 'ACTIVE', 'ENDED')),
+    CONSTRAINT chk_recruitment_posts_visibility
+        CHECK (visibility IN ('VISIBLE', 'HIDDEN'))
 ) ENGINE = InnoDB;
 
 CREATE INDEX idx_recruitment_posts_status_category
@@ -463,7 +489,7 @@ INSERT INTO recruitment_posts (
     leader_id, title, category, description, goal, method,
     meeting_type, location, online_link, meeting_day,
     capacity, recruitment_deadline, expected_duration,
-    conditions, status
+    conditions, status, visibility
 ) VALUES
 (
     1,
@@ -480,7 +506,8 @@ INSERT INTO recruitment_posts (
     '2026-08-10',
     '8주',
     'Java 기본 문법을 이해하고 있는 사람',
-    'ACTIVE'
+    'ACTIVE',
+    'VISIBLE'
 ),
 (
     3,
@@ -497,7 +524,8 @@ INSERT INTO recruitment_posts (
     '2026-08-20',
     '6주',
     'HTML/CSS 기본 지식',
-    'RECRUITING'
+    'RECRUITING',
+    'VISIBLE'
 ),
 (
     8,
@@ -514,7 +542,8 @@ INSERT INTO recruitment_posts (
     '2026-07-15',
     '10주',
     '자료구조 기초 지식 필요',
-    'CLOSED'
+    'CLOSED',
+    'HIDDEN'
 ),
 (
     10,
@@ -531,7 +560,8 @@ INSERT INTO recruitment_posts (
     '2026-06-01',
     '4주',
     '취업 준비생',
-    'ENDED'
+    'ENDED',
+    'VISIBLE'
 );
 
 INSERT INTO join_applications (

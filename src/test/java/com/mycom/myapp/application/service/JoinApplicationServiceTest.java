@@ -15,6 +15,7 @@ import com.mycom.myapp.member.entity.Member;
 import com.mycom.myapp.member.repository.MemberRepository;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
+import com.mycom.myapp.recruitment.entity.RecruitmentVisibility;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
 import com.mycom.myapp.study.service.AddStudyGroupMemberCommand;
 import com.mycom.myapp.study.service.port.StudyGroupProvisioningPort;
@@ -85,6 +86,29 @@ class JoinApplicationServiceTest {
         when(joinApplicationRepository.existsByPostIdAndApplicantId(1L, 2L)).thenReturn(true);
 
         assertThatThrownBy(() -> joinApplicationService.create(1L, 2L, request))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("숨김 모집글에는 지원할 수 없다")
+    void create_fail_hiddenRecruitment() {
+        Member leader = Member.create("leader@test.com", "encoded", "리더", null, null, null);
+        ReflectionTestUtils.setField(leader, "id", 1L);
+        RecruitmentPost post =
+                RecruitmentPost.builder()
+                        .leader(leader)
+                        .status(RecruitmentStatus.RECRUITING)
+                        .build();
+        post.changeVisibility(RecruitmentVisibility.HIDDEN);
+
+        when(recruitmentRepository.findById(1L)).thenReturn(Optional.of(post));
+
+        assertThatThrownBy(
+                        () ->
+                                joinApplicationService.create(
+                                        1L,
+                                        2L,
+                                        new JoinApplicationCreateRequest("지원동기", null, null, null)))
                 .isInstanceOf(BusinessException.class);
     }
 

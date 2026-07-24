@@ -9,6 +9,7 @@ import com.mycom.myapp.recruitment.dto.request.RecruitmentUpdateRequest;
 import com.mycom.myapp.recruitment.dto.response.RecruitmentResponse;
 import com.mycom.myapp.recruitment.entity.RecruitmentPost;
 import com.mycom.myapp.recruitment.entity.RecruitmentStatus;
+import com.mycom.myapp.recruitment.entity.RecruitmentVisibility;
 import com.mycom.myapp.recruitment.repository.RecruitmentRepository;
 import com.mycom.myapp.study.service.CreateStudyGroupCommand;
 import com.mycom.myapp.study.service.port.StudyGroupProvisioningPort;
@@ -64,8 +65,10 @@ public class RecruitmentService {
 
         Page<RecruitmentPost> posts =
                 (category == null || category.isBlank())
-                        ? recruitmentRepository.findAll(pageable)
-                        : recruitmentRepository.findByCategory(category, pageable);
+                        ? recruitmentRepository.findAllByVisibility(
+                                RecruitmentVisibility.VISIBLE, pageable)
+                        : recruitmentRepository.findByCategoryAndVisibility(
+                                category, RecruitmentVisibility.VISIBLE, pageable);
         return posts.map(RecruitmentResponse::from);
     }
 
@@ -74,6 +77,9 @@ public class RecruitmentService {
                 recruitmentRepository
                         .findById(id)
                         .orElseThrow(() -> new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND));
+        if (post.getVisibility() != RecruitmentVisibility.VISIBLE) {
+            throw new BusinessException(ErrorCode.RECRUITMENT_NOT_FOUND);
+        }
         return RecruitmentResponse.from(post);
     }
 
