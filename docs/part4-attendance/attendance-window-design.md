@@ -30,6 +30,4 @@
     - `AttendanceRecord.java:33` — `@Column(name = "checked_by", nullable = false)` → `nullable = true`
     - `AttendanceRecordResponse.checkedBy`는 이미 `Long`(래퍼 타입)이라 `null`이 들어와도 그대로 JSON에 `null`로 나가며 별도 수정은 필요 없다(확인 완료).
 
-## 아직 정해지지 않은 것
-
 - 자동 처리 대상 판단 시 탈퇴(`WITHDRAWN`) 그룹원은 제외할지 여부 (참여 응답/출석 체크의 기존 활성 그룹원 검증과 일관되게 활성 그룹원만 대상으로 하는 게 자연스러워 보임)
