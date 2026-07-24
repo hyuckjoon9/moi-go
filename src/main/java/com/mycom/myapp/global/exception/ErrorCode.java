@@ -38,6 +38,7 @@ public enum ErrorCode {
     INVALID_SCHEDULE_TIME(HttpStatus.BAD_REQUEST, "일정 또는 응답 마감 시간이 올바르지 않습니다."),
     RECRUITMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다."),
     DUPLICATE_ACTIVITY_RECORD(HttpStatus.CONFLICT, "이미 활동 기록이 등록되어 있습니다."),
+    ACTIVITY_RECORD_NOT_STARTED(HttpStatus.CONFLICT, "일정 시작 전에는 활동 기록을 작성할 수 없습니다."),
     ACTIVITY_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "활동 기록을 찾을 수 없습니다."),
     ACTIVITY_RECORD_ACCESS_DENIED(HttpStatus.FORBIDDEN, "활동 기록을 관리할 권한이 없습니다."),
     DUPLICATE_ACTIVITY_REVIEW(HttpStatus.CONFLICT, "이미 리뷰를 작성했습니다."),

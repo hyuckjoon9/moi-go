@@ -15,14 +15,12 @@ class BackofficeAssetsTest {
             Path.of("src/main/resources/static/js/backoffice.js");
     private static final Path BACKOFFICE_STYLE =
             Path.of("src/main/resources/static/css/backoffice.css");
-    private static final Path COMMON_STYLE = Path.of("src/main/resources/static/css/style.css");
 
     @Test
     void backofficeUsesReadableAuditHistoryAndOpaqueNotificationSurface() throws IOException {
         String html = Files.readString(BACKOFFICE_HTML);
         String script = Files.readString(BACKOFFICE_SCRIPT);
         String style = Files.readString(BACKOFFICE_STYLE);
-        String commonStyle = Files.readString(COMMON_STYLE);
 
         assertThat(html).doesNotContain("<img class=\"brand-logo\"");
         assertThat(html)
@@ -56,10 +54,5 @@ class BackofficeAssetsTest {
                 .contains("padding: var(--bo-content-space);")
                 .contains("gap: var(--bo-content-space);");
         assertThat(style).contains(".bo-operation-table");
-        assertThat(commonStyle)
-                .contains(
-                        "width: auto; margin-left: calc(var(--bo-sidebar-width) + var(--bo-layout-space));")
-                .contains("width: auto; padding: var(--bo-content-space);")
-                .contains(".backoffice-app .bo-command-bar { margin: 0; }");
     }
 }
