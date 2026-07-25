@@ -46,6 +46,97 @@ Moi-Go는 다음 흐름을 하나의 서비스 안에서 연결합니다.
 
 <br>
 
+## 🚀 실행 방법
+
+아래 순서대로 실행하면 MySQL 데이터베이스, 샘플 데이터, 애플리케이션 서버를 차례로 준비할 수 있습니다. 처음 실행하는 사람도 동일한 환경을 만들 수 있도록 MySQL은 Docker 컨테이너로 실행합니다.
+
+### 1. 사전 준비
+
+다음을 설치한 뒤 Docker가 실행 중인지 확인합니다.
+
+* Git
+* JDK 21
+* Docker Desktop(macOS·Windows) 또는 Docker Engine(Linux)
+
+```text
+java -version    # 21 버전인지 확인
+docker --version
+```
+
+### 2. 프로젝트 내려받기
+
+```bash
+git clone https://github.com/hyuckjoon9/moi-go.git
+cd moi-go
+```
+
+### 3. MySQL 및 샘플 데이터 준비
+
+다음 명령은 MySQL 8 컨테이너를 실행하고 `moigo` 데이터베이스를 생성합니다. 처음 한 번만 실행합니다.
+
+```bash
+docker run --name moigo-mysql -e MYSQL_ROOT_PASSWORD=moigo -e MYSQL_DATABASE=moigo -p 3306:3306 -d mysql:8.0
+```
+
+MySQL이 준비될 때까지 기다린 후, 운영체제에 맞는 명령으로 스키마와 샘플 데이터를 넣습니다.
+
+macOS / Linux:
+
+```bash
+until docker exec moigo-mysql mysqladmin ping -h localhost -uroot -pmoigo --silent; do sleep 2; done
+docker exec -i moigo-mysql mysql -uroot -pmoigo moigo < sql/moigo_schema_seed.sql
+```
+
+Windows PowerShell:
+
+```powershell
+do {
+  docker exec moigo-mysql mysqladmin ping -h localhost -uroot -pmoigo --silent
+  if ($LASTEXITCODE -ne 0) { Start-Sleep -Seconds 2 }
+} while ($LASTEXITCODE -ne 0)
+Get-Content -Raw sql\moigo_schema_seed.sql | docker exec -i moigo-mysql mysql -uroot -pmoigo moigo
+```
+
+> **주의:** `sql/moigo_schema_seed.sql`은 기존 테이블을 삭제한 뒤 샘플 데이터로 다시 생성합니다. 기존 로컬 데이터를 보존해야 한다면 실행하지 마세요.
+
+### 4. 서버 실행
+
+다음 명령은 Docker에서 만든 DB 계정(`root` / `moigo`)을 사용해 서버를 실행합니다. 실행이 끝나면 브라우저에서 [http://localhost:8080](http://localhost:8080)으로 접속하세요.
+
+macOS / Linux:
+
+```bash
+./gradlew bootRun --args='--spring.datasource.url=jdbc:mysql://localhost:3306/moigo?serverTimezone=Asia/Seoul&characterEncoding=UTF-8 --spring.datasource.username=root --spring.datasource.password=moigo'
+```
+
+Windows PowerShell:
+
+```powershell
+.\gradlew.bat bootRun --args="--spring.datasource.url=jdbc:mysql://localhost:3306/moigo?serverTimezone=Asia/Seoul&characterEncoding=UTF-8 --spring.datasource.username=root --spring.datasource.password=moigo"
+```
+
+### 5. Back Office 접속
+
+서버 실행 후 [http://localhost:8080/backoffice/index.html](http://localhost:8080/backoffice/index.html)로 이동해 아래 샘플 관리자 계정으로 로그인합니다.
+
+| 구분 | 값 |
+| --- | --- |
+| 이메일 | `admin@moigo.test` |
+| 비밀번호 | `Admin1234!` |
+
+<details>
+<summary><b>문제 해결</b></summary>
+
+<br>
+
+* `docker run`에서 컨테이너 이름이 이미 사용 중이라고 나오면 `docker start moigo-mysql`을 실행한 뒤 3단계의 데이터 입력 명령부터 다시 실행합니다.
+* 3306 포트를 이미 사용 중이면 기존 MySQL을 중지하거나, Docker 실행 명령의 `-p 3306:3306`에서 앞의 `3306`을 다른 포트로 바꾸고 서버 실행 명령의 URL 포트도 같은 값으로 바꿉니다.
+* macOS / Linux에서 `./gradlew: Permission denied`가 발생하면 `chmod +x gradlew`를 한 번 실행한 뒤 서버 실행 명령을 다시 입력합니다.
+
+</details>
+
+<br>
+
 ## ✨ 핵심 기능
 
 <details>
