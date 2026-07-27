@@ -23,10 +23,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 활동 기록(ActivityRecord)과 그에 대한 리뷰(ActivityReview)를 함께 다루는 서비스. 기록은 일정당 최대 1건이며 해당 일정 그룹의 활성
- * LEADER/MANAGER만 등록·수정·삭제할 수 있고, 리뷰는 역할과 무관하게 활성 그룹원이면 누구나 남길 수 있다. 리뷰는 기록당 사용자 1인당 최대 1건이다.
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -38,7 +34,6 @@ public class ActivityService {
     private final GroupMemberRepository groupMemberRepository;
     private final Clock clock;
 
-    /** 일정 그룹의 LEADER/MANAGER가 활동 기록을 처음 작성한다. 일정 시작 전이거나 이미 기록이 있으면 거부한다. */
     @Transactional
     public ActivityRecord createRecord(
             Long scheduleId, Long authorId, ActivityRecordCreateRequest request) {
@@ -60,7 +55,6 @@ public class ActivityService {
         return activityRecordRepository.save(record);
     }
 
-    /** 일정 그룹의 LEADER/MANAGER가 활동 기록을 수정한다. */
     @Transactional
     public ActivityRecord updateRecord(
             Long scheduleId, Long requesterId, ActivityRecordCreateRequest request) {
@@ -75,7 +69,6 @@ public class ActivityService {
         return record;
     }
 
-    /** 일정 그룹의 LEADER/MANAGER가 활동 기록을 삭제한다. */
     @Transactional
     public void deleteRecord(Long scheduleId, Long requesterId) {
         validateManager(scheduleId, requesterId);
@@ -83,13 +76,11 @@ public class ActivityService {
         activityRecordRepository.delete(record);
     }
 
-    /** 일정 그룹의 활성 그룹원이 활동 기록을 조회한다. */
     public ActivityRecordResponse getRecordResponse(Long scheduleId, Long userId) {
         validateActiveMember(scheduleId, userId);
         return ActivityRecordResponse.of(getRecord(scheduleId));
     }
 
-    /** 활동 기록이 속한 일정 그룹의 활성 그룹원이 리뷰를 작성한다. 이미 작성한 리뷰가 있으면 거부한다. */
     @Transactional
     public ActivityReview createReview(
             Long activityRecordId, Long userId, ActivityReviewCreateRequest request) {
@@ -109,7 +100,6 @@ public class ActivityService {
         return activityReviewRepository.save(review);
     }
 
-    /** 활동 기록이 속한 일정 그룹의 활성 그룹원이 본인이 남긴 리뷰를 삭제한다. */
     @Transactional
     public void deleteReview(Long activityRecordId, Long userId) {
         ActivityRecord record = getRecordById(activityRecordId);
@@ -122,7 +112,6 @@ public class ActivityService {
         activityReviewRepository.delete(review);
     }
 
-    /** 활동 기록이 속한 일정 그룹의 LEADER/MANAGER가 부적절한 리뷰를 삭제한다. 작성자 본인 여부와 무관하게 삭제할 수 있다. */
     @Transactional
     public void deleteReviewByManager(Long activityRecordId, Long reviewId, Long requesterId) {
         ActivityRecord record = getRecordById(activityRecordId);
@@ -138,7 +127,6 @@ public class ActivityService {
         activityReviewRepository.delete(review);
     }
 
-    /** 활동 기록이 속한 일정 그룹의 활성 그룹원이 리뷰 목록을 조회한다. */
     public List<ActivityReviewResponse> getReviews(Long activityRecordId, Long userId) {
         ActivityRecord record = getRecordById(activityRecordId);
         validateActiveMember(record.getScheduleId(), userId);
@@ -147,21 +135,18 @@ public class ActivityService {
                 .toList();
     }
 
-    /** scheduleId의 활동 기록을 찾는다. 없으면 예외. */
     private ActivityRecord getRecord(Long scheduleId) {
         return activityRecordRepository
                 .findByScheduleId(scheduleId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACTIVITY_RECORD_NOT_FOUND));
     }
 
-    /** activityRecordId의 활동 기록을 찾는다. 없으면 예외. */
     private ActivityRecord getRecordById(Long activityRecordId) {
         return activityRecordRepository
                 .findById(activityRecordId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ACTIVITY_RECORD_NOT_FOUND));
     }
 
-    /** requesterId가 scheduleId 소속 그룹의 활성 LEADER/MANAGER인지 검증한다. */
     private void validateManager(Long scheduleId, Long requesterId) {
         GroupMember member = validateActiveMember(scheduleId, requesterId);
         if (member.getRole() != GroupRole.LEADER && member.getRole() != GroupRole.MANAGER) {
@@ -169,10 +154,6 @@ public class ActivityService {
         }
     }
 
-    /**
-     * 일정 시작 전에는 활동 기록을 새로 생성할 수 없다. 이미 존재하는 기록의 수정(updateRecord)에는 적용하지 않는다 — 기록이 존재한다는 것 자체가 이미 시작
-     * 시각이 지났음을 보장한다.
-     */
     private void validateScheduleStarted(Long scheduleId) {
         StudySchedule schedule =
                 studyScheduleRepository
@@ -183,7 +164,6 @@ public class ActivityService {
         }
     }
 
-    /** userId가 scheduleId 소속 그룹의 활성 그룹원인지(역할 무관) 검증한다. */
     private GroupMember validateActiveMember(Long scheduleId, Long userId) {
         StudySchedule schedule =
                 studyScheduleRepository

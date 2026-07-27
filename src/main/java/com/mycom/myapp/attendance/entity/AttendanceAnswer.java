@@ -21,10 +21,10 @@ public class AttendanceAnswer {
     private Long id;
 
     @Column(name = "schedule_id", nullable = false)
-    private Long scheduleId; // study_schedules.id (study_schedules 도메인 소유 FK)
+    private Long scheduleId;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId; // users.id (user 도메인 소유 FK)
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -41,7 +41,6 @@ public class AttendanceAnswer {
         this.respondedAt = LocalDateTime.now();
     }
 
-    /** 참석 여부 응답 수정 (예: UNDECIDED → ATTEND로 변경) */
     public void changeResponse(AttendanceResponse response) {
         this.response = response;
         this.respondedAt = LocalDateTime.now();

@@ -27,10 +27,10 @@ public class ActivityRecord {
     private Long id;
 
     @Column(name = "schedule_id", nullable = false)
-    private Long scheduleId; // study_schedules.id (study_schedules 도메인 소유 FK), 일정당 활동 기록은 최대 1건
+    private Long scheduleId;
 
     @Column(name = "author_id", nullable = false)
-    private Long authorId; // users.id (user 도메인 소유 FK)
+    private Long authorId;
 
     @Column(nullable = false, length = 100)
     private String topic;

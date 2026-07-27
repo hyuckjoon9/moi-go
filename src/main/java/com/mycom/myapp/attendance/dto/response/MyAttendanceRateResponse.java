@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 특정 사용자의 누적 출석률 (그룹/전체 스케줄 기준으로 서비스단에서 집계하여 생성) */
 @Getter
 @Builder
 @AllArgsConstructor

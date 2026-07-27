@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 활동 기록 생성/수정/조회 결과 */
 @Getter
 @Builder
 @AllArgsConstructor
