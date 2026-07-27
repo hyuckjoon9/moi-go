@@ -32,7 +32,6 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
-    /** 참석 여부 응답 등록 */
     @PostMapping("/schedules/{scheduleId}/answers")
     public ResponseEntity<AttendanceAnswerResponse> submitAnswer(
             @PathVariable("scheduleId") Long scheduleId,
@@ -45,7 +44,6 @@ public class AttendanceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** 참석 여부 응답 수정 */
     @PutMapping("/schedules/{scheduleId}/answers")
     public ResponseEntity<AttendanceAnswerResponse> changeAnswer(
             @PathVariable("scheduleId") Long scheduleId,
@@ -58,7 +56,6 @@ public class AttendanceController {
         return ResponseEntity.ok(response);
     }
 
-    /** 참석 여부 응답 삭제 */
     @DeleteMapping("/schedules/{scheduleId}/answers")
     public ResponseEntity<Void> deleteAnswer(
             @PathVariable("scheduleId") Long scheduleId,
@@ -68,7 +65,6 @@ public class AttendanceController {
         return ResponseEntity.noContent().build();
     }
 
-    /** 그룹원별 참여 응답(RSVP) 조회 (모집장) */
     @GetMapping("/schedules/{scheduleId}/answers/summary")
     public ResponseEntity<AttendanceAnswerSummaryResponse> getAnswerSummary(
             @PathVariable("scheduleId") Long scheduleId,
@@ -77,7 +73,6 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getAnswerSummary(scheduleId, requesterId));
     }
 
-    /** 출석 체크 등록 (모집장) */
     @PostMapping("/schedules/{scheduleId}/records")
     public ResponseEntity<AttendanceRecordResponse> checkAttendance(
             @PathVariable("scheduleId") Long scheduleId,
@@ -90,7 +85,6 @@ public class AttendanceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** 출석 체크 수정 (모집장) */
     @PutMapping("/schedules/{scheduleId}/records")
     public ResponseEntity<AttendanceRecordResponse> updateAttendance(
             @PathVariable("scheduleId") Long scheduleId,
@@ -103,7 +97,6 @@ public class AttendanceController {
         return ResponseEntity.ok(response);
     }
 
-    /** 출석 기록 삭제 (모집장) */
     @DeleteMapping("/schedules/{scheduleId}/records/{userId}")
     public ResponseEntity<Void> deleteAttendance(
             @PathVariable("scheduleId") Long scheduleId,
@@ -114,7 +107,6 @@ public class AttendanceController {
         return ResponseEntity.noContent().build();
     }
 
-    /** 스케줄 출석 현황 요약 조회 (모집장) */
     @GetMapping("/schedules/{scheduleId}/records/summary")
     public ResponseEntity<AttendanceSummaryResponse> getSummary(
             @PathVariable("scheduleId") Long scheduleId,
@@ -123,7 +115,6 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getSummary(scheduleId, requesterId));
     }
 
-    /** 개인 누적 출석률 조회 (본인만) */
     @GetMapping("/users/{userId}/rate")
     public ResponseEntity<MyAttendanceRateResponse> getMyAttendanceRate(
             @PathVariable("userId") Long userId,
@@ -132,7 +123,6 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getMyAttendanceRate(userId, requesterId));
     }
 
-    /** 그룹원별 출석률 목록 조회 (모집장) */
     @GetMapping("/groups/{groupId}/rates")
     public ResponseEntity<List<MyAttendanceRateResponse>> getGroupAttendanceRates(
             @PathVariable("groupId") Long groupId,

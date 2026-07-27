@@ -8,7 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 모집장이 보는 특정 스케줄의 출석 현황 요약 (상태별 인원 수 + 개별 멤버 출석 내역) */
 @Getter
 @Builder
 @AllArgsConstructor

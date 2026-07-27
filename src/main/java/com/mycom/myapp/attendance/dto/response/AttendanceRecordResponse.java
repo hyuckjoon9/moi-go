@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 출석 체크 등록/수정 결과 */
 @Getter
 @Builder
 @AllArgsConstructor

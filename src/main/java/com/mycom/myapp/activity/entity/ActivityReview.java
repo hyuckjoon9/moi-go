@@ -27,10 +27,10 @@ public class ActivityReview {
     private Long id;
 
     @Column(name = "activity_record_id", nullable = false)
-    private Long activityRecordId; // activity_records.id, 활동 기록당 사용자 1인 1건
+    private Long activityRecordId;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId; // users.id (user 도메인 소유 FK)
+    private Long userId;
 
     @Column(nullable = false, length = 300)
     private String comment;

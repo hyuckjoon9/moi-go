@@ -29,7 +29,6 @@ public class ActivityController {
 
     private final ActivityService activityService;
 
-    /** 활동 기록 등록 */
     @PostMapping("/schedules/{scheduleId}/record")
     public ResponseEntity<ActivityRecordResponse> createRecord(
             @PathVariable("scheduleId") Long scheduleId,
@@ -42,7 +41,6 @@ public class ActivityController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** 활동 기록 수정 (작성자 본인) */
     @PutMapping("/schedules/{scheduleId}/record")
     public ResponseEntity<ActivityRecordResponse> updateRecord(
             @PathVariable("scheduleId") Long scheduleId,
@@ -55,7 +53,6 @@ public class ActivityController {
         return ResponseEntity.ok(response);
     }
 
-    /** 활동 기록 삭제 (작성자 본인) */
     @DeleteMapping("/schedules/{scheduleId}/record")
     public ResponseEntity<Void> deleteRecord(
             @PathVariable("scheduleId") Long scheduleId,
@@ -65,7 +62,6 @@ public class ActivityController {
         return ResponseEntity.noContent().build();
     }
 
-    /** 활동 기록 조회 */
     @GetMapping("/schedules/{scheduleId}/record")
     public ResponseEntity<ActivityRecordResponse> getRecord(
             @PathVariable("scheduleId") Long scheduleId,
@@ -74,7 +70,6 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.getRecordResponse(scheduleId, userId));
     }
 
-    /** 활동 기록 리뷰 작성 */
     @PostMapping("/records/{activityRecordId}/reviews")
     public ResponseEntity<ActivityReviewResponse> createReview(
             @PathVariable("activityRecordId") Long activityRecordId,
@@ -87,7 +82,6 @@ public class ActivityController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** 활동 기록 리뷰 삭제 (작성자 본인) */
     @DeleteMapping("/records/{activityRecordId}/reviews")
     public ResponseEntity<Void> deleteReview(
             @PathVariable("activityRecordId") Long activityRecordId,
@@ -97,7 +91,6 @@ public class ActivityController {
         return ResponseEntity.noContent().build();
     }
 
-    /** 활동 기록 리뷰 삭제 (모집장/매니저, 부적절한 리뷰 대상 지정 삭제) */
     @DeleteMapping("/records/{activityRecordId}/reviews/{reviewId}")
     public ResponseEntity<Void> deleteReviewByManager(
             @PathVariable("activityRecordId") Long activityRecordId,
@@ -108,7 +101,6 @@ public class ActivityController {
         return ResponseEntity.noContent().build();
     }
 
-    /** 활동 기록 리뷰 목록 조회 */
     @GetMapping("/records/{activityRecordId}/reviews")
     public ResponseEntity<List<ActivityReviewResponse>> getReviews(
             @PathVariable("activityRecordId") Long activityRecordId,

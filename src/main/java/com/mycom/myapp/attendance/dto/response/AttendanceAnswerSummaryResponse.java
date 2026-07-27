@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 모집장이 보는 스케줄의 그룹원별 참석 여부 응답(RSVP) 현황. 그룹원 전원을 기준으로 하며, 미응답 멤버는 response를 UNDECIDED로 채운다. */
 @Getter
 @Builder
 @AllArgsConstructor

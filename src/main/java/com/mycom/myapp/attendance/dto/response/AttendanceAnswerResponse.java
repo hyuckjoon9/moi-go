@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 참석 여부 응답 등록/수정 결과 */
 @Getter
 @Builder
 @AllArgsConstructor
