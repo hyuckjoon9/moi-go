@@ -2,7 +2,7 @@
 
   # 스터디 모집부터 운영과 기록까지 한곳에서, Moi-Go
 
-<img src="https://github.com/user-attachments/assets/4fc17a16-b28a-4d06-a43f-d6b1888786bf" alt="Moi-Go Banner" width="100%" />
+<img src="https://github.com/user-attachments/assets/90bf8a73-7616-4498-b5e1-94b7cc93acf4" alt="Moi-Go Banner" width="100%" />
 
 </div>
 
