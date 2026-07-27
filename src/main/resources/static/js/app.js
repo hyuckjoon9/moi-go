@@ -264,6 +264,16 @@
   }
 
   function formatDate(value) { return value ? String(value).slice(0, 10) : "-"; }
+  function formatDateTime(value) {
+    if (!value) return "-";
+    const text = String(value).replace("T", " ");
+    const match = text.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/);
+    if (match) return `${match[1]} ${match[2]}`;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return text.slice(0, 16);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString();
+    return local.slice(0, 16).replace("T", " ");
+  }
   function getPageContent(pageData) { return Array.isArray(pageData) ? pageData : (pageData?.content || []); }
   function statusLabel(status) {
     const value = String(status || "RECRUITING").toUpperCase();
@@ -821,11 +831,82 @@
   function scheduleDisplayName(schedule) {
     if (!schedule) return "일정";
     const title = schedule.title || "제목 없는 일정";
-    const when = schedule.scheduledAt ? ` · ${formatDate(schedule.scheduledAt) || schedule.scheduledAt}` : "";
+    const when = schedule.scheduledAt ? ` · ${formatDateTime(schedule.scheduledAt) || schedule.scheduledAt}` : "";
     return `${title}${when}`;
   }
   function selectedGroupSchedule(scheduleId) {
     return currentGroupSchedules.find((schedule) => String(schedule.scheduleId) === String(scheduleId));
+  }
+  function toDatetimeLocalValue(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+  function selectedGroupScheduleId() {
+    return $("#groupScheduleSelect")?.value || "";
+  }
+  function scheduleEditPayload(form) {
+    const values = formData(form);
+    return {
+      title: (values.title || "").trim(),
+      scheduledAt: values.scheduledAt || null,
+      location: (values.location || "").trim() || null,
+      onlineLink: (values.onlineLink || "").trim() || null,
+      content: (values.content || "").trim() || null,
+      materials: (values.materials || "").trim() || null,
+    };
+  }
+  async function refreshSelectedScheduleAfterMutation(scheduleId) {
+    await loadGroupSchedules();
+    if (scheduleId && selectedGroupSchedule(scheduleId)) {
+      selectGroupSchedule(scheduleId);
+      return;
+    }
+    if ($("#groupScheduleSelect")) $("#groupScheduleSelect").value = "";
+    $("#groupScheduleDetailPanel")?.classList.add("hidden");
+    renderActivityRecord(null, null);
+  }
+  function closeGroupScheduleEditModal() {
+    hidePanel("#groupScheduleEditBackdrop");
+    hidePanel("#groupScheduleEditPanel");
+    document.body.classList.remove("modal-open");
+  }
+  function openGroupScheduleEditModal() {
+    const scheduleId = selectedGroupScheduleId();
+    const schedule = selectedGroupSchedule(scheduleId);
+    if (!scheduleId || !schedule) { toast("일정을 먼저 선택하세요.", true); return; }
+    if (!canManageCurrentGroupAttendance()) { toast("일정 수정 권한이 없습니다.", true); return; }
+    const form = $("#groupEditScheduleForm");
+    if (!form) return;
+    setField(form, "title", schedule.title || "");
+    setField(form, "scheduledAt", toDatetimeLocalValue(schedule.scheduledAt));
+    setField(form, "location", schedule.location || "");
+    setField(form, "onlineLink", schedule.onlineLink || "");
+    setField(form, "content", schedule.content || "");
+    setField(form, "materials", schedule.materials || "");
+    showPanel("#groupScheduleEditBackdrop");
+    showPanel("#groupScheduleEditPanel");
+    document.body.classList.add("modal-open");
+    form.querySelector('input[name="title"]')?.focus();
+  }
+  function closeGroupScheduleDeadlineModal() {
+    hidePanel("#groupScheduleDeadlineBackdrop");
+    hidePanel("#groupScheduleDeadlinePanel");
+    document.body.classList.remove("modal-open");
+  }
+  function openGroupScheduleDeadlineModal() {
+    const scheduleId = selectedGroupScheduleId();
+    const schedule = selectedGroupSchedule(scheduleId);
+    if (!scheduleId || !schedule) { toast("일정을 먼저 선택하세요.", true); return; }
+    if (!canManageCurrentGroupAttendance()) { toast("응답 마감 변경 권한이 없습니다.", true); return; }
+    const form = $("#groupScheduleDeadlineForm");
+    if (!form) return;
+    setField(form, "responseDeadline", toDatetimeLocalValue(schedule.responseDeadline));
+    showPanel("#groupScheduleDeadlineBackdrop");
+    showPanel("#groupScheduleDeadlinePanel");
+    document.body.classList.add("modal-open");
+    form.querySelector('input[name="responseDeadline"]')?.focus();
   }
   function setGroupMembersExpanded(expanded) {
     const list = $("#groupMemberList");
@@ -887,7 +968,7 @@
   }
   function setGroupManagerControlsVisibility() {
     const manager = canManageCurrentGroupAttendance();
-    ["#openGroupScheduleCreateButton", "#groupAttendanceManagerActions", "#groupAttendanceRateList", "#groupAnswerSummaryList", "#groupCheckAttendanceForm"].forEach((selector) => {
+    ["#openGroupScheduleCreateButton", "#groupAttendanceManagerActions", "#groupScheduleManagementActions", "#groupAttendanceRateList", "#groupAnswerSummaryList", "#groupCheckAttendanceForm"].forEach((selector) => {
       $(selector)?.classList.toggle("hidden", !manager);
     });
     if (!manager) {
@@ -895,6 +976,8 @@
       const answers = $("#groupAnswerSummaryList");
       if (rates) rates.innerHTML = "";
       if (answers) answers.innerHTML = "";
+      closeGroupScheduleEditModal();
+      closeGroupScheduleDeadlineModal();
     }
   }
   function attendanceAnswerLabel(response) {
@@ -1118,7 +1201,7 @@
     const data = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules?scope=${$("#groupScheduleScope")?.value || "upcoming"}`), showToast ? "일정을 조회했습니다." : null);
     currentGroupSchedules = [...(data.items || [])].sort((a, b) => new Date(b.scheduledAt || 0) - new Date(a.scheduledAt || 0));
     populateGroupSchedulePickers();
-    renderCards("#groupScheduleList", currentGroupSchedules, "표시할 일정이 없습니다.", (item) => `<article class="entity-card schedule-card selectable-card" data-schedule-card="true" data-schedule-id="${escapeHtml(item.scheduleId)}"><span class="badge">일정</span><strong>${escapeHtml(item.title || "제목 없는 일정")}</strong><div class="meta">${escapeHtml(formatDate(item.scheduledAt) || item.scheduledAt || "일시 미정")} · ${escapeHtml(item.location || item.onlineLink || "장소 미정")}</div><p>${escapeHtml(item.content || "상세 내용이 없습니다.")}</p></article>`);
+    renderCards("#groupScheduleList", currentGroupSchedules, "표시할 일정이 없습니다.", (item) => `<article class="entity-card schedule-card selectable-card" data-schedule-card="true" data-schedule-id="${escapeHtml(item.scheduleId)}"><span class="badge">일정</span><strong>${escapeHtml(item.title || "제목 없는 일정")}</strong><div class="meta">${escapeHtml(formatDateTime(item.scheduledAt) || item.scheduledAt || "일시 미정")} · ${escapeHtml(item.location || item.onlineLink || "장소 미정")}</div><p>${escapeHtml(item.content || "상세 내용이 없습니다.")}</p></article>`);
     document.querySelectorAll("[data-schedule-card]").forEach((card) => card.addEventListener("click", () => selectGroupSchedule(card.dataset.scheduleId)));
   }
   async function loadCurrentGroup() {
@@ -1170,6 +1253,46 @@
     $("#cancelGroupScheduleCreateButton")?.addEventListener("click", () => toggleScheduleCreateForm(false));
     $("#groupLoadSchedulesButton")?.addEventListener("click", () => loadGroupSchedules(true));
     $("#groupCreateScheduleForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!currentGroupId()) { toast("그룹을 먼저 선택하세요.", true); return; } if (!canManageCurrentGroupAttendance()) { toast("일정 생성 권한이 없습니다.", true); return; } const form = event.currentTarget; const schedule = await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules`, { method: "POST", body: window.moiApi.toJsonBody(compact(formData(form))) }), "일정을 생성했습니다."); const createdId = schedule?.scheduleId; form.reset(); setDefaultScheduleTime(); toggleScheduleCreateForm(false); await loadGroupSchedules(); if (createdId) selectGroupSchedule(createdId); });
+    $("#openGroupScheduleEditButton")?.addEventListener("click", openGroupScheduleEditModal);
+    $("#closeGroupScheduleEditButton")?.addEventListener("click", closeGroupScheduleEditModal);
+    $("#cancelGroupScheduleEditButton")?.addEventListener("click", closeGroupScheduleEditModal);
+    $("#groupScheduleEditBackdrop")?.addEventListener("click", closeGroupScheduleEditModal);
+    $("#groupEditScheduleForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const scheduleId = selectedGroupScheduleId();
+      if (!currentGroupId() || !scheduleId) { toast("일정을 먼저 선택하세요.", true); return; }
+      if (!canManageCurrentGroupAttendance()) { toast("일정 수정 권한이 없습니다.", true); return; }
+      const payload = scheduleEditPayload(event.currentTarget);
+      if (!payload.title || !payload.scheduledAt) { toast("제목과 일시는 필수입니다.", true); return; }
+      await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules/${scheduleId}`, { method: "PUT", body: window.moiApi.toJsonBody(payload) }), "일정을 수정했습니다.");
+      closeGroupScheduleEditModal();
+      await refreshSelectedScheduleAfterMutation(scheduleId);
+    });
+    $("#openGroupScheduleDeadlineButton")?.addEventListener("click", openGroupScheduleDeadlineModal);
+    $("#closeGroupScheduleDeadlineButton")?.addEventListener("click", closeGroupScheduleDeadlineModal);
+    $("#groupScheduleDeadlineBackdrop")?.addEventListener("click", closeGroupScheduleDeadlineModal);
+    $("#clearGroupScheduleDeadlineButton")?.addEventListener("click", () => setField($("#groupScheduleDeadlineForm"), "responseDeadline", ""));
+    $("#groupScheduleDeadlineForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const scheduleId = selectedGroupScheduleId();
+      if (!currentGroupId() || !scheduleId) { toast("일정을 먼저 선택하세요.", true); return; }
+      if (!canManageCurrentGroupAttendance()) { toast("응답 마감 변경 권한이 없습니다.", true); return; }
+      const payload = formData(event.currentTarget);
+      await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules/${scheduleId}/response-deadline`, { method: "PATCH", body: window.moiApi.toJsonBody({ responseDeadline: payload.responseDeadline || null }) }), "응답 마감을 변경했습니다.");
+      closeGroupScheduleDeadlineModal();
+      await refreshSelectedScheduleAfterMutation(scheduleId);
+    });
+    $("#deleteGroupScheduleButton")?.addEventListener("click", async () => {
+      const scheduleId = selectedGroupScheduleId();
+      const schedule = selectedGroupSchedule(scheduleId);
+      if (!currentGroupId() || !scheduleId || !schedule) { toast("일정을 먼저 선택하세요.", true); return; }
+      if (!canManageCurrentGroupAttendance()) { toast("일정 삭제 권한이 없습니다.", true); return; }
+      const confirmed = await confirmAction({ title: "일정 삭제", message: `${scheduleDisplayName(schedule)} 일정을 삭제하시겠습니까?`, warning: "출석, 참석 응답, 회고가 연결된 일정은 삭제가 제한될 수 있습니다.", confirmText: "일정 삭제" });
+      if (!confirmed) return;
+      await run(() => window.moiApi.request(`/api/groups/${currentGroupId()}/schedules/${scheduleId}`, { method: "DELETE" }), "일정을 삭제했습니다.");
+      closeGroupAnswerSummary();
+      await refreshSelectedScheduleAfterMutation(null);
+    });
     $("#groupAnswerAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); const payload = formData(event.currentTarget); if (!payload.scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await submitAttendanceAnswer(payload.scheduleId, payload.response); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
     $("#deleteAttendanceAnswerButton")?.addEventListener("click", async () => { const scheduleId = $("#groupScheduleSelect")?.value; if (!scheduleId) { toast("일정을 먼저 선택하세요.", true); return; } await run(() => window.moiApi.request(`/api/attendance/schedules/${scheduleId}/answers`, { method: "DELETE" }), "참석 여부를 삭제했습니다."); if (canManageCurrentGroupAttendance()) await loadGroupAttendanceRates().catch(() => {}); });
     $("#groupCheckAttendanceForm")?.addEventListener("submit", async (event) => { event.preventDefault(); if (!canManageCurrentGroupAttendance()) return; const payload = formData(event.currentTarget); if (!payload.scheduleId || !payload.userId) { toast("일정과 그룹원을 선택하세요.", true); return; } await run(() => saveGroupAttendanceCheck(payload.scheduleId, payload.userId, payload.status), null); await loadGroupAttendanceRates().catch(() => {}); });

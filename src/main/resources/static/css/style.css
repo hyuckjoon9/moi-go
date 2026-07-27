@@ -1961,3 +1961,35 @@ body.modal-open {
   border-color: #b91c1c;
   background: #b91c1c;
 }
+
+.schedule-management-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.schedule-management-actions.hidden {
+  display: none !important;
+}
+
+.schedule-edit-panel,
+.schedule-deadline-panel {
+  max-width: 820px;
+}
+
+.schedule-deadline-panel {
+  max-width: 560px;
+}
+
+.button.danger-outline {
+  border-color: #fecaca;
+  color: #b42318;
+  background: #fff;
+}
+
+.button.danger-outline:hover {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}

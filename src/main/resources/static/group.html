@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>그룹 홈 - Moi-Go</title>
-    <link rel="stylesheet" href="/css/style.css?v=20260724-activity-delete-fix" />
+    <link rel="stylesheet" href="/css/style.css?v=20260727-schedule-management" />
   </head>
   <body data-page="group" data-protected="true">
     <header class="app-header">
@@ -66,6 +66,7 @@
           <div class="panel-heading">
             <div><p class="eyebrow">Attendance</p><h3 id="selectedScheduleTitle">일정을 선택하세요</h3></div>
             <div id="groupAttendanceManagerActions" class="page-actions attendance-manager-actions"><button id="groupLoadAnswerSummaryButton" class="button ghost small" type="button">참석 응답 조회</button><button id="groupLoadAttendanceSummaryButton" class="button ghost small" type="button">출석 체크 현황</button></div>
+            <div id="groupScheduleManagementActions" class="page-actions schedule-management-actions hidden"><button id="openGroupScheduleEditButton" class="button ghost small" type="button">일정 수정</button><button id="openGroupScheduleDeadlineButton" class="button ghost small" type="button">응답 마감 변경</button><button id="deleteGroupScheduleButton" class="button ghost small danger-outline" type="button">일정 삭제</button></div>
           </div>
           <input id="groupScheduleSelect" type="hidden" />
           <select id="groupSummaryScheduleSelect" class="group-schedule-picker hidden"><option value="">일정을 먼저 조회하세요</option></select>
@@ -107,6 +108,34 @@
           </section>
         </article>
       </section>
+      <div id="groupScheduleEditBackdrop" class="modal-backdrop hidden"></div>
+      <article id="groupScheduleEditPanel" class="panel edit-panel modal-panel schedule-edit-panel hidden" role="dialog" aria-modal="true" aria-labelledby="groupScheduleEditTitle">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Schedule</p><h2 id="groupScheduleEditTitle">일정 수정</h2></div>
+          <button id="closeGroupScheduleEditButton" class="button ghost small" type="button">닫기</button>
+        </div>
+        <form id="groupEditScheduleForm" class="form-grid two">
+          <label>제목<input name="title" required /></label>
+          <label>일시<input name="scheduledAt" type="datetime-local" required /></label>
+          <label>장소<input name="location" placeholder="예: 온라인" /></label>
+          <label>온라인 링크<input name="onlineLink" placeholder="Zoom, Discord 등" /></label>
+          <label class="span-2">내용<textarea name="content" placeholder="이번 일정에서 다룰 내용을 적어주세요."></textarea></label>
+          <label class="span-2">준비물<textarea name="materials" placeholder="필요한 준비물을 적어주세요."></textarea></label>
+          <div class="form-actions span-2"><button id="cancelGroupScheduleEditButton" class="button ghost" type="button">취소</button><button class="button" type="submit">일정 수정</button></div>
+        </form>
+      </article>
+      <div id="groupScheduleDeadlineBackdrop" class="modal-backdrop hidden"></div>
+      <article id="groupScheduleDeadlinePanel" class="panel edit-panel modal-panel schedule-deadline-panel hidden" role="dialog" aria-modal="true" aria-labelledby="groupScheduleDeadlineTitle">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Deadline</p><h2 id="groupScheduleDeadlineTitle">응답 마감 변경</h2></div>
+          <button id="closeGroupScheduleDeadlineButton" class="button ghost small" type="button">닫기</button>
+        </div>
+        <form id="groupScheduleDeadlineForm" class="form-stack compact">
+          <label>응답 마감<input name="responseDeadline" type="datetime-local" /></label>
+          <p class="form-helper">비워두고 저장하면 별도 응답 마감이 제거됩니다.</p>
+          <div class="form-actions"><button id="clearGroupScheduleDeadlineButton" class="button ghost" type="button">마감 제거</button><button class="button" type="submit">마감 저장</button></div>
+        </form>
+      </article>
       <div id="activityRecordBackdrop" class="modal-backdrop hidden"></div>
       <article id="activityRecordPanel" class="panel edit-panel modal-panel activity-record-panel hidden" role="dialog" aria-modal="true" aria-labelledby="activityRecordTitle">
         <div class="panel-heading">
@@ -136,8 +165,8 @@
       </article>
     </main>
 
-    <script src="/js/api.js?v=20260724-activity-delete-fix"></script>
-    <script src="/js/auth.js?v=20260724-activity-delete-fix"></script>
-    <script src="/js/app.js?v=20260724-ended-attendance-guard"></script>
+    <script src="/js/api.js?v=20260727-schedule-management"></script>
+    <script src="/js/auth.js?v=20260727-schedule-management"></script>
+    <script src="/js/app.js?v=20260727-schedule-management"></script>
   </body>
 </html>
